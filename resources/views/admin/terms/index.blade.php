@@ -1,0 +1,134 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            <h2 class="font-semibold text-2xl text-white leading-tight">
+                Terms
+            </h2>
+        </div>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-semibold">Manage Terms</h3>
+                        <a href="{{ route('admin.terms.create') }}" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Add New Term
+                        </a>
+                    </div>
+
+                    @if(session('success'))
+                        <div class="mb-4 rounded-lg bg-green-50 p-4 text-green-800">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if($errors->any())
+                        <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
+                            <ul class="list-disc pl-5">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @forelse($terms as $term)
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {{ $term->name }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ $term->academicYear->year_name ?? 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ $term->start_date->format('M j, Y') }} - {{ $term->end_date->format('M j, Y') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @switch($term->status)
+                                            @case('active')
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                    Active
+                                                </span>
+                                                @break
+                                            @case('finalized')
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                                    Finalized
+                                                </span>
+                                                @break
+                                            @case('locked')
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                    Locked
+                                                </span>
+                                                @break
+                                        @endswitch
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="{{ route('admin.terms.edit', $term) }}" 
+                                           class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                            Edit
+                                        </a>
+                                        
+                                        @if($term->status === 'active')
+                                            <form action="{{ route('admin.terms.finalize', $term) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-purple-600 hover:text-purple-900 text-sm" 
+                                                        onclick="return confirm('Finalize this term?')">
+                                                    Finalize
+                                                </button>
+                                            </form>
+                                        @elseif($term->status === 'finalized')
+                                            <form action="{{ route('admin.terms.lock', $term) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-gray-600 hover:text-gray-900 text-sm" 
+                                                        onclick="return confirm('Lock this term? This cannot be undone.')">
+                                                    Lock
+                                                </button>
+                                            </form>
+                                        @endif
+                                        
+                                        @if($term->status !== 'locked' && $term->status !== 'finalized')
+                                            <form action="{{ route('admin.terms.destroy', $term) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-900 text-sm" 
+                                                        onclick="return confirm('Delete this term?')">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        No terms found.
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $terms->links() }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>

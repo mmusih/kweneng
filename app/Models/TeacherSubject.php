@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class TeacherSubject extends Model
+{
+    use HasFactory;
+
+    protected $table = 'teacher_subjects'; // Explicit table name
+
+    protected $fillable = [
+        'teacher_id',
+        'subject_id',
+        'class_id',
+        'academic_year_id',
+        'is_primary',
+        'remarks'
+    ];
+
+    protected $casts = [
+        'is_primary' => 'boolean',
+    ];
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id'); // Explicit foreign key
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id'); // Explicit foreign key
+    }
+
+    public function class()
+    {
+        return $this->belongsTo(ClassModel::class, 'class_id'); // Explicit foreign key
+    }
+
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class, 'academic_year_id'); // Explicit foreign key
+    }
+
+    public function classSubject()
+    {
+        return $this->belongsTo(ClassSubject::class, 'class_id', 'class_id')
+                   ->where('subject_id', $this->subject_id)
+                   ->where('academic_year_id', $this->academic_year_id);
+    }
+}
