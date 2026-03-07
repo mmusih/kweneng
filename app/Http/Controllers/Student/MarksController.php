@@ -7,7 +7,6 @@ use App\Models\AcademicYear;
 use App\Models\Term;
 use App\Models\Mark;
 use App\Models\StudentSubject;
-use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,10 +23,17 @@ class MarksController extends Controller
         
         $student = $user->student;
         
-        // Get academic years where student has marks
-        $academicYears = AcademicYear::whereHas('terms.marks', function($query) use ($student) {
-            $query->where('student_id', $student->id);
-        })->with('terms')->get();
+        // Simpler approach: Get distinct academic years where student has marks
+        $academicYearsWithMarks = Mark::where('student_id', $student->id)
+            ->join('academic_years', 'marks.academic_year_id', '=', 'academic_years.id')
+            ->select('academic_years.id', 'academic_years.year_name')
+            ->distinct()
+            ->get();
+        
+        // Load the full academic year models with terms
+        $academicYears = AcademicYear::whereIn('id', $academicYearsWithMarks->pluck('id'))
+            ->with('terms')
+            ->get();
         
         return view('student.marks.index', compact('academicYears'));
     }

@@ -5,10 +5,8 @@ use App\Http\Controllers\Student\MarksController;
 use App\Http\Controllers\Student\DashboardController;
 
 Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')->group(function () {
-    // Student dashboard
-    Route::get('/dashboard', function () {
-        return view('student.dashboard');
-    })->name('dashboard');
+    // Student dashboard - now uses proper controller
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Marks routes
     Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
