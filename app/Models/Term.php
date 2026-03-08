@@ -9,7 +9,6 @@ class Term extends Model
 {
     use HasFactory;
 
-    // Define constants for status values
     const STATUS_ACTIVE = 'active';
     const STATUS_FINALIZED = 'finalized';
     const STATUS_LOCKED = 'locked';
@@ -33,7 +32,15 @@ class Term extends Model
     {
         return $this->belongsTo(AcademicYear::class);
     }
-    
+
+    /**
+     * ADD THIS RELATIONSHIP
+     */
+    public function marks()
+    {
+        return $this->hasMany(Mark::class);
+    }
+
     // Helper methods
     public function isActive(): bool
     {

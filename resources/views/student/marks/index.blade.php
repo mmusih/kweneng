@@ -1,9 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="mt-16 p-6 bg-white rounded-lg shadow-md border border-gray-200">
-            <h2 class="font-bold text-2xl text-center text-gray-800 leading-tight">
-                My Marks
-            </h2>
+            <div class="flex justify-between items-center">
+                <h2 class="font-bold text-2xl text-gray-800 leading-tight">
+                    My Marks
+                </h2>
+                <a href="{{ route('student.dashboard') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Dashboard
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -11,9 +20,18 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <div class="mb-6">
-                        <h3 class="text-2xl font-semibold">View Your Marks</h3>
-                        <p class="text-gray-600">Browse your academic performance across different terms.</p>
+                    <div class="mb-6 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-2xl font-semibold">View Your Marks</h3>
+                            <p class="text-gray-600">Browse your academic performance across different terms.</p>
+                        </div>
+                        <a href="{{ route('student.dashboard') }}" 
+                           class="inline-flex items-center text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to Dashboard
+                        </a>
                     </div>
 
                     @if($academicYears->count() > 0)
@@ -82,6 +100,12 @@
                             </svg>
                             <h3 class="mt-2 text-sm font-medium text-gray-900">No marks available</h3>
                             <p class="mt-1 text-sm text-gray-500">You don't have any marks recorded yet.</p>
+                            <div class="mt-4">
+                                <a href="{{ route('student.dashboard') }}" 
+                                   class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                    Back to Dashboard
+                                </a>
+                            </div>
                         </div>
                     @endif
                 </div>
