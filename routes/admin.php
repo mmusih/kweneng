@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\MarksController;
+use App\Http\Controllers\Admin\LibrarianController;
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -27,6 +28,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Parent Management
     Route::resource('parents', ParentController::class)->except(['show']);
+
+    // Librarian Management
+    Route::resource('librarians', LibrarianController::class)->except(['show']);
     
     // Academic Year Management
     Route::resource('academic-years', AcademicYearController::class);
@@ -84,4 +88,5 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/student-subjects/classes/{academicYearId}', [MarksController::class, 'getClassesByAcademicYear']);
     Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
     Route::get('/student-subjects/subjects/{classId}/{academicYearId}', [MarksController::class, 'getSubjectsByClass']);
+    Route::get('/terms/by-academic-year/{academicYearId}', [MarksController::class, 'getTermsByAcademicYear'])->name('terms.by-academic-year');
 });

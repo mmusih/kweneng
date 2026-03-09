@@ -315,4 +315,23 @@ public function getStudentsByClass($classId, $academicYearId)
             return response()->json(['error' => 'Failed to load subjects'], 500);
         }
     }
+
+    public function getTermsByAcademicYear($academicYearId)
+{
+    if (!AcademicYear::find($academicYearId)) {
+        return response()->json(['error' => 'Invalid academic year'], 404);
+    }
+
+    try {
+        $terms = Term::where('academic_year_id', $academicYearId)
+            ->orderBy('start_date')
+            ->get(['id', 'name']);
+
+        return response()->json($terms);
+    } catch (\Exception $e) {
+        Log::error('Failed to load terms: ' . $e->getMessage());
+
+        return response()->json(['error' => 'Failed to load terms'], 500);
+    }
+}
 }

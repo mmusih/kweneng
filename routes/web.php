@@ -49,6 +49,16 @@ if (file_exists(__DIR__.'/accounts.php')) {
     require __DIR__.'/accounts.php';
 }
 
+// Include headmaster routes
+if (file_exists(__DIR__.'/headmaster.php')) {
+    require __DIR__.'/headmaster.php';
+}
+
+// Include librarian routes
+if (file_exists(__DIR__.'/librarian.php')) {
+    require __DIR__.'/librarian.php';
+}
+
 // TEMPORARY DEBUG ROUTE
 Route::get('/debug-enrollment/{classId}/{academicYearId}', function ($classId, $academicYearId) {
     try {

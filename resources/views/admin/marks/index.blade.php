@@ -1,9 +1,11 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+<x-slot name="header">
+    <div class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+        <h2 class="font-semibold text-2xl text-white leading-tight">
             Manage Marks
         </h2>
-    </x-slot>
+    </div>
+</x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -23,7 +25,7 @@
                     <!-- Filters -->
                     <div class="mb-8 p-6 bg-gray-50 rounded-lg">
                         <h4 class="text-lg font-semibold mb-4">Filter Marks</h4>
-                        <form method="GET" action="{{ route('admin.marks.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <form method="GET" action="{{ route('admin.marks.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4" id="marks-filter-form">
                             <div>
                                 <x-input-label for="academic_year_id" :value="__('Academic Year')" />
                                 <select id="academic_year_id" name="academic_year_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
@@ -40,7 +42,16 @@
                                 <x-input-label for="term_id" :value="__('Term')" />
                                 <select id="term_id" name="term_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                                     <option value="">All Terms</option>
-                                    <!-- Options would be populated via JS or API -->
+                                    @if(request('academic_year_id'))
+                                        @php
+                                            $terms = \App\Models\Term::where('academic_year_id', request('academic_year_id'))->get();
+                                        @endphp
+                                        @foreach($terms as $term)
+                                            <option value="{{ $term->id }}" {{ request('term_id') == $term->id ? 'selected' : '' }}>
+                                                {{ $term->name }}
+                                            </option>
+                                        @endforeach
+                                    @endif
                                 </select>
                             </div>
                             
@@ -111,17 +122,17 @@
                                 @forelse($marks as $mark)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">{{ $mark->student->user->name }}</div>
-                                        <div class="text-sm text-gray-500">{{ $mark->student->admission_no }}</div>
+                                        <div class="text-sm font-medium text-gray-900">{{ $mark->student->user->name ?? 'Unknown Student' }}</div>
+                                        <div class="text-sm text-gray-500">{{ $mark->student->admission_no ?? 'N/A' }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $mark->subject->name }} ({{ $mark->subject->code }})
+                                        {{ $mark->subject->name ?? 'Unknown Subject' }} ({{ $mark->subject->code ?? 'N/A' }})
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $mark->class->name }}
+                                        {{ $mark->class->name ?? 'Unknown Class' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $mark->term->name }}
+                                        {{ $mark->term->name ?? 'Unknown Term' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $mark->midterm_score ?? 'N/A' }}
@@ -140,6 +151,7 @@
                                                     @case('D') bg-orange-100 text-orange-800 @break
                                                     @case('E') bg-red-100 text-red-800 @break
                                                     @case('F') bg-red-100 text-red-800 @break
+                                                    @default bg-gray-100 text-gray-800
                                                 @endswitch">
                                                 {{ $mark->grade }}
                                             </span>
@@ -148,7 +160,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ $mark->teacher->user->name }}
+                                        {{ $mark->teacher->user->name ?? 'Unknown Teacher' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('admin.marks.show', $mark) }}" 
@@ -190,4 +202,61 @@
             </div>
         </div>
     </div>
+    
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const academicYearSelect = document.getElementById('academic_year_id');
+        const termSelect = document.getElementById('term_id');
+
+        if (academicYearSelect) {
+            academicYearSelect.addEventListener('change', function() {
+                const academicYearId = this.value;
+
+                if (academicYearId) {
+                    loadTerms(academicYearId);
+                } else {
+                    termSelect.innerHTML = '<option value="">All Terms</option>';
+                }
+            });
+        }
+
+        function loadTerms(academicYearId) {
+            termSelect.innerHTML = '<option value="">Loading...</option>';
+
+            fetch(`/admin/terms/by-academic-year/${academicYearId}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                termSelect.innerHTML = '<option value="">All Terms</option>';
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    termSelect.innerHTML = '<option value="">No Terms Found</option>';
+                    return;
+                }
+
+                data.forEach(term => {
+                    const option = document.createElement('option');
+                    option.value = term.id;
+                    option.textContent = term.name;
+                    termSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading terms:', error);
+                termSelect.innerHTML = '<option value="">Error loading terms</option>';
+            });
+        }
+    });
+</script>
+@endpush
 </x-app-layout>

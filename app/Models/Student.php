@@ -81,4 +81,9 @@ class Student extends Model
     {
         return $this->hasMany(StudentSubject::class);
     }
+
+    public function headmasterComments()
+{
+    return $this->hasMany(HeadmasterComment::class);
+}
 }

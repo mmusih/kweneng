@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Teacher\MarksController;
 
-Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+Route::middleware(['auth', 'role:teacher,headmaster'])->prefix('teacher')->name('teacher.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Marks routes
@@ -14,7 +14,5 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::post('/marks', [MarksController::class, 'store'])->name('marks.store');
     Route::get('/marks/{id}/edit', [MarksController::class, 'edit'])->name('marks.edit');
     Route::put('/marks/{id}', [MarksController::class, 'update'])->name('marks.update');
-    
-    // NEW: Add this route for loading terms
     Route::get('/marks/terms/{academicYearId}', [MarksController::class, 'loadTerms'])->name('marks.load-terms');
 });
