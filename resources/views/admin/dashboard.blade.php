@@ -319,6 +319,34 @@
                                 </div>
                             </div>
                         </a>
+
+                        <a href="{{ route('admin.alumni.index') }}"
+                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-indigo-300 hover:-translate-y-1 relative">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-semibold">Alumni</h4>
+                                    <p class="text-sm text-gray-500">
+                                        {{ $stats['totalAlumni'] ?? 0 }} registered
+                                    </p>
+                                </div>
+                            </div>
+
+                            @if ($pendingInterests > 0)
+                                <span
+                                    class="absolute top-3 right-3 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                                    {{ $pendingInterests }} new
+                                </span>
+                            @endif
+                        </a>
                     </div>
                 </div>
             </div>

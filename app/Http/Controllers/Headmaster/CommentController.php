@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Headmaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\Attendance;
+use App\Models\BehaviourRecord;
 use App\Models\ClassModel;
 use App\Models\HeadmasterComment;
+use App\Models\Punctuality;
 use App\Models\Student;
 use App\Models\Term;
 use Illuminate\Http\Request;
@@ -34,22 +37,28 @@ class CommentController extends Controller
 
             if ($selectedClassId && $selectedTermId) {
                 $students = Student::with([
-                        'user',
-                        'currentClass',
-                        'marks' => function ($query) use ($activeAcademicYear, $selectedTermId) {
-                            $query->with('subject')
-                                ->where('academic_year_id', $activeAcademicYear->id)
-                                ->where('term_id', $selectedTermId)
-                                ->orderBy('subject_id');
-                        },
-                        'headmasterComments' => function ($query) use ($selectedTermId) {
-                            $query->where('term_id', $selectedTermId);
-                        },
-                    ])
+                    'user',
+                    'currentClass',
+                    'marks' => function ($query) use ($activeAcademicYear, $selectedTermId) {
+                        $query->with('subject')
+                            ->where('academic_year_id', $activeAcademicYear->id)
+                            ->where('term_id', $selectedTermId)
+                            ->orderBy('subject_id');
+                    },
+                    'headmasterComments' => function ($query) use ($selectedTermId) {
+                        $query->where('term_id', $selectedTermId);
+                    },
+                    'behaviourRecords' => function ($query) use ($activeAcademicYear, $selectedTermId) {
+                        $query->where('academic_year_id', $activeAcademicYear->id)
+                            ->where('term_id', $selectedTermId)
+                            ->latest('record_date')
+                            ->latest('id');
+                    },
+                ])
                     ->where('current_class_id', $selectedClassId)
                     ->orderBy('admission_no')
                     ->get()
-                    ->map(function ($student) {
+                    ->map(function ($student) use ($activeAcademicYear, $selectedTermId) {
                         $marks = $student->marks;
 
                         $subjectBreakdown = $marks->map(function ($mark) {
@@ -75,28 +84,85 @@ class CommentController extends Controller
                             ];
                         });
 
-                        $averages = $subjectBreakdown->pluck('average')->filter(fn ($value) => $value !== null);
+                        $averages = $subjectBreakdown->pluck('average')->filter(fn($value) => $value !== null);
 
                         $studentAverage = $averages->count() > 0
                             ? round($averages->avg(), 2)
                             : null;
 
                         $topSubjects = $subjectBreakdown
-                            ->filter(fn ($row) => $row['average'] !== null)
+                            ->filter(fn($row) => $row['average'] !== null)
                             ->sortByDesc('average')
                             ->take(3)
                             ->values();
 
                         $weakSubjects = $subjectBreakdown
-                            ->filter(fn ($row) => $row['average'] !== null)
+                            ->filter(fn($row) => $row['average'] !== null)
                             ->sortBy('average')
                             ->take(3)
                             ->values();
+
+                        $attendanceRecords = Attendance::where('student_id', $student->id)
+                            ->where('academic_year_id', $activeAcademicYear->id)
+                            ->where('term_id', $selectedTermId)
+                            ->get();
+
+                        $attendanceTotal = $attendanceRecords->count();
+                        $attendancePresentEquivalent = $attendanceRecords->whereIn('status', [
+                            Attendance::STATUS_PRESENT,
+                            Attendance::STATUS_LATE,
+                            Attendance::STATUS_EXCUSED,
+                        ])->count();
+
+                        $attendanceRate = $attendanceTotal > 0
+                            ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1)
+                            : null;
+
+                        $attendanceSummary = [
+                            'total' => $attendanceTotal,
+                            'present' => $attendanceRecords->where('status', Attendance::STATUS_PRESENT)->count(),
+                            'absent' => $attendanceRecords->where('status', Attendance::STATUS_ABSENT)->count(),
+                            'late' => $attendanceRecords->where('status', Attendance::STATUS_LATE)->count(),
+                            'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
+                            'rate' => $attendanceRate,
+                        ];
+
+                        $punctualityRecords = Punctuality::where('student_id', $student->id)
+                            ->where('academic_year_id', $activeAcademicYear->id)
+                            ->where('term_id', $selectedTermId)
+                            ->get();
+
+                        $punctualityTotal = $punctualityRecords->count();
+                        $onTimeRate = $punctualityTotal > 0
+                            ? round(($punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count() / $punctualityTotal) * 100, 1)
+                            : null;
+
+                        $punctualitySummary = [
+                            'total' => $punctualityTotal,
+                            'on_time' => $punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count(),
+                            'late' => $punctualityRecords->where('status', Punctuality::STATUS_LATE)->count(),
+                            'very_late' => $punctualityRecords->where('status', Punctuality::STATUS_VERY_LATE)->count(),
+                            'absent' => $punctualityRecords->where('status', Punctuality::STATUS_ABSENT)->count(),
+                            'on_time_rate' => $onTimeRate,
+                        ];
+
+                        $behaviourRecords = $student->behaviourRecords;
+
+                        $behaviourSummary = [
+                            'total' => $behaviourRecords->count(),
+                            'minor' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MINOR)->count(),
+                            'moderate' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count(),
+                            'major' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count(),
+                            'recent' => $behaviourRecords->take(5)->values(),
+                        ];
 
                         $student->subject_breakdown = $subjectBreakdown;
                         $student->student_average = $studentAverage;
                         $student->top_subjects = $topSubjects;
                         $student->weak_subjects = $weakSubjects;
+                        $student->attendance_summary = $attendanceSummary;
+                        $student->punctuality_summary = $punctualitySummary;
+                        $student->behaviour_summary = $behaviourSummary;
 
                         return $student;
                     });

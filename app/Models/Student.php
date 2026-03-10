@@ -54,10 +54,10 @@ class Student extends Model
     public function parents()
     {
         return $this->belongsToMany(ParentModel::class, 'parent_student', 'student_id', 'parent_id')
-                    ->withPivot('relationship')
-                    ->withTimestamps();
+            ->withPivot('relationship')
+            ->withTimestamps();
     }
-    
+
     /**
      * Get class history records.
      */
@@ -65,7 +65,7 @@ class Student extends Model
     {
         return $this->hasMany(StudentClassHistory::class);
     }
-    
+
     /**
      * Get the marks for the student.
      */
@@ -83,7 +83,22 @@ class Student extends Model
     }
 
     public function headmasterComments()
-{
-    return $this->hasMany(HeadmasterComment::class);
-}
+    {
+        return $this->hasMany(HeadmasterComment::class);
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function punctualities()
+    {
+        return $this->hasMany(Punctuality::class);
+    }
+
+    public function behaviourRecords()
+    {
+        return $this->hasMany(BehaviourRecord::class);
+    }
 }
