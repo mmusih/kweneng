@@ -13,36 +13,38 @@ use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\MarksController;
 use App\Http\Controllers\Admin\LibrarianController;
+use App\Http\Controllers\Admin\ExamSummaryController;
+
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Student Management
     Route::resource('students', StudentController::class);
-    
+
     // Class Management
     Route::resource('classes', ClassController::class);
-    
+
     // Teacher Management
     Route::resource('teachers', TeacherController::class)->except(['show']);
-    
+
     // Parent Management
     Route::resource('parents', ParentController::class)->except(['show']);
 
     // Librarian Management
     Route::resource('librarians', LibrarianController::class)->except(['show']);
-    
+
     // Academic Year Management
     Route::resource('academic-years', AcademicYearController::class);
     Route::post('academic-years/{academicYear}/close', [AcademicYearController::class, 'close'])->name('academic-years.close');
     Route::post('academic-years/{academicYear}/lock', [AcademicYearController::class, 'lock'])->name('academic-years.lock');
-    
+
     // Term Management
     Route::resource('terms', TermController::class);
     Route::post('terms/{term}/finalize', [TermController::class, 'finalize'])->name('terms.finalize');
     Route::post('terms/{term}/lock', [TermController::class, 'lock'])->name('terms.lock');
     Route::post('terms/{term}/activate', [TermController::class, 'activate'])->name('terms.activate');
-    
+
     // Subject Management Routes
     Route::resource('subjects', SubjectController::class);
 
@@ -54,22 +56,22 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('subjects/manage/teachers', [SubjectController::class, 'manageTeacherAssignments'])->name('subjects.manage-teachers');
     Route::post('subjects/assign/teacher', [SubjectController::class, 'assignTeacherToSubject'])->name('subjects.assign-teacher');
     Route::delete('subjects/remove/teacher', [SubjectController::class, 'removeTeacherFromSubject'])->name('subjects.remove-teacher');
-    
+
     // Promotion Management
     Route::get('promotions', [PromotionController::class, 'index'])->name('promotions.index');
     Route::post('promotions/promote-student', [PromotionController::class, 'promoteStudent'])->name('promotions.promote-student');
     Route::post('promotions/bulk-promote', [PromotionController::class, 'bulkPromote'])->name('promotions.bulk-promote');
     Route::post('promotions/reverse-promotion', [PromotionController::class, 'reversePromotion'])->name('promotions.reverse-promotion');
-    
+
     // ALUMNI ROUTES - ORDER MATTERS!
     // Specific routes MUST come BEFORE resource routes
     Route::get('alumni/interests', [AlumniController::class, 'interests'])->name('alumni.interests');
     Route::patch('alumni/interests/{interest}', [AlumniController::class, 'processInterest'])->name('alumni.process-interest');
     Route::post('alumni/interests/{interest}/convert', [AlumniController::class, 'convertInterestToAlumni'])->name('alumni.convert-interest');
-    
+
     // Resource route MUST come AFTER specific routes
     Route::resource('alumni', AlumniController::class);
-    
+
     // MARKS MANAGEMENT ROUTES
     Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
     Route::get('/marks/{id}', [MarksController::class, 'show'])->name('marks.show');
@@ -84,9 +86,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/student-subjects', [MarksController::class, 'studentSubjectsStore'])->name('student-subjects.store');
     Route::delete('/student-subjects/{id}', [MarksController::class, 'studentSubjectsDestroy'])->name('student-subjects.destroy');
 
+    // EXAM SUMMARY ROUTES
+    Route::get('/exam-summaries', [ExamSummaryController::class, 'index'])->name('exam-summaries.index');
+
+    Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
+
     // AJAX ENDPOINTS FOR DYNAMIC LOADING
     Route::get('/student-subjects/classes/{academicYearId}', [MarksController::class, 'getClassesByAcademicYear']);
     Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
     Route::get('/student-subjects/subjects/{classId}/{academicYearId}', [MarksController::class, 'getSubjectsByClass']);
     Route::get('/terms/by-academic-year/{academicYearId}', [MarksController::class, 'getTermsByAcademicYear'])->name('terms.by-academic-year');
+    
 });

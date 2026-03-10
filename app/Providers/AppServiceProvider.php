@@ -6,7 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use App\Services\PromotionService;
 use App\Services\AcademicStructureService;
 use App\Services\SubjectService;
-use App\Services\MarksService; // Add this
+use App\Services\MarksService;
+use App\Services\ExamSummaryService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,24 +16,26 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Bind PromotionService to the container
         $this->app->singleton(PromotionService::class, function ($app) {
             return new PromotionService();
         });
-        
-        // Bind AcademicStructureService to the container
+
         $this->app->singleton(AcademicStructureService::class, function ($app) {
             return new AcademicStructureService();
         });
-        
-        // Bind SubjectService to the container
+
         $this->app->singleton(SubjectService::class, function ($app) {
             return new SubjectService();
         });
-        
-        // Bind MarksService to the container
+
         $this->app->singleton(MarksService::class, function ($app) {
             return new MarksService();
+        });
+
+        $this->app->singleton(ExamSummaryService::class, function ($app) {
+            return new ExamSummaryService(
+                $app->make(MarksService::class)
+            );
         });
     }
 
