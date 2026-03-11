@@ -1,6 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+        <div
+            class="mt-16 p-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Parent Dashboard
             </h2>
@@ -9,120 +10,245 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+
                     <div class="mb-6">
                         <h3 class="text-2xl font-semibold">Welcome, {{ auth()->user()->name }}!</h3>
                         <p class="text-gray-600">Monitor your children's academic progress and school information.</p>
                     </div>
 
-                    <!-- Children Overview -->
+                    {{-- DASHBOARD STATS --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-blue-50 border border-blue-100 p-5 rounded-lg">
+                            <p class="text-sm text-blue-700">Total Children</p>
+                            <p class="text-3xl font-bold text-blue-600 mt-2">
+                                {{ $stats['totalChildren'] }}
+                            </p>
+                        </div>
+
+                        <div class="bg-green-50 border border-green-100 p-5 rounded-lg">
+                            <p class="text-sm text-green-700">Results Accessible</p>
+                            <p class="text-3xl font-bold text-green-600 mt-2">
+                                {{ $stats['accessibleChildren'] }}
+                            </p>
+                        </div>
+
+                        <div class="bg-red-50 border border-red-100 p-5 rounded-lg">
+                            <p class="text-sm text-red-700">Blocked</p>
+                            <p class="text-3xl font-bold text-red-600 mt-2">
+                                {{ $stats['blockedChildren'] }}
+                            </p>
+                        </div>
+
+                        <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-lg">
+                            <p class="text-sm text-indigo-700">Children With Marks</p>
+                            <p class="text-3xl font-bold text-indigo-600 mt-2">
+                                {{ $stats['childrenWithMarks'] }}
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- CURRENT ACADEMIC STATUS --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold text-gray-800">Current Academic Year</h4>
+                            @if ($currentAcademicYear)
+                                <p class="text-2xl font-bold text-gray-900 mt-2">{{ $currentAcademicYear->year_name }}
+                                </p>
+                            @else
+                                <p class="text-gray-500 mt-2">No active academic year</p>
+                            @endif
+                        </div>
+
+                        <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold text-gray-800">Current Term</h4>
+                            @if ($currentTerm)
+                                <p class="text-2xl font-bold text-gray-900 mt-2">{{ $currentTerm->name }}</p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    {{ $currentTerm->start_date->format('M j') }} -
+                                    {{ $currentTerm->end_date->format('M j, Y') }}
+                                </p>
+                            @else
+                                <p class="text-gray-500 mt-2">No active term</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- CHILDREN CARDS --}}
                     <div class="mb-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Your Children</h4>
-                        @if($children && $children->count() > 0)
+
+                        @if ($children->count() > 0)
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                @foreach($children as $child)
-                                    <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                @foreach ($children as $child)
+                                    <div class="border rounded-lg p-4 hover:shadow-md transition">
                                         <div class="flex items-center">
-                                            @if($child->photo)
-                                                <img class="h-12 w-12 rounded-full" src="{{ Storage::url($child->photo) }}" alt="{{ $child->user->name }}">
+                                            @if ($child->photo)
+                                                <img class="h-12 w-12 rounded-full"
+                                                    src="{{ Storage::url($child->photo) }}"
+                                                    alt="{{ $child->user->name }}">
                                             @else
-                                                <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                                                    <span class="text-gray-500">{{ substr($child->user->name ?? 'N', 0, 1) }}</span>
+                                                <div
+                                                    class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <span class="text-gray-500">
+                                                        {{ substr($child->user->name ?? 'N', 0, 1) }}
+                                                    </span>
                                                 </div>
                                             @endif
+
                                             <div class="ml-4">
-                                                <h5 class="font-medium text-gray-800">{{ $child->user->name ?? 'Unknown Student' }}</h5>
-                                                <p class="text-sm text-gray-600">{{ $child->admission_no ?? 'N/A' }}</p>
+                                                <h5 class="font-medium text-gray-800">
+                                                    {{ $child->user->name ?? 'Unknown Student' }}</h5>
+                                                <p class="text-sm text-gray-600">{{ $child->admission_no ?? 'N/A' }}
+                                                </p>
                                             </div>
                                         </div>
-                                        
-                                        @if($child->currentClass)
-                                            <div class="mt-3 text-sm">
-                                                <span class="text-gray-600">Class:</span>
-                                                <span class="font-medium">{{ $child->currentClass->name ?? 'N/A' }}</span>
-                                            </div>
-                                        @endif
-                                        
-                                        <div class="mt-2 flex items-center">
-                                            <div class="w-2 h-2 rounded-full {{ $child->user->status === 'active' ? 'bg-green-500' : 'bg-red-500' }} mr-2"></div>
-                                            <span class="text-xs text-gray-600">
-                                                {{ $child->user->status === 'active' ? 'Active' : 'Inactive' }}
+
+                                        <div class="mt-3 text-sm text-gray-600">
+                                            Class:
+                                            <span class="font-medium">
+                                                {{ $child->currentClass->name ?? 'N/A' }}
                                             </span>
                                         </div>
+
+                                        @if ($child->fees_blocked)
+                                            <div class="mt-4 bg-red-50 border border-red-200 rounded p-3">
+                                                <p class="text-sm font-semibold text-red-700">
+                                                    Results Access Blocked
+                                                </p>
+                                                <p class="text-xs text-red-600 mt-1">
+                                                    Please contact the accounts office.
+                                                </p>
+                                            </div>
+                                        @else
+                                            <div class="mt-4 bg-green-50 border border-green-200 rounded p-3">
+                                                <p class="text-sm font-semibold text-green-700">
+                                                    Results Accessible
+                                                </p>
+                                            </div>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
                         @else
                             <div class="bg-gray-50 rounded-lg p-8 text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <h3 class="mt-2 text-sm font-medium text-gray-900">No children linked</h3>
-                                <p class="mt-1 text-sm text-gray-500">You don't have any children linked to your account yet.</p>
-                                <div class="mt-4">
-                                    <p class="text-xs text-gray-500">Please contact the school administration to link your children.</p>
-                                </div>
+                                <p class="text-gray-500">No children linked to your account.</p>
                             </div>
                         @endif
                     </div>
 
-                    <!-- CHILDREN'S MARKS OVERVIEW SECTION -->
-                    @if($children && $children->count() > 0)
-                        <div class="mt-8" id="marks-overview">
+                    {{-- BLOCKED NOTICE --}}
+                    @if ($blockedChildren->count() > 0)
+                        <div class="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-red-800">Restricted Academic Access</h4>
+                            <p class="text-sm text-red-700 mt-1">
+                                One or more students linked to your account currently have restricted access to results
+                                due to outstanding obligations.
+                            </p>
+                        </div>
+                    @endif
+
+                    {{-- MARKS OVERVIEW --}}
+                    @if ($accessibleChildren->count() > 0)
+                        <div class="mt-8">
                             <div class="mb-4">
-                                <h4 class="text-lg font-semibold text-gray-800">Children's Marks Overview</h4>
-                                <p class="text-sm text-gray-600 mt-1">Current term performance summary</p>
+                                <h4 class="text-lg font-semibold text-gray-800">Children's Academic Overview</h4>
+                                <p class="text-sm text-gray-600 mt-1">Current term performance and student life summary
+                                </p>
                             </div>
-                            
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                @foreach($children as $child)
+                                @foreach ($marksOverview as $overview)
                                     <div class="border rounded-lg p-4">
                                         <div class="flex justify-between items-center mb-3">
-                                            <h5 class="font-medium text-gray-800">{{ $child->user->name ?? 'Unknown Student' }}</h5>
-                                            <span class="text-sm text-gray-600">{{ $child->admission_no ?? 'N/A' }}</span>
+                                            <h5 class="font-medium text-gray-800">{{ $overview['student_name'] }}</h5>
+                                            <span class="text-sm text-gray-600">{{ $overview['admission_no'] }}</span>
                                         </div>
-                                        
-                                        @php
-                                            $currentTerm = \App\Models\Term::where('status', 'active')->first();
-                                            $marks = collect();
-                                            $averages = ['midterm' => null, 'endterm' => null];
-                                            
-                                            if ($currentTerm && $child) {
-                                                $marks = \App\Models\Mark::where('student_id', $child->id)
-                                                    ->where('term_id', $currentTerm->id)
-                                                    ->with('subject')
-                                                    ->get();
-                                                
-                                                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
-                                                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
-                                                
-                                                $averages['midterm'] = $midtermScores->isNotEmpty() ? round($midtermScores->avg(), 2) : null;
-                                                $averages['endterm'] = $endtermScores->isNotEmpty() ? round($endtermScores->avg(), 2) : null;
-                                            }
-                                        @endphp
-                                        
-                                        @if($currentTerm)
+
+                                        @if ($currentTerm)
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div class="bg-blue-50 p-3 rounded">
                                                     <p class="text-xs text-blue-700">Midterm Avg</p>
                                                     <p class="text-xl font-bold text-blue-600">
-                                                        {{ $averages['midterm'] ? number_format($averages['midterm'], 2) : 'N/A' }}
+                                                        {{ $overview['midterm_average'] !== null ? number_format($overview['midterm_average'], 2) : 'N/A' }}
                                                     </p>
                                                 </div>
+
                                                 <div class="bg-green-50 p-3 rounded">
                                                     <p class="text-xs text-green-700">Endterm Avg</p>
                                                     <p class="text-xl font-bold text-green-600">
-                                                        {{ $averages['endterm'] ? number_format($averages['endterm'], 2) : 'N/A' }}
+                                                        {{ $overview['endterm_average'] !== null ? number_format($overview['endterm_average'], 2) : 'N/A' }}
                                                     </p>
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="mt-3 text-sm text-gray-600">
-                                                {{ $marks->count() }} subjects marked
-                                                @if($child->currentClass)
-                                                    | {{ $child->currentClass->name ?? 'N/A' }}
-                                                @endif
+                                                {{ $overview['subjects_count'] }} subjects marked
+                                                | {{ $overview['class_name'] }}
+                                            </div>
+
+                                            <div class="mt-4 grid grid-cols-1 gap-2 text-sm">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Performance</span>
+                                                    <span class="font-medium text-indigo-600">
+                                                        {{ $overview['performance_label'] ?? 'N/A' }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Trend</span>
+                                                    <span class="font-medium text-blue-600">
+                                                        {{ $overview['trend'] ?? 'N/A' }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Midterm Position</span>
+                                                    <span class="font-medium text-gray-800">
+                                                        @if ($overview['midterm_position'] && $overview['midterm_position']['position'])
+                                                            {{ $overview['midterm_position']['position'] }}/{{ $overview['midterm_position']['class_size'] }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Endterm Position</span>
+                                                    <span class="font-medium text-gray-800">
+                                                        @if ($overview['endterm_position'] && $overview['endterm_position']['position'])
+                                                            {{ $overview['endterm_position']['position'] }}/{{ $overview['endterm_position']['class_size'] }}
+                                                        @else
+                                                            N/A
+                                                        @endif
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Attendance</span>
+                                                    <span class="font-medium text-indigo-600">
+                                                        {{ $overview['attendance_rate'] !== null ? $overview['attendance_rate'] . '%' : 'N/A' }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Punctuality</span>
+                                                    <span class="font-medium text-gray-800">
+                                                        On time {{ $overview['punctuality_on_time'] }},
+                                                        Late {{ $overview['punctuality_late'] }},
+                                                        Very late {{ $overview['punctuality_very_late'] }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Behaviour</span>
+                                                    <span class="font-medium text-gray-800">
+                                                        {{ $overview['behaviour_label'] }}
+                                                        ({{ $overview['behaviour_total'] }})
+                                                    </span>
+                                                </div>
                                             </div>
                                         @else
                                             <p class="text-sm text-gray-500">No active term currently</p>
@@ -133,76 +259,85 @@
                         </div>
                     @endif
 
-                    <!-- Quick Access Section -->
+                    {{-- QUICK ACCESS --}}
                     <div class="mt-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Quick Access</h4>
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <a href="{{ route('parent.children.marks.index') }}" class="border rounded-lg p-4 hover:shadow-md transition-shadow block">
-                                <div class="flex items-center">
-                                    <div class="rounded-full bg-blue-100 p-2">
-                                        <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
-                                        </svg>
+                            @if ($accessibleChildren->count() > 0)
+                                <a href="{{ route('parent.children.marks.index') }}"
+                                    class="border rounded-lg p-4 hover:shadow-md transition">
+                                    <div class="flex items-center">
+                                        <div class="rounded-full bg-blue-100 p-2">
+                                            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="ml-3">
+                                            <h5 class="font-medium text-gray-800">View All Marks</h5>
+                                            <p class="text-sm text-gray-600">See detailed performance</p>
+                                        </div>
                                     </div>
-                                    <div class="ml-3">
-                                        <h5 class="font-medium text-gray-800">View All Marks</h5>
-                                        <p class="text-sm text-gray-600">See detailed performance</p>
+                                </a>
+                            @else
+                                <div class="border rounded-lg p-4 bg-gray-50 opacity-80">
+                                    <div class="flex items-center">
+                                        <div class="rounded-full bg-gray-200 p-2">
+                                            <svg class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                                            </svg>
+                                        </div>
+
+                                        <div class="ml-3">
+                                            <h5 class="font-medium text-gray-700">View All Marks</h5>
+                                            <p class="text-sm text-gray-500">Unavailable at this time</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </a>
-                            
+                            @endif
+
                             <div class="border rounded-lg p-4 opacity-50">
-                                <div class="flex items-center">
-                                    <div class="rounded-full bg-green-100 p-2">
-                                        <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h5 class="font-medium text-gray-800">Attendance</h5>
-                                        <p class="text-sm text-gray-600">Coming soon</p>
-                                    </div>
-                                </div>
+                                <h5 class="font-medium">Attendance</h5>
+                                <p class="text-sm text-gray-600">Detailed reports coming soon</p>
                             </div>
-                            
+
                             <div class="border rounded-lg p-4 opacity-50">
-                                <div class="flex items-center">
-                                    <div class="rounded-full bg-purple-100 p-2">
-                                        <svg class="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h5 class="font-medium text-gray-800">Events</h5>
-                                        <p class="text-sm text-gray-600">Coming soon</p>
-                                    </div>
-                                </div>
+                                <h5 class="font-medium">Events</h5>
+                                <p class="text-sm text-gray-600">Coming soon</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Account Information -->
+                    {{-- ACCOUNT INFO --}}
                     <div class="mt-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h4>
+
                         <div class="bg-gray-50 rounded-lg p-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-sm text-gray-600">Email</p>
                                     <p class="font-medium">{{ auth()->user()->email }}</p>
                                 </div>
+
                                 <div>
                                     <p class="text-sm text-gray-600">Account Status</p>
-                                    <p class="font-medium">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Active
-                                        </span>
-                                    </p>
+                                    <span
+                                        class="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        Active
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
+
         </div>
     </div>
 </x-app-layout>

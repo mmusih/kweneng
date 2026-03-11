@@ -19,24 +19,24 @@ class ExamSummaryController extends Controller
 
     public function index(Request $request)
     {
-        $activeAcademicYear = AcademicYear::where('active', true)->first();
+        $academicYears = AcademicYear::orderByDesc('year_name')->get();
         $classes = collect();
         $terms = collect();
         $summary = null;
 
-        $selectedAcademicYearId = $request->input('academic_year_id', $activeAcademicYear?->id);
-        $selectedClassId = $request->input('class_id');
-        $selectedTermId = $request->input('term_id');
-        $selectedExamType = $request->input('exam_type', ExamSummaryService::EXAM_MIDTERM);
+        $validated = $request->validate([
+            'academic_year_id' => ['nullable', 'exists:academic_years,id'],
+            'class_id' => ['nullable', 'exists:classes,id'],
+            'term_id' => ['nullable', 'exists:terms,id'],
+            'exam_type' => ['nullable', Rule::in(ExamSummaryService::examTypes())],
+        ]);
+
+        $selectedAcademicYearId = $validated['academic_year_id'] ?? AcademicYear::where('active', true)->value('id');
+        $selectedClassId = $validated['class_id'] ?? null;
+        $selectedTermId = $validated['term_id'] ?? null;
+        $selectedExamType = $validated['exam_type'] ?? ExamSummaryService::EXAM_MIDTERM;
 
         if ($selectedAcademicYearId) {
-            $request->validate([
-                'academic_year_id' => ['nullable', 'exists:academic_years,id'],
-                'class_id' => ['nullable', 'exists:classes,id'],
-                'term_id' => ['nullable', 'exists:terms,id'],
-                'exam_type' => ['nullable', Rule::in(ExamSummaryService::examTypes())],
-            ]);
-
             $classes = ClassModel::where('academic_year_id', $selectedAcademicYearId)
                 ->orderBy('level')
                 ->orderBy('name')
@@ -57,7 +57,7 @@ class ExamSummaryController extends Controller
         }
 
         return view('headmaster.exam-summaries.index', compact(
-            'activeAcademicYear',
+            'academicYears',
             'classes',
             'terms',
             'summary',

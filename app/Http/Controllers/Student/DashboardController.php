@@ -3,70 +3,188 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Student;
 use App\Models\AcademicYear;
+use App\Models\Attendance;
+use App\Models\BehaviourRecord;
+use App\Models\Mark;
+use App\Models\Punctuality;
+use App\Models\StudentSubject;
 use App\Models\Term;
-use App\Models\StudentClassHistory;
+use App\Services\StudentPerformanceService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected StudentPerformanceService $studentPerformanceService
+    ) {}
+
     public function index()
     {
-        // Safely get the authenticated user with student relationship
         $user = Auth::user();
-        
-        // Validate user and role
+
         if (!$user || $user->role !== 'student') {
-            return redirect()->route('login')->withErrors(['error' => 'Unauthorized access']);
+            return redirect()->route('login')->withErrors([
+                'error' => 'Unauthorized access',
+            ]);
         }
-        
-        // Initialize variables
-        $student = null;
-        $currentAcademicYear = null;
-        $currentTerm = null;
-        
-        // Use caching for better performance
-        $cacheKey = 'student_dashboard_' . $user->id . '_' . now()->format('Y-m-d');
-        
-        $dashboardData = Cache::remember($cacheKey, 300, function() use ($user) {
+
+        $cacheKey = 'student_dashboard_' . $user->id . '_' . now()->format('Y-m-d-H');
+
+        $dashboardData = Cache::remember($cacheKey, 300, function () use ($user) {
             $data = [
                 'student' => null,
-                'current_academic_year' => null,
-                'current_term' => null
+                'currentAcademicYear' => null,
+                'currentTerm' => null,
+                'stats' => [
+                    'subjectsAssigned' => 0,
+                    'subjectsWithMarks' => 0,
+                    'midtermAverage' => null,
+                    'endtermAverage' => null,
+                    'feesBlocked' => false,
+                ],
+                'latestMarks' => collect(),
+                'attendanceSummary' => null,
+                'punctualitySummary' => null,
+                'behaviourSummary' => null,
+                'performance' => null,
             ];
-            
-            // Check if user has student relationship
-            if ($user->student) {
-                $data['student'] = $user->student;
-                
-                // Load necessary relationships
-                $data['student']->load(['currentClass.academicYear']);
-                
-                // Get current academic year (prefer 'open' status, fallback to 'active')
-                $data['current_academic_year'] = AcademicYear::where('status', 'open')
-                    ->orWhere('status', 'active')
-                    ->orderBy('created_at', 'desc')
-                    ->first();
-                
-                // Get current term for the academic year
-                if ($data['current_academic_year']) {
-                    $data['current_term'] = Term::where('academic_year_id', $data['current_academic_year']->id)
-                        ->where('status', 'active')
-                        ->orderBy('start_date', 'asc')
-                        ->first();
-                }
+
+            if (!$user->student) {
+                return $data;
             }
-            
+
+            $student = $user->student;
+            $student->load(['user', 'currentClass.academicYear']);
+
+            $currentAcademicYear = AcademicYear::where(function ($query) {
+                $query->where('status', 'open')
+                    ->orWhere('status', 'active');
+            })
+                ->orderByDesc('created_at')
+                ->first();
+
+            $currentTerm = null;
+
+            if ($currentAcademicYear) {
+                $currentTerm = Term::where('academic_year_id', $currentAcademicYear->id)
+                    ->where('status', 'active')
+                    ->orderBy('start_date')
+                    ->first();
+            }
+
+            $data['student'] = $student;
+            $data['currentAcademicYear'] = $currentAcademicYear;
+            $data['currentTerm'] = $currentTerm;
+            $data['stats']['feesBlocked'] = (bool) $student->fees_blocked;
+
+            if ($currentAcademicYear) {
+                $data['stats']['subjectsAssigned'] = StudentSubject::where('student_id', $student->id)
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->count();
+            }
+
+            if ($currentAcademicYear && $currentTerm) {
+                $marks = Mark::where('student_id', $student->id)
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->with(['subject', 'teacher.user'])
+                    ->get();
+
+                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
+                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
+
+                $data['stats']['subjectsWithMarks'] = $marks->count();
+                $data['stats']['midtermAverage'] = $midtermScores->isNotEmpty() ? round($midtermScores->avg(), 2) : null;
+                $data['stats']['endtermAverage'] = $endtermScores->isNotEmpty() ? round($endtermScores->avg(), 2) : null;
+
+                $data['latestMarks'] = $marks
+                    ->sortBy(fn($mark) => $mark->subject->name ?? '')
+                    ->take(6)
+                    ->values();
+
+                $attendanceRecords = Attendance::where('student_id', $student->id)
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->get();
+
+                $attendanceTotal = $attendanceRecords->count();
+                $attendancePresentEquivalent = $attendanceRecords->whereIn('status', [
+                    Attendance::STATUS_PRESENT,
+                    Attendance::STATUS_LATE,
+                    Attendance::STATUS_EXCUSED,
+                ])->count();
+
+                $data['attendanceSummary'] = [
+                    'present' => $attendanceRecords->where('status', Attendance::STATUS_PRESENT)->count(),
+                    'absent' => $attendanceRecords->where('status', Attendance::STATUS_ABSENT)->count(),
+                    'late' => $attendanceRecords->where('status', Attendance::STATUS_LATE)->count(),
+                    'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
+                    'rate' => $attendanceTotal > 0 ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1) : null,
+                ];
+
+                $punctualityRecords = Punctuality::where('student_id', $student->id)
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->get();
+
+                $data['punctualitySummary'] = [
+                    'on_time' => $punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count(),
+                    'late' => $punctualityRecords->where('status', Punctuality::STATUS_LATE)->count(),
+                    'very_late' => $punctualityRecords->where('status', Punctuality::STATUS_VERY_LATE)->count(),
+                    'absent' => $punctualityRecords->where('status', Punctuality::STATUS_ABSENT)->count(),
+                ];
+
+                $behaviourRecords = BehaviourRecord::where('student_id', $student->id)
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->latest('record_date')
+                    ->latest('id')
+                    ->get();
+
+                $data['behaviourSummary'] = [
+                    'total' => $behaviourRecords->count(),
+                    'minor' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MINOR)->count(),
+                    'moderate' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count(),
+                    'major' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count(),
+                    'latest' => $behaviourRecords->first(),
+                    'label' => $this->behaviourLabel($behaviourRecords),
+                ];
+
+                $data['performance'] = app(StudentPerformanceService::class)
+                    ->getStudentTermPerformance($student, $currentAcademicYear->id, $currentTerm->id);
+            }
+
             return $data;
         });
-        
-        $student = $dashboardData['student'];
-        $currentAcademicYear = $dashboardData['current_academic_year'];
-        $currentTerm = $dashboardData['current_term'];
 
-        return view('student.dashboard', compact('student', 'currentAcademicYear', 'currentTerm'));
+        return view('student.dashboard', [
+            'student' => $dashboardData['student'],
+            'currentAcademicYear' => $dashboardData['currentAcademicYear'],
+            'currentTerm' => $dashboardData['currentTerm'],
+            'stats' => $dashboardData['stats'],
+            'latestMarks' => $dashboardData['latestMarks'],
+            'attendanceSummary' => $dashboardData['attendanceSummary'],
+            'punctualitySummary' => $dashboardData['punctualitySummary'],
+            'behaviourSummary' => $dashboardData['behaviourSummary'],
+            'performance' => $dashboardData['performance'],
+        ]);
+    }
+
+    protected function behaviourLabel($behaviourRecords): string
+    {
+        if ($behaviourRecords->count() === 0) {
+            return 'Good';
+        }
+
+        $major = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
+        $moderate = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count();
+
+        if ($major > 0 || $moderate >= 3) {
+            return 'Needs attention';
+        }
+
+        return 'Fair';
     }
 }

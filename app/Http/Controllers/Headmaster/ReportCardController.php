@@ -12,12 +12,15 @@ use App\Models\Student;
 use App\Models\Term;
 use App\Models\ClassModel;
 use App\Services\ExamSummaryService;
+use App\Services\MarksService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class ReportCardController extends Controller
 {
     public function __construct(
-        protected ExamSummaryService $examSummaryService
+        protected ExamSummaryService $examSummaryService,
+        protected MarksService $marksService
     ) {}
 
     public function index(Request $request)
@@ -89,17 +92,39 @@ class ReportCardController extends Controller
 
     public function show(Request $request, Student $student)
     {
-        $termId = $request->input('term_id');
+        $data = $this->buildReportData($student, (int) $request->input('term_id'));
 
+        return view('headmaster.reports.show', $data);
+    }
+
+    public function pdf(Request $request, Student $student)
+    {
+        $data = $this->buildReportData($student, (int) $request->input('term_id'));
+
+        $pdf = Pdf::loadView('pdf.report-card', array_merge($data, [
+            'schoolName' => 'Kweneng International Secondary School',
+            'logoPath' => public_path('images/logo.png'),
+        ]))->setPaper('a4', 'landscape');
+
+        $filename = str_replace(' ', '_', $student->user->name) . '_report_card.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    protected function buildReportData(Student $student, int $termId): array
+    {
         abort_unless($termId, 404, 'Term is required.');
 
         $term = Term::findOrFail($termId);
         $academicYear = AcademicYear::findOrFail($term->academic_year_id);
 
-        $student->load(['user', 'currentClass']);
+        $student->load([
+            'user',
+            'currentClass.classTeacher.user',
+        ]);
 
         $marks = $student->marks()
-            ->with('subject')
+            ->with(['subject', 'teacher.user'])
             ->where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->get();
@@ -121,10 +146,13 @@ class ReportCardController extends Controller
                 'subject_name' => $mark->subject->name ?? 'Unknown Subject',
                 'subject_code' => $mark->subject->code ?? null,
                 'midterm_score' => $midterm,
+                'midterm_grade' => $midterm !== null ? $this->marksService->calculateGrade($midterm) : null,
                 'endterm_score' => $endterm,
+                'endterm_grade' => $endterm !== null ? $this->marksService->calculateGrade($endterm) : null,
                 'average' => $average,
                 'grade' => $mark->grade,
-                'remarks' => $mark->remarks,
+                'teacher_comment' => $mark->remarks,
+                'teacher_name' => $mark->teacher?->user?->name,
             ];
         });
 
@@ -174,6 +202,7 @@ class ReportCardController extends Controller
             'late' => $attendanceRecords->where('status', Attendance::STATUS_LATE)->count(),
             'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
             'rate' => $attendanceTotal > 0 ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1) : null,
+            'display' => $attendancePresentEquivalent . '/' . $attendanceTotal,
         ];
 
         $punctualityRecords = Punctuality::where('student_id', $student->id)
@@ -182,14 +211,17 @@ class ReportCardController extends Controller
             ->get();
 
         $punctualityTotal = $punctualityRecords->count();
+        $onTimeRate = $punctualityTotal > 0
+            ? round(($punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count() / $punctualityTotal) * 100, 1)
+            : null;
+
         $punctualitySummary = [
             'on_time' => $punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count(),
             'late' => $punctualityRecords->where('status', Punctuality::STATUS_LATE)->count(),
             'very_late' => $punctualityRecords->where('status', Punctuality::STATUS_VERY_LATE)->count(),
             'absent' => $punctualityRecords->where('status', Punctuality::STATUS_ABSENT)->count(),
-            'on_time_rate' => $punctualityTotal > 0
-                ? round(($punctualityRecords->where('status', Punctuality::STATUS_ON_TIME)->count() / $punctualityTotal) * 100, 1)
-                : null,
+            'on_time_rate' => $onTimeRate,
+            'label' => $this->punctualityLabel($onTimeRate),
         ];
 
         $behaviourRecords = BehaviourRecord::where('student_id', $student->id)
@@ -205,13 +237,16 @@ class ReportCardController extends Controller
             'moderate' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count(),
             'major' => $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count(),
             'recent' => $behaviourRecords->take(5),
+            'label' => $this->behaviourLabel($behaviourRecords),
         ];
 
         $headmasterComment = HeadmasterComment::where('student_id', $student->id)
             ->where('term_id', $term->id)
             ->first();
 
-        return view('headmaster.reports.show', compact(
+        $classTeacherName = $student->currentClass?->classTeacher?->user?->name ?? 'Not Assigned';
+
+        return compact(
             'student',
             'term',
             'academicYear',
@@ -226,7 +261,41 @@ class ReportCardController extends Controller
             'attendanceSummary',
             'punctualitySummary',
             'behaviourSummary',
-            'headmasterComment'
-        ));
+            'headmasterComment',
+            'classTeacherName'
+        );
+    }
+
+    protected function punctualityLabel(?float $onTimeRate): string
+    {
+        if ($onTimeRate === null) {
+            return 'N/A';
+        }
+
+        if ($onTimeRate >= 85) {
+            return 'Good';
+        }
+
+        if ($onTimeRate >= 60) {
+            return 'Fair';
+        }
+
+        return 'Poor';
+    }
+
+    protected function behaviourLabel($behaviourRecords): string
+    {
+        if ($behaviourRecords->count() === 0) {
+            return 'Good';
+        }
+
+        $major = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
+        $moderate = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count();
+
+        if ($major > 0 || $moderate >= 3) {
+            return 'Must improve';
+        }
+
+        return 'Must remain focused';
     }
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\MarksController;
 use App\Http\Controllers\Admin\LibrarianController;
 use App\Http\Controllers\Admin\ExamSummaryController;
+use App\Http\Controllers\Admin\AccountsOfficerController;
 
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -96,5 +97,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
     Route::get('/student-subjects/subjects/{classId}/{academicYearId}', [MarksController::class, 'getSubjectsByClass']);
     Route::get('/terms/by-academic-year/{academicYearId}', [MarksController::class, 'getTermsByAcademicYear'])->name('terms.by-academic-year');
-    
+
+    // Accounts Officer Management
+    Route::resource('accounts-officers', AccountsOfficerController::class)->except(['show']);
 });

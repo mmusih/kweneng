@@ -15,6 +15,10 @@
                 class="text-white hover:text-blue-100 text-sm font-medium">
                 Back to Reports
             </a>
+            <a href="{{ route('headmaster.reports.pdf', ['student' => $student->id, 'term_id' => $term->id]) }}"
+                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-semibold">
+                Download PDF
+            </a>
         </div>
     </x-slot>
 
