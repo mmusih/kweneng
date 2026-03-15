@@ -15,6 +15,8 @@ use App\Http\Controllers\Admin\MarksController;
 use App\Http\Controllers\Admin\LibrarianController;
 use App\Http\Controllers\Admin\ExamSummaryController;
 use App\Http\Controllers\Admin\AccountsOfficerController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ReportCardController;
 
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -45,6 +47,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('terms/{term}/finalize', [TermController::class, 'finalize'])->name('terms.finalize');
     Route::post('terms/{term}/lock', [TermController::class, 'lock'])->name('terms.lock');
     Route::post('terms/{term}/activate', [TermController::class, 'activate'])->name('terms.activate');
+
+    Route::post('terms/{term}/lock-midterm', [TermController::class, 'lockMidterm'])->name('terms.lock-midterm');
+    Route::post('terms/{term}/unlock-midterm', [TermController::class, 'unlockMidterm'])->name('terms.unlock-midterm');
+    Route::post('terms/{term}/lock-endterm', [TermController::class, 'lockEndterm'])->name('terms.lock-endterm');
+    Route::post('terms/{term}/unlock-endterm', [TermController::class, 'unlockEndterm'])->name('terms.unlock-endterm');
 
     // Subject Management Routes
     Route::resource('subjects', SubjectController::class);
@@ -92,6 +99,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
 
+    // REPORT CARD ROUTES
+    Route::get('/reports', [ReportCardController::class, 'index'])->name('reports.index');
+    Route::get('/reports/student/{student}', [ReportCardController::class, 'show'])->name('reports.show');
+    Route::get('/reports/student/{student}/pdf', [ReportCardController::class, 'pdf'])->name('reports.pdf');
+    Route::get('/reports/bulk/pdf', [ReportCardController::class, 'bulkPdf'])->name('reports.bulk-pdf');
+
     // AJAX ENDPOINTS FOR DYNAMIC LOADING
     Route::get('/student-subjects/classes/{academicYearId}', [MarksController::class, 'getClassesByAcademicYear']);
     Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
@@ -100,4 +113,5 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Accounts Officer Management
     Route::resource('accounts-officers', AccountsOfficerController::class)->except(['show']);
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });

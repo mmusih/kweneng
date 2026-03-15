@@ -270,22 +270,25 @@
                             </div>
                         </a>
 
-                        <a href="{{ route('admin.accounts-officers.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-red-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8c-1.657 0-3 1.343-3 3v1H8a2 2 0 00-2 2v2h12v-2a2 2 0 00-2-2h-1v-1c0-1.657-1.343-3-3-3z" />
-                                    </svg>
+                        @if (Route::has('admin.accounts-officers.index'))
+                            <a href="{{ route('admin.accounts-officers.index') }}"
+                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-red-300 hover:-translate-y-1">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8c-1.657 0-3 1.343-3 3v1H8a2 2 0 00-2 2v2h12v-2a2 2 0 00-2-2h-1v-1c0-1.657-1.343-3-3-3z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold">Accounts Officers</h4>
+                                        <p class="text-sm text-gray-500">{{ $stats['totalAccountsOfficers'] ?? 0 }}
+                                            active records</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Accounts Officers</h4>
-                                    <p class="text-sm text-gray-500">{{ $stats['totalAccountsOfficers'] ?? 0 }} active
-                                        records</p>
-                                </div>
-                            </div>
-                        </a>
+                            </a>
+                        @endif
 
                         <a href="{{ route('admin.parents.index') }}"
                             class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-yellow-300 hover:-translate-y-1">
@@ -354,7 +357,7 @@
                     <div class="mb-6 border-b border-gray-200 pb-3">
                         <h3 class="text-xl font-semibold text-gray-800">Academic Operations</h3>
                         <p class="text-sm text-gray-500 mt-1">
-                            Terms, years, promotions, marks, summaries, and subject setup
+                            Terms, years, promotions, marks, reports, monitoring, and subject setup
                         </p>
                     </div>
 
@@ -427,6 +430,25 @@
                             </div>
                         </a>
 
+                        @if (Route::has('admin.marks.index'))
+                            <a href="{{ route('admin.marks.index') }}"
+                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-fuchsia-300 hover:-translate-y-1">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-full bg-fuchsia-100 text-fuchsia-600 mr-4">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold">Marks Monitor</h4>
+                                        <p class="text-sm text-gray-500">Track marks entry and completeness</p>
+                                    </div>
+                                </div>
+                            </a>
+                        @endif
+
                         @if (Route::has('admin.exam-summaries.index'))
                             <a href="{{ route('admin.exam-summaries.index') }}"
                                 class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-red-300 hover:-translate-y-1">
@@ -441,6 +463,25 @@
                                     <div>
                                         <h4 class="text-lg font-semibold">Exam Summaries</h4>
                                         <p class="text-sm text-gray-500">Midterm and endterm summary sheets</p>
+                                    </div>
+                                </div>
+                            </a>
+                        @endif
+
+                        @if (Route::has('admin.reports.index'))
+                            <a href="{{ route('admin.reports.index') }}"
+                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-rose-300 hover:-translate-y-1">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-full bg-rose-100 text-rose-600 mr-4">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold">Reports</h4>
+                                        <p class="text-sm text-gray-500">Generate and download report cards</p>
                                     </div>
                                 </div>
                             </a>
@@ -461,6 +502,26 @@
                                 </div>
                             </div>
                         </a>
+
+                        @if (Route::has('admin.activity-logs.index'))
+                            <a href="{{ route('admin.activity-logs.index') }}"
+                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-slate-300 hover:-translate-y-1">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-full bg-slate-100 text-slate-600 mr-4">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-lg font-semibold">Activity Logs</h4>
+                                        <p class="text-sm text-gray-500">View login, logout, locks, and major actions
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>

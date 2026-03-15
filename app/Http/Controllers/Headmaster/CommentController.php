@@ -191,7 +191,7 @@ class CommentController extends Controller
         $term = Term::findOrFail($validated['term_id']);
         $user = $request->user();
 
-        if (! $user || $user->role !== 'headmaster' || ! $user->teacher) {
+        if (!$user || $user->role !== 'headmaster' || !$user->teacher) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -213,5 +213,50 @@ class CommentController extends Controller
                 'term_id' => $term->id,
             ])
             ->with('success', 'Headmaster comment saved successfully.');
+    }
+
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'term_id' => ['required', 'exists:terms,id'],
+            'class_id' => ['required', 'exists:classes,id'],
+            'comments' => ['required', 'array'],
+            'comments.*.student_id' => ['required', 'exists:students,id'],
+            'comments.*.comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $term = Term::findOrFail($validated['term_id']);
+        $user = $request->user();
+
+        if (!$user || $user->role !== 'headmaster' || !$user->teacher) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        foreach ($validated['comments'] as $row) {
+            $comment = trim((string) ($row['comment'] ?? ''));
+
+            if ($comment === '') {
+                continue;
+            }
+
+            HeadmasterComment::updateOrCreate(
+                [
+                    'student_id' => $row['student_id'],
+                    'term_id' => $term->id,
+                ],
+                [
+                    'academic_year_id' => $term->academic_year_id,
+                    'headmaster_id' => $user->teacher->id,
+                    'comment' => $comment,
+                ]
+            );
+        }
+
+        return redirect()
+            ->route('headmaster.comments.index', [
+                'class_id' => $validated['class_id'],
+                'term_id' => $term->id,
+            ])
+            ->with('success', 'Headmaster comments saved successfully.');
     }
 }

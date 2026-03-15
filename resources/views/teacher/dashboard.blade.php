@@ -46,12 +46,25 @@
         })
             ->where('status', 'active')
             ->first();
+
+        $homeworkCount = 0;
+        $recentHomeworkCount = 0;
+
+        if ($teacher) {
+            $homeworkCount = \App\Models\Homework::where('teacher_id', $teacher->id)->count();
+
+            $recentHomeworkCount = \App\Models\Homework::where('teacher_id', $teacher->id)
+                ->when($currentTerm, function ($query) use ($currentTerm) {
+                    $query->where('term_id', $currentTerm->id);
+                })
+                ->count();
+        }
     @endphp
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
                 <div class="bg-white shadow-sm rounded-lg p-6">
                     <p class="text-sm text-gray-500">Academic Year</p>
                     <h3 class="text-2xl font-bold text-gray-900 mt-2">
@@ -83,6 +96,16 @@
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-6">
+                    <p class="text-sm text-gray-500">Homework Records</p>
+                    <h3 class="text-2xl font-bold text-cyan-600 mt-2">
+                        {{ $homeworkCount }}
+                    </h3>
+                    <p class="text-sm mt-2 text-gray-500">
+                        {{ $recentHomeworkCount }} in current term
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-6">
                     <p class="text-sm text-gray-500">Class Teacher Role</p>
                     <h3 class="text-2xl font-bold mt-2 {{ $isClassTeacher ? 'text-green-600' : 'text-yellow-600' }}">
                         {{ $isClassTeacher ? 'Assigned' : 'Not Assigned' }}
@@ -101,7 +124,7 @@
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
                     <a href="{{ route('teacher.marks.index') }}"
                         class="border rounded-lg p-5 bg-gradient-to-br from-blue-50 to-white shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                         <div class="flex items-center">
@@ -114,6 +137,22 @@
                             <div>
                                 <h4 class="text-lg font-semibold text-gray-900">Enter Marks</h4>
                                 <p class="text-sm text-gray-500">Record and update student marks</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('teacher.homeworks.index') }}"
+                        class="border rounded-lg p-5 bg-gradient-to-br from-cyan-50 to-white shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-cyan-100 text-cyan-600 mr-4">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900">Homework</h4>
+                                <p class="text-sm text-gray-500">Create homework and record homework marks</p>
                             </div>
                         </div>
                     </a>

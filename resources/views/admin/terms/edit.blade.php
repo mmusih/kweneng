@@ -2,9 +2,19 @@
     <x-slot name="header">
         <div
             class="mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
-            <h2 class="font-semibold text-2xl text-white leading-tight">
-                Edit Term
-            </h2>
+            <div class="flex items-center justify-between w-full">
+                <h2 class="font-semibold text-2xl text-white leading-tight">
+                    Edit Term
+                </h2>
+                <a href="{{ route('admin.terms.index') }}"
+                    class="text-white hover:text-blue-100 text-sm font-medium flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Terms
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -12,6 +22,23 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+
+                    @if (session('success'))
+                        <div class="mb-4 rounded-lg bg-green-50 p-4 text-green-800 border border-green-200">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-800 border border-red-200">
+                            <ul class="list-disc pl-5">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('admin.terms.update', $term) }}">
                         @csrf
                         @method('PUT')
@@ -60,12 +87,17 @@
                                     class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                     required>
                                     <option value="active"
-                                        {{ old('status', $term->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                        {{ old('status', $term->status) == 'active' ? 'selected' : '' }}>
+                                        Active
+                                    </option>
                                     <option value="finalized"
-                                        {{ old('status', $term->status) == 'finalized' ? 'selected' : '' }}>Finalized
+                                        {{ old('status', $term->status) == 'finalized' ? 'selected' : '' }}>
+                                        Finalized
                                     </option>
                                     <option value="locked"
-                                        {{ old('status', $term->status) == 'locked' ? 'selected' : '' }}>Locked</option>
+                                        {{ old('status', $term->status) == 'locked' ? 'selected' : '' }}>
+                                        Locked
+                                    </option>
                                 </select>
                                 <x-input-error :messages="$errors->get('status')" class="mt-2" />
                             </div>
@@ -120,6 +152,85 @@
                         </div>
                     </form>
 
+                    {{-- EXAM STAGE LOCKS --}}
+                    <div class="mt-10 pt-8 border-t border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Exam Stage Locks</h3>
+                        <p class="text-sm text-gray-500 mb-6">
+                            These locks control whether teachers can edit Midterm or Endterm marks separately.
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="border rounded-lg p-5 bg-blue-50">
+                                <p class="text-sm text-gray-500">Midterm Lock Status</p>
+                                <p
+                                    class="text-lg font-bold mt-2 {{ $term->midterm_locked ? 'text-blue-700' : 'text-gray-800' }}">
+                                    {{ $term->midterm_locked ? 'Locked' : 'Unlocked' }}
+                                </p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Teachers {{ $term->midterm_locked ? 'cannot' : 'can' }} edit midterm scores.
+                                </p>
+
+                                <div class="mt-4">
+                                    @if (!$term->midterm_locked)
+                                        <form action="{{ route('admin.terms.lock-midterm', $term) }}" method="POST">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                                                onclick="return confirm('Lock midterm marks? Teachers will no longer edit midterm scores.')">
+                                                Lock Midterm
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('admin.terms.unlock-midterm', $term) }}"
+                                            method="POST">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-400 hover:bg-blue-500"
+                                                onclick="return confirm('Unlock midterm marks?')">
+                                                Unlock Midterm
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="border rounded-lg p-5 bg-green-50">
+                                <p class="text-sm text-gray-500">Endterm Lock Status</p>
+                                <p
+                                    class="text-lg font-bold mt-2 {{ $term->endterm_locked ? 'text-green-700' : 'text-gray-800' }}">
+                                    {{ $term->endterm_locked ? 'Locked' : 'Unlocked' }}
+                                </p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Teachers {{ $term->endterm_locked ? 'cannot' : 'can' }} edit endterm scores.
+                                </p>
+
+                                <div class="mt-4">
+                                    @if (!$term->endterm_locked)
+                                        <form action="{{ route('admin.terms.lock-endterm', $term) }}" method="POST">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                                                onclick="return confirm('Lock endterm marks? Teachers will no longer edit endterm scores.')">
+                                                Lock Endterm
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('admin.terms.unlock-endterm', $term) }}"
+                                            method="POST">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-400 hover:bg-green-500"
+                                                onclick="return confirm('Unlock endterm marks?')">
+                                                Unlock Endterm
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- TERM ACTIONS --}}
                     <div class="mt-8 pt-6 border-t border-gray-200">
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Term Actions</h3>
 
@@ -138,8 +249,8 @@
                                     @csrf
                                     <button type="submit"
                                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                        onclick="return confirm('Lock this term? This action cannot be undone.')">
-                                        Lock Term
+                                        onclick="return confirm('Lock this term fully? This action cannot be undone easily and will freeze all term activity.')">
+                                        Lock Entire Term
                                     </button>
                                 </form>
                             </div>
@@ -148,8 +259,8 @@
                                 @csrf
                                 <button type="submit"
                                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                    onclick="return confirm('Lock this term? This action cannot be undone.')">
-                                    Lock Term
+                                    onclick="return confirm('Lock this term fully? This action cannot be undone easily and will freeze all term activity.')">
+                                    Lock Entire Term
                                 </button>
                             </form>
                         @elseif($term->status === 'locked')
@@ -157,6 +268,7 @@
                         @endif
                     </div>
 
+                    {{-- DANGER ZONE --}}
                     @if ($term->status !== 'locked')
                         <div class="mt-8 pt-6 border-t border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900">Danger Zone</h3>

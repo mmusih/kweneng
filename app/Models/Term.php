@@ -19,6 +19,8 @@ class Term extends Model
         'start_date',
         'end_date',
         'locked',
+        'midterm_locked',
+        'endterm_locked',
         'status',
         'report_title',
         'report_footer_note',
@@ -30,6 +32,8 @@ class Term extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'locked' => 'boolean',
+        'midterm_locked' => 'boolean',
+        'endterm_locked' => 'boolean',
     ];
 
     public function academicYear()
@@ -54,6 +58,16 @@ class Term extends Model
 
     public function isLocked(): bool
     {
-        return $this->status === self::STATUS_LOCKED;
+        return $this->status === self::STATUS_LOCKED || (bool) $this->locked;
+    }
+
+    public function isMidtermLocked(): bool
+    {
+        return $this->isLocked() || (bool) $this->midterm_locked;
+    }
+
+    public function isEndtermLocked(): bool
+    {
+        return $this->isLocked() || (bool) $this->endterm_locked;
     }
 }

@@ -1,343 +1,661 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kweneng International Secondary School - Cambridge Secondary School</title>
-    <meta name="description" content="Botswana's leading Cambridge curriculum secondary school with excellent academics and global recognition.">
+    <meta name="description"
+        content="Botswana's leading Cambridge curriculum secondary school with excellent academics, transport coverage, and global recognition.">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        /* Additional custom styles */
-        [x-cloak] { display: none !important; }
-        
-        /* Hero-specific styles */
-        .hero-minimal {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: #ffffff;
-            color: #1e293b;
-        }
-        .hero-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 3rem 1.5rem;
-        }
-        .hero-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 2rem;
-        }
-        .hero-text {
-            flex: 1 1 400px;
-            text-align: center;
-        }
-        .hero-image {
-            flex: 1 1 400px;
-            text-align: center;
-        }
-        @media (min-width: 992px) {
-            .hero-text {
-                text-align: left;
-            }
-        }
-        .main-heading {
-            font-size: clamp(2rem, 5vw, 3.2rem);
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-            color: #1e293b;
-        }
-        .text-primary {
-            color: #2563eb;
-        }
-        .lead-text {
-            font-size: 1.1rem;
-            color: #4b5563;
-            max-width: 580px;
-            margin-bottom: 2rem;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        @media (min-width: 992px) {
-            .lead-text {
-                margin-left: 0;
-                margin-right: 0;
-            }
-        }
-        .feature-list {
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2rem;
-            justify-content: center;
-            margin: 0 0 2rem;
-            padding: 0;
-        }
-        @media (min-width: 992px) {
-            .feature-list {
-                justify-content: flex-start;
-            }
-        }
-        .feature-list li {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #334155;
-            font-weight: 500;
-        }
-        .feature-list i {
-            color: #2563eb;
-            font-size: 1.3rem;
-        }
-        .image-frame {
-            position: relative;
-            max-width: 550px;
-            margin: 0 auto;
-            border-radius: 2rem;
-            overflow: hidden;
-            box-shadow: 0 25px 40px -15px rgba(0,0,0,0.2);
-        }
-        .student-img {
-            width: 100%;
-            height: auto;
-            display: block;
-            transition: transform 0.4s ease;
-        }
-        .student-img:hover {
-            transform: scale(1.02);
-        }
-        .est-overlay {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(37, 99, 235, 0.9);
-            color: white;
-            padding: 0.5rem 1.2rem;
-            border-radius: 2rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            backdrop-filter: blur(4px);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .me-1 { margin-right: 0.25rem; }
-        .hero-buttons {
-            margin-top: 1rem;
-        }
-    </style>
-    
-    <!-- Additional fonts/icons for hero -->
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --brand-blue: #2baffc;
+            --brand-green: #55c360;
+            --brand-dark: #0f172a;
+            --brand-slate: #475569;
+            --brand-light: #f8fbff;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #ffffff;
+            color: #0f172a;
+        }
+
+        #navbar-spacer {
+            transition: height .3s ease;
+        }
+
+        .page-section {
+            padding: 4.5rem 0;
+        }
+
+        .section-heading {
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            font-weight: 800;
+            color: var(--brand-dark);
+            line-height: 1.15;
+        }
+
+        .section-subtext {
+            color: #64748b;
+            max-width: 760px;
+            margin: 0.9rem auto 0;
+        }
+
+        .hero-shell {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(43, 175, 252, 0.12), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(85, 195, 96, 0.14), transparent 35%),
+                linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            padding-top: 3rem;
+            padding-bottom: 3rem;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(43, 175, 252, 0.12);
+            color: #0369a1;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-title {
+            line-height: 1.02;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.2rem;
+        }
+
+        .hero-text {
+            font-size: 1.08rem;
+            color: var(--brand-slate);
+            max-width: 700px;
+        }
+
+        .hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            margin: 1.6rem 0 2rem;
+        }
+
+        .hero-feature {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            background: white;
+            border: 1px solid #dbeafe;
+            color: #1e293b;
+            padding: 0.7rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .hero-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.9rem;
+        }
+
+        .btn-main {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.9rem 1.4rem;
+            border-radius: 0.9rem;
+            font-weight: 700;
+            transition: all 0.25s ease;
+            text-decoration: none;
+        }
+
+        .btn-main:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-blue {
+            background: var(--brand-blue);
+            color: white;
+            box-shadow: 0 14px 30px rgba(43, 175, 252, 0.22);
+        }
+
+        .btn-blue:hover {
+            background: #199fe9;
+            color: white;
+        }
+
+        .btn-green {
+            background: var(--brand-green);
+            color: white;
+            box-shadow: 0 14px 30px rgba(85, 195, 96, 0.22);
+        }
+
+        .btn-green:hover {
+            background: #44af50;
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--brand-dark);
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+        }
+
+        .hero-visual {
+            position: relative;
+        }
+
+        .hero-image-frame {
+            position: relative;
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 25px 55px rgba(15, 23, 42, 0.16);
+            background: white;
+        }
+
+        .hero-image-frame img {
+            width: 100%;
+            display: block;
+            height: auto;
+        }
+
+        .hero-badge {
+            position: absolute;
+            right: 1rem;
+            bottom: 1rem;
+            background: rgba(15, 23, 42, 0.78);
+            color: white;
+            padding: 0.7rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            backdrop-filter: blur(6px);
+        }
+
+        .trust-band {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+
+        .trust-item {
+            text-align: center;
+            font-weight: 700;
+            color: #334155;
+            padding: 1rem 0.75rem;
+        }
+
+        .trust-item span {
+            color: var(--brand-green);
+            margin-right: 0.35rem;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 1.2rem;
+            padding: 1.6rem;
+            transition: all 0.25s ease;
+            height: 100%;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #bae6fd;
+            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.09);
+        }
+
+        .feature-icon {
+            width: 3.4rem;
+            height: 3.4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            font-size: 1.45rem;
+            background: #eff6ff;
+            color: var(--brand-blue);
+        }
+
+        .achievement-section {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #2563eb 100%);
+            color: white;
+        }
+
+        .achievement-panel img {
+            width: 100%;
+            max-width: 520px;
+            max-height: 420px;
+            object-fit: cover;
+            border-radius: 1.25rem;
+            box-shadow: 0 24px 45px rgba(0, 0, 0, 0.25);
+        }
+
+        .achievement-pill {
+            display: inline-block;
+            background: #facc15;
+            color: #713f12;
+            font-weight: 800;
+            font-size: 0.85rem;
+            border-radius: 9999px;
+            padding: 0.45rem 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats-section {
+            background: var(--brand-light);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 1.2rem;
+            padding: 1.8rem 1.2rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--brand-blue);
+            line-height: 1;
+        }
+
+        .transport-pill {
+            background: white;
+            padding: 0.9rem 1.35rem;
+            border-radius: 9999px;
+            border: 1px solid #dbeafe;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .admission-section {
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+        }
+
+        .admission-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(30, 58, 138, 0.75));
+        }
+
+        .admission-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .yearbook-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.06);
+        }
+
+        .yearbook-icon {
+            width: 4rem;
+            height: 4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            background: rgba(43, 175, 252, 0.12);
+            color: var(--brand-blue);
+            font-size: 1.7rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-features,
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .trust-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero-shell {
+                padding-top: 2rem;
+            }
+
+            .trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-heading {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
 </head>
+
 <body class="font-sans antialiased bg-white text-gray-900">
 
-    <!-- Include Navigation -->
     @include('layouts.navigation')
+    <div id="navbar-spacer"></div>
 
-    <!-- Hero Section - New minimal design with all your buttons preserved -->
-  <!-- Hero Section - New minimal design with all your buttons preserved -->
-<div class="hero-minimal pt-10"> <!-- Changed from hero-minimal to pt-24 -->
-    <div class="hero-container">
-        <div class="hero-row">
-            
-            <!-- LEFT: heading, description, feature list, and ALL your buttons -->
-            <div class="hero-text">
-                <!-- main heading -->
-                <h1 class="main-heading">
-                    Nurturing Young Minds for a 
-                    <span class="text-primary">Brighter Future</span>
-                </h1>
+    <section class="hero-shell">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="hero-grid">
+                <div>
+                    <div class="hero-kicker">
+                        <i class="bi bi-stars"></i>
+                        Cambridge Excellence Since 2005
+                    </div>
 
-                <!-- description -->
-                <p class="lead-text">
-                    Quality education from kindergarten through high school. 
-                    Experienced teachers, modern facilities — the perfect environment 
-                    for your child's growth.
+                    <h1 class="hero-title">
+                        <span
+                            class="block text-slate-900 text-[clamp(2.4rem,6vw,5rem)] font-extrabold tracking-tight leading-none">
+                            Kweneng International
+                        </span>
+                        <span class="block text-sky-600 text-[clamp(1.05rem,2.2vw,1.75rem)] font-bold mt-2">
+                            Secondary School
+                        </span>
+                        <span
+                            class="block text-slate-700 text-[clamp(1.35rem,3vw,2.2rem)] font-semibold mt-5 leading-tight">
+                            Shaping confident learners for a global future
+                        </span>
+                    </h1>
+
+                    <p class="hero-text mt-5">
+                        Kweneng International Secondary School offers a strong Cambridge learning environment,
+                        experienced teachers, disciplined academic culture, and the support students need to grow in
+                        knowledge, character, and confidence.
+                    </p>
+
+                    <div class="hero-features">
+                        <div class="hero-feature">
+                            <i class="bi bi-mortarboard-fill"></i>
+                            Cambridge Curriculum
+                        </div>
+                        <div class="hero-feature">
+                            <i class="bi bi-trophy-fill"></i>
+                            Proven Results
+                        </div>
+                    </div>
+
+                    <div class="hero-buttons">
+                        <a href="{{ route('admissions') }}" class="btn-main btn-green">
+                            Apply Now
+                        </a>
+                        <a href="#" class="btn-main btn-blue">
+                            Download Prospectus
+                        </a>
+                        <a href="{{ route('login') }}" class="btn-main btn-outline">
+                            Academic Portal
+                        </a>
+                        <a href="#" class="btn-main btn-outline">
+                            Download Yearbook 2025
+                        </a>
+                    </div>
+                </div>
+
+                <div class="hero-visual">
+                    <div class="hero-image-frame">
+                        <img src="{{ asset('images/06.png') }}"
+                            alt="Students at Kweneng International Secondary School">
+                        <div class="hero-badge">
+                            <i class="fas fa-school mr-1"></i> Honour First
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-band">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="trust-grid">
+                <div class="trust-item"><span>✔</span> 95% Pass Rate</div>
+                <div class="trust-item"><span>✔</span> 20+ Years Excellence</div>
+                <div class="trust-item"><span>✔</span> 3× Top in World</div>
+                <div class="trust-item"><span>✔</span> Honour First</div>
+                <div class="trust-item"><span>✔</span> Cambridge Curriculum</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="section-heading">Why choose Kweneng International</h2>
+                <p class="section-subtext">
+                    A school environment built around academic quality, student support, and preparation for success
+                    beyond the classroom.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                <div class="feature-card">
+                    <div class="feature-icon">📚</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Academic Excellence</h3>
+                    <p class="text-slate-600">
+                        Strong Cambridge teaching and structured support that helps learners perform at a high level.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🏆</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">World-Class Achievement</h3>
+                    <p class="text-slate-600">
+                        A track record of outstanding international results that reflects discipline and academic focus.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">👩‍🏫</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Qualified Teachers</h3>
+                    <p class="text-slate-600">
+                        Dedicated educators committed to developing each learner’s academic potential and confidence.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🛡</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Safe Learning Environment</h3>
+                    <p class="text-slate-600">
+                        A school culture that values discipline, respect, student welfare, and purposeful learning.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚌</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Transport Coverage</h3>
+                    <p class="text-slate-600">
+                        Reliable transport routes serving major communities and making access easier for families.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Global Outlook</h3>
+                    <p class="text-slate-600">
+                        International academic standards combined with values that shape responsible, capable young
+                        people.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section achievement-section">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="achievement-panel flex justify-center lg:justify-start">
+                    <img src="{{ asset('images/07.png') }}" alt="Student academic achievement"
+                        class="w-full max-w-md lg:max-w-lg h-auto max-h-[420px] object-cover">
+                </div>
+
+                <div>
+                    <div class="achievement-pill">TOP IN THE WORLD</div>
+                    <h2 class="text-3xl md:text-4xl font-extrabold mb-5">
+                        Consistent academic excellence on the international stage
+                    </h2>
+                    <p class="text-lg text-slate-200 mb-5">
+                        Our students have achieved exceptional Cambridge results, with a strong record of top-level
+                        performance and international recognition.
+                    </p>
+                    <p class="text-slate-300 mb-0">
+                        This reflects our commitment to disciplined teaching, quality preparation, and a school culture
+                        that expects excellence.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-section bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="yearbook-card text-center">
+                <div class="yearbook-icon mx-auto">
+                    <i class="bi bi-journal-richtext"></i>
+                </div>
+                <h2 class="section-heading mb-4">Our Yearbook 2025 is here</h2>
+                <p class="text-slate-600 text-lg max-w-2xl mx-auto mb-8">
+                    Explore the highlights, memories, school life, and achievements that shaped the year at Kweneng
+                    International Secondary School.
                 </p>
 
-                <!-- feature list (two items from the minimal design) -->
-                <ul class="feature-list">
-                    <li><i class="bi bi-mortarboard-fill"></i> Cambridge Curriculum</li>
-                    <li><i class="fas fa-bus"></i> Transport Available</li>
-                </ul>
-
-                <!-- ALL YOUR ORIGINAL BUTTONS - preserved exactly as they were -->
-                <div class="flex flex-wrap justify-center lg:justify-start gap-4 hero-buttons">
-                    <a href="{{ route('admissions') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">
-                        Apply Now
-                    </a>
-                    <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">
-                        Download Prospectus
-                    </a>
-                    <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">
-                        Rewrite Registration
-                    </a>
-                    <a href="{{ route('login') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">
-                        Academic Portal
-                    </a>
-                    <a href="#" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105">
-                        Download Yearbook 2025
-                    </a>
-                </div>
-            </div>
-
-            <!-- RIGHT: image with est. overlay (from minimal design) -->
-            <div class="hero-image">
-                <div class="image-frame">
-                    <img src="images/06.png"
-                         alt="Happy students in classroom"
-                         class="student-img">
-                    <div class="est-overlay">
-                        <i class="fas fa-school me-1"></i> Est. 2005
-                    </div>
-                </div>
+                <a href="#" class="btn-main btn-blue">
+                    <i class="bi bi-download"></i>
+                    Download Yearbook 2025
+                </a>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-
-    <!-- Trust Bar (unchanged) -->
-    <div class="bg-gray-100 py-4">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-wrap justify-center items-center gap-8 text-sm font-medium text-gray-700">
-                <div class="flex items-center">
-                    <span class="text-green-600 mr-2">✔</span> 95% Pass Rate
-                </div>
-                <div class="flex items-center">
-                    <span class="text-green-600 mr-2">✔</span> 20+ Years Excellence
-                </div>
-                <div class="flex items-center">
-                    <span class="text-green-600 mr-2">✔</span> 3× Top in World
-                </div>
-                <div class="flex items-center">
-                    <span class="text-green-600 mr-2">✔</span> Transport Available
-                </div>
-                <div class="flex items-center">
-                    <span class="text-green-600 mr-2">✔</span> Cambridge Curriculum
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Why Choose Us (unchanged) -->
-    <div class="py-16 bg-white">
-        <div class="container mx-auto px-4">
+    <section class="page-section stats-section">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Why Choose Kweneng International</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">Discover what makes us Botswana's premier Cambridge curriculum school</p>
+                <h2 class="section-heading">A school built on results and growth</h2>
+                <p class="section-subtext">
+                    A quick snapshot of the values and outcomes that define the Kweneng International experience.
+                </p>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">📚</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Academic Excellence</h3>
-                    <p class="text-gray-600">Outstanding results in Cambridge International examinations with personalized learning approaches.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div class="stat-card">
+                    <div class="stat-number">95%</div>
+                    <p class="mt-3 font-semibold text-slate-700">Pass Rate</p>
                 </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">🏆</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">World-Class Achievements</h3>
-                    <p class="text-gray-600">Ranked among top schools globally with students achieving perfect scores in international exams.</p>
+                <div class="stat-card">
+                    <div class="stat-number">20+</div>
+                    <p class="mt-3 font-semibold text-slate-700">Years of Excellence</p>
                 </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">👩‍🏫</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Highly Qualified Teachers</h3>
-                    <p class="text-gray-600">Expert educators with international qualifications committed to student success.</p>
+                <div class="stat-card">
+                    <div class="stat-number">3×</div>
+                    <p class="mt-3 font-semibold text-slate-700">Top in the World</p>
                 </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">🛡</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Safe Learning Environment</h3>
-                    <p class="text-gray-600">Secure campus with modern facilities and comprehensive student welfare programs.</p>
-                </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">🚌</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Transport Across Major Routes</h3>
-                    <p class="text-gray-600">Reliable transportation services covering Molepolole, Gaborone, Mogoditshane, and surrounding areas.</p>
-                </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="text-indigo-600 text-4xl mb-4">🌍</div>
-                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Global Perspective, Local Values</h3>
-                    <p class="text-gray-600">International curriculum combined with strong emphasis on cultural heritage and values.</p>
+                <div class="stat-card">
+                    <div class="stat-number">5+</div>
+                    <p class="mt-3 font-semibold text-slate-700">Transport Routes</p>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Top in the World (unchanged) -->
-    <div class="py-16 bg-gradient-to-r from-indigo-700 to-purple-800 text-white">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div>
-                    <img src="images/07.png" 
-                         alt="Student Achievement" 
-                         class="rounded-lg shadow-2xl w-full">
-                </div>
-                <div>
-                    <div class="inline-block bg-yellow-500 text-yellow-900 px-4 py-1 rounded-full text-sm font-bold mb-4">
-                        👑 TOP IN THE WORLD
-                    </div>
-                    <h2 class="text-3xl font-bold mb-6">Ranked #1 in Cambridge IGCSE Mathematics Globally</h2>
-                    <p class="text-xl mb-6">For the third consecutive year, our students have achieved outstanding results in international assessments, with 98% of our students scoring A* or A grades.</p>
-                    <p class="mb-8">This achievement places us among the elite educational institutions worldwide and demonstrates our commitment to academic excellence.</p>
-                    <a href="#" class="inline-block bg-white text-indigo-700 hover:bg-gray-100 font-bold py-3 px-6 rounded-lg transition duration-300">
-                        View Academic Results →
-                    </a>
-                </div>
+    <section class="page-section admission-section" style="background-image: url('{{ asset('images/08.png') }}')">
+        <div class="admission-overlay"></div>
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 admission-content text-center py-10">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-5">
+                Join Botswana’s leading Cambridge secondary school
+            </h2>
+            <p class="text-lg md:text-xl text-slate-200 mb-10">
+                Begin your child’s journey in a school community focused on academic excellence, discipline, and
+                opportunity.
+            </p>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="{{ route('admissions') }}" class="btn-main btn-green">
+                    Apply Now
+                </a>
+                <a href="#" class="btn-main bg-yellow-500 text-white hover:text-white">
+                    Download Application Form
+                </a>
+                <a href="https://wa.me/26777738838" class="btn-main bg-white text-green-700 hover:text-green-700">
+                    Speak to Admissions
+                </a>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Admissions Section (unchanged) -->
-    <div class="py-16 bg-cover bg-center relative" style="background-image: url('images/08.png')">
-        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div class="container mx-auto px-4 relative z-10">
-            <div class="text-center max-w-3xl mx-auto py-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Join Botswana's Leading Cambridge Secondary School</h2>
-                <p class="text-xl text-gray-200 mb-10">Begin your journey to academic excellence with our world-class education program</p>
-                
-                <div class="flex flex-wrap justify-center gap-4">
-                    <a href="{{ route('admissions') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 transform hover:scale-105">
-                        Apply Now
-                    </a>
-                    <a href="#" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 transform hover:scale-105">
-                        Download Application Form
-                    </a>
-                    <a href="https://wa.me/26777738838" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 transform hover:scale-105">
-                        Speak to Admissions (WhatsApp)
-                    </a>
-                </div>
+    <section class="page-section bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="section-heading">Transport coverage</h2>
+                <p class="section-subtext">
+                    Making access to quality education easier for families across major communities.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <div class="transport-pill">Molepolole</div>
+                <div class="transport-pill">Gaborone</div>
+                <div class="transport-pill">Mogoditshane</div>
+                <div class="transport-pill">Metsimotlhabe</div>
+                <div class="transport-pill">Thamaga</div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Transport Coverage (unchanged) -->
-    <div class="py-16 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">🚌 TRANSPORT COVERAGE</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">Serving Families Across Major Communities</p>
-            </div>
-            
-            <div class="flex flex-wrap justify-center gap-6 text-lg font-medium">
-                <div class="bg-white px-6 py-3 rounded-full shadow-md text-gray-800">Molepolole</div>
-                <div class="bg-white px-6 py-3 rounded-full shadow-md text-gray-800">Gaborone</div>
-                <div class="bg-white px-6 py-3 rounded-full shadow-md text-gray-800">Mogoditshane</div>
-                <div class="bg-white px-6 py-3 rounded-full shadow-md text-gray-800">Metsimotlhabe</div>
-                <div class="bg-white px-6 py-3 rounded-full shadow-md text-gray-800">Thamaga</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer (unchanged) -->
     @include('layouts.footer')
 </body>
+
 </html>

@@ -9,6 +9,7 @@ use App\Support\UserRoles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Services\ActivityLogService;
 
 class AccountsOfficerController extends Controller
 {
@@ -100,5 +101,12 @@ class AccountsOfficerController extends Controller
         return redirect()
             ->route('admin.accounts-officers.index')
             ->with('success', 'Accounts officer deleted successfully.');
+    }
+
+    protected $activityLogService;
+
+    public function __construct(ActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
     }
 }

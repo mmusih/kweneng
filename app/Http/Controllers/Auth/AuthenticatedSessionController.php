@@ -23,15 +23,15 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $role = Auth::user()->role;
+        $user = $request->user();
 
-        return match ($role) {
+        return match ($user->role) {
             UserRoles::ADMIN => redirect()->intended(route('admin.dashboard', false)),
             UserRoles::HEADMASTER => redirect()->intended(route('headmaster.dashboard', false)),
             UserRoles::TEACHER => redirect()->intended(route('teacher.dashboard', false)),
             UserRoles::STUDENT => redirect()->intended(route('student.dashboard', false)),
             UserRoles::PARENT => redirect()->intended(route('parent.dashboard', false)),
-            UserRoles::ACCOUNTS_OFFICER => redirect()->intended(route('accounts.dashboard', false)),
+            UserRoles::ACCOUNTS_OFFICER => redirect()->intended(route('accounts-officer.dashboard', false)),
             UserRoles::LIBRARIAN => redirect()->intended(route('librarian.dashboard', false)),
             default => redirect('/'),
         };

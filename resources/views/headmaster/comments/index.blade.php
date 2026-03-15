@@ -1,12 +1,25 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="mt-16 p-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg shadow-lg">
-            <h2 class="font-semibold text-2xl text-white leading-tight">
-                Headmaster Comments
-            </h2>
-            <p class="text-blue-100 text-sm mt-1">
-                Review full student context before writing official term comments
-            </p>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="font-semibold text-2xl text-white leading-tight">
+                        Headmaster Comments
+                    </h2>
+                    <p class="text-blue-100 text-sm mt-1">
+                        Review full student context before writing official term comments
+                    </p>
+                </div>
+
+                <a href="{{ route('headmaster.dashboard') }}"
+                    class="inline-flex items-center text-white hover:text-blue-100 text-sm font-medium">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Dashboard
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -68,325 +81,523 @@
                 </div>
 
                 @if ($selectedClassId && $selectedTermId)
-                    <div class="space-y-6">
-                        @forelse($students as $student)
-                            @php
-                                $existingComment = $student->headmasterComments->first();
-                                $attendance = $student->attendance_summary;
-                                $punctuality = $student->punctuality_summary;
-                                $behaviour = $student->behaviour_summary;
-                            @endphp
+                    <form method="POST" action="{{ route('headmaster.comments.bulk-store') }}">
+                        @csrf
+                        <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
+                        <input type="hidden" name="term_id" value="{{ $selectedTermId }}">
 
-                            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
-                                <div class="border-b bg-gray-50 px-6 py-4">
-                                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">
-                                                {{ $student->user->name }}
-                                            </h3>
-                                            <p class="text-sm text-gray-500">
-                                                Admission No: {{ $student->admission_no }} |
-                                                Class: {{ $student->currentClass->name ?? 'N/A' }}
-                                            </p>
-                                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-md shadow-sm">
+                                Save All Comments
+                            </button>
+                        </div>
 
-                                        <div class="text-left md:text-right">
-                                            <p class="text-sm text-gray-500">Student Average</p>
-                                            <p
-                                                class="text-2xl font-bold {{ $student->student_average !== null && $student->student_average < 40 ? 'text-red-600' : 'text-indigo-600' }}">
-                                                {{ $student->student_average !== null ? number_format($student->student_average, 2) . '%' : 'N/A' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="space-y-6 mt-6">
+                            @forelse($students as $index => $student)
+                                @php
+                                    $existingComment = $student->headmasterComments->first();
+                                    $attendance = $student->attendance_summary;
+                                    $punctuality = $student->punctuality_summary;
+                                    $behaviour = $student->behaviour_summary;
 
-                                <div class="p-6 space-y-6">
-                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div class="bg-blue-50 rounded-lg p-4">
-                                            <h4 class="text-sm font-semibold text-blue-900 mb-3">Student Summary</h4>
-                                            <div class="space-y-2 text-sm text-gray-700">
-                                                <p><span class="font-medium">Full Name:</span>
-                                                    {{ $student->user->name }}</p>
-                                                <p><span class="font-medium">Admission No:</span>
-                                                    {{ $student->admission_no }}</p>
-                                                <p><span class="font-medium">Class:</span>
-                                                    {{ $student->currentClass->name ?? 'N/A' }}</p>
-                                                <p><span class="font-medium">Performance Level:</span>
-                                                    @if ($student->student_average === null)
-                                                        No marks available
-                                                    @elseif($student->student_average >= 80)
-                                                        Excellent
-                                                    @elseif($student->student_average >= 70)
-                                                        Very Good
-                                                    @elseif($student->student_average >= 60)
-                                                        Good
-                                                    @elseif($student->student_average >= 50)
-                                                        Fair
-                                                    @else
-                                                        Needs Improvement
-                                                    @endif
-                                                </p>
-                                            </div>
-                                        </div>
+                                    $midtermValues = collect($student->subject_breakdown)
+                                        ->pluck('midterm_score')
+                                        ->filter(fn($value) => $value !== null);
 
-                                        <div class="bg-green-50 rounded-lg p-4">
-                                            <h4 class="text-sm font-semibold text-green-900 mb-3">Strongest Subjects
-                                            </h4>
-                                            @if ($student->top_subjects->count())
-                                                <div class="space-y-2">
-                                                    @foreach ($student->top_subjects as $subject)
-                                                        <div class="flex items-center justify-between text-sm">
-                                                            <span
-                                                                class="text-gray-800">{{ $subject['subject_name'] }}</span>
-                                                            <span class="font-semibold text-green-700">
-                                                                {{ number_format($subject['average'], 2) }}%
-                                                            </span>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <p class="text-sm text-gray-500">No performance data available.</p>
-                                            @endif
-                                        </div>
+                                    $endtermValues = collect($student->subject_breakdown)
+                                        ->pluck('endterm_score')
+                                        ->filter(fn($value) => $value !== null);
 
-                                        <div class="bg-red-50 rounded-lg p-4">
-                                            <h4 class="text-sm font-semibold text-red-900 mb-3">Weakest Subjects</h4>
-                                            @if ($student->weak_subjects->count())
-                                                <div class="space-y-2">
-                                                    @foreach ($student->weak_subjects as $subject)
-                                                        <div class="flex items-center justify-between text-sm">
-                                                            <span
-                                                                class="text-gray-800">{{ $subject['subject_name'] }}</span>
-                                                            <span class="font-semibold text-red-700">
-                                                                {{ number_format($subject['average'], 2) }}%
-                                                            </span>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <p class="text-sm text-gray-500">No performance data available.</p>
-                                            @endif
-                                        </div>
-                                    </div>
+                                    $midtermAverage = $midtermValues->count() ? round($midtermValues->avg(), 2) : null;
+                                    $endtermAverage = $endtermValues->count() ? round($endtermValues->avg(), 2) : null;
 
-                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                                            <h4 class="text-sm font-semibold text-emerald-900 mb-3">Attendance Summary
-                                            </h4>
-                                            <div class="space-y-2 text-sm">
-                                                <p><span class="font-medium">Attendance Rate:</span>
-                                                    <span
-                                                        class="{{ ($attendance['rate'] ?? 0) < 80 && $attendance['rate'] !== null ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold' }}">
-                                                        {{ $attendance['rate'] !== null ? number_format($attendance['rate'], 1) . '%' : 'N/A' }}
-                                                    </span>
-                                                </p>
-                                                <p><span class="font-medium">Present:</span>
-                                                    {{ $attendance['present'] }}</p>
-                                                <p><span class="font-medium">Absent:</span> {{ $attendance['absent'] }}
-                                                </p>
-                                                <p><span class="font-medium">Late:</span> {{ $attendance['late'] }}</p>
-                                                <p><span class="font-medium">Excused:</span>
-                                                    {{ $attendance['excused'] }}</p>
-                                                <p><span class="font-medium">Total Records:</span>
-                                                    {{ $attendance['total'] }}</p>
-                                            </div>
-                                        </div>
+                                    $performanceLabel =
+                                        $student->student_average === null
+                                            ? 'No marks available'
+                                            : ($student->student_average >= 80
+                                                ? 'Excellent'
+                                                : ($student->student_average >= 70
+                                                    ? 'Very Good'
+                                                    : ($student->student_average >= 60
+                                                        ? 'Good'
+                                                        : ($student->student_average >= 50
+                                                            ? 'Fair'
+                                                            : 'Needs Improvement'))));
+                                @endphp
 
-                                        <div class="rounded-lg border border-amber-100 bg-amber-50 p-4">
-                                            <h4 class="text-sm font-semibold text-amber-900 mb-3">Punctuality Summary
-                                            </h4>
-                                            <div class="space-y-2 text-sm">
-                                                <p><span class="font-medium">On-Time Rate:</span>
-                                                    <span
-                                                        class="{{ ($punctuality['on_time_rate'] ?? 0) < 80 && $punctuality['on_time_rate'] !== null ? 'text-red-600 font-semibold' : 'text-amber-700 font-semibold' }}">
-                                                        {{ $punctuality['on_time_rate'] !== null ? number_format($punctuality['on_time_rate'], 1) . '%' : 'N/A' }}
-                                                    </span>
-                                                </p>
-                                                <p><span class="font-medium">On Time:</span>
-                                                    {{ $punctuality['on_time'] }}</p>
-                                                <p><span class="font-medium">Late:</span> {{ $punctuality['late'] }}
-                                                </p>
-                                                <p><span class="font-medium">Very Late:</span>
-                                                    {{ $punctuality['very_late'] }}</p>
-                                                <p><span class="font-medium">Absent:</span>
-                                                    {{ $punctuality['absent'] }}</p>
-                                                <p><span class="font-medium">Total Records:</span>
-                                                    {{ $punctuality['total'] }}</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="rounded-lg border border-rose-100 bg-rose-50 p-4">
-                                            <h4 class="text-sm font-semibold text-rose-900 mb-3">Behaviour Summary</h4>
-                                            <div class="space-y-2 text-sm">
-                                                <p><span class="font-medium">Total Incidents:</span>
-                                                    <span
-                                                        class="{{ $behaviour['total'] > 0 ? 'text-rose-700 font-semibold' : 'text-gray-700' }}">
-                                                        {{ $behaviour['total'] }}
-                                                    </span>
-                                                </p>
-                                                <p><span class="font-medium">Minor:</span> {{ $behaviour['minor'] }}
-                                                </p>
-                                                <p><span class="font-medium">Moderate:</span>
-                                                    {{ $behaviour['moderate'] }}</p>
-                                                <p><span class="font-medium">Major:</span> {{ $behaviour['major'] }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="bg-white border rounded-lg p-4">
-                                        <h4 class="text-sm font-semibold text-gray-900 mb-4">Subject Performance
-                                            Breakdown</h4>
-
-                                        @if ($student->subject_breakdown->count())
-                                            <div class="overflow-x-auto">
-                                                <table class="min-w-full divide-y divide-gray-200">
-                                                    <thead class="bg-gray-50">
-                                                        <tr>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Subject</th>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Midterm</th>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Endterm</th>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Average</th>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Grade</th>
-                                                            <th
-                                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                                Teacher Remark</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody class="divide-y divide-gray-200">
-                                                        @foreach ($student->subject_breakdown as $row)
-                                                            <tr>
-                                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                                    {{ $row['subject_name'] }}</td>
-                                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                                    {{ $row['midterm_score'] !== null ? number_format($row['midterm_score'], 2) : '—' }}
-                                                                </td>
-                                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                                    {{ $row['endterm_score'] !== null ? number_format($row['endterm_score'], 2) : '—' }}
-                                                                </td>
-                                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                                    {{ $row['average'] !== null ? number_format($row['average'], 2) . '%' : '—' }}
-                                                                </td>
-                                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                                    {{ $row['grade'] ?? '—' }}</td>
-                                                                <td class="px-4 py-3 text-sm text-gray-600">
-                                                                    {{ $row['remarks'] ?? '—' }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        @else
-                                            <p class="text-sm text-gray-500">No marks available for this student in the
-                                                selected term.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="bg-white border rounded-lg p-4">
-                                        <h4 class="text-sm font-semibold text-gray-900 mb-4">Recent Behaviour Records
-                                        </h4>
-
-                                        @if ($behaviour['recent']->count())
-                                            <div class="space-y-3">
-                                                @foreach ($behaviour['recent'] as $record)
-                                                    <div class="border rounded-lg p-3">
-                                                        <div class="flex items-start justify-between gap-4">
-                                                            <div>
-                                                                <p class="text-sm font-semibold text-gray-900">
-                                                                    {{ \Illuminate\Support\Carbon::parse($record->record_date)->format('d M Y') }}
-                                                                    ·
-                                                                    {{ ucwords(str_replace('_', ' ', $record->category)) }}
-                                                                </p>
-                                                            </div>
-
-                                                            <span
-                                                                class="px-2 py-1 text-xs font-semibold rounded-full
-                                                                @if ($record->severity === 'major') bg-red-100 text-red-800
-                                                                @elseif($record->severity === 'moderate')
-                                                                    bg-yellow-100 text-yellow-800
-                                                                @else
-                                                                    bg-blue-100 text-blue-800 @endif">
-                                                                {{ ucfirst($record->severity) }}
-                                                            </span>
-                                                        </div>
-
-                                                        <p class="text-sm text-gray-700 mt-2">{{ $record->incident }}
-                                                        </p>
-
-                                                        @if ($record->action_taken)
-                                                            <p class="text-sm text-gray-600 mt-2">
-                                                                <span class="font-medium">Action Taken:</span>
-                                                                {{ $record->action_taken }}
-                                                            </p>
-                                                        @endif
-
-                                                        @if ($record->remarks)
-                                                            <p class="text-sm text-gray-600 mt-1">
-                                                                <span class="font-medium">Remarks:</span>
-                                                                {{ $record->remarks }}
-                                                            </p>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <p class="text-sm text-gray-500">No behaviour records for this student in
-                                                the selected term.</p>
-                                        @endif
-                                    </div>
-
-                                    <div class="border rounded-lg p-4">
-                                        <h4 class="text-sm font-semibold text-gray-900 mb-4">Official Headmaster
-                                            Comment</h4>
-
-                                        <form method="POST" action="{{ route('headmaster.comments.store') }}">
-                                            @csrf
-                                            <input type="hidden" name="student_id" value="{{ $student->id }}">
-                                            <input type="hidden" name="term_id" value="{{ $selectedTermId }}">
-
+                                <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+                                    <div class="border-b bg-gray-50 px-6 py-4">
+                                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                             <div>
-                                                <textarea name="comment" rows="5"
-                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                                    placeholder="Write the official headmaster comment based on academic performance, attendance, punctuality, behaviour, and overall progress..."
-                                                    required>{{ old('student_id') == $student->id ? old('comment') : $existingComment->comment ?? '' }}</textarea>
+                                                <h3 class="text-lg font-semibold text-gray-900">
+                                                    {{ $student->user->name }}
+                                                </h3>
+                                                <p class="text-sm text-gray-500">
+                                                    Admission No: {{ $student->admission_no }} |
+                                                    Class: {{ $student->currentClass->name ?? 'N/A' }}
+                                                </p>
+                                            </div>
 
-                                                @if ($errors->any() && old('student_id') == $student->id)
-                                                    <div class="mt-2 text-sm text-red-600">
-                                                        @foreach ($errors->all() as $error)
-                                                            <p>{{ $error }}</p>
+                                            <div class="text-left md:text-right">
+                                                <p class="text-sm text-gray-500">Student Average</p>
+                                                <p
+                                                    class="text-2xl font-bold {{ $student->student_average !== null && $student->student_average < 40 ? 'text-red-600' : 'text-indigo-600' }}">
+                                                    {{ $student->student_average !== null ? number_format($student->student_average, 2) . '%' : 'N/A' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-6 space-y-6">
+                                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            <div class="bg-blue-50 rounded-lg p-4">
+                                                <h4 class="text-sm font-semibold text-blue-900 mb-3">Student Summary
+                                                </h4>
+                                                <div class="space-y-2 text-sm text-gray-700">
+                                                    <p><span class="font-medium">Full Name:</span>
+                                                        {{ $student->user->name }}</p>
+                                                    <p><span class="font-medium">Admission No:</span>
+                                                        {{ $student->admission_no }}</p>
+                                                    <p><span class="font-medium">Class:</span>
+                                                        {{ $student->currentClass->name ?? 'N/A' }}</p>
+                                                    <p><span class="font-medium">Performance Level:</span>
+                                                        {{ $performanceLabel }}
+                                                    </p>
+                                                    <p><span class="font-medium">Midterm Average:</span>
+                                                        {{ $midtermAverage !== null ? number_format($midtermAverage, 2) . '%' : 'N/A' }}
+                                                    </p>
+                                                    <p><span class="font-medium">Endterm Average:</span>
+                                                        {{ $endtermAverage !== null ? number_format($endtermAverage, 2) . '%' : 'N/A' }}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="bg-green-50 rounded-lg p-4">
+                                                <h4 class="text-sm font-semibold text-green-900 mb-3">Strongest Subjects
+                                                </h4>
+                                                @if ($student->top_subjects->count())
+                                                    <div class="space-y-2">
+                                                        @foreach ($student->top_subjects as $subject)
+                                                            <div class="flex items-center justify-between text-sm">
+                                                                <span
+                                                                    class="text-gray-800">{{ $subject['subject_name'] }}</span>
+                                                                <span class="font-semibold text-green-700">
+                                                                    {{ number_format($subject['average'], 2) }}%
+                                                                </span>
+                                                            </div>
                                                         @endforeach
                                                     </div>
+                                                @else
+                                                    <p class="text-sm text-gray-500">No performance data available.</p>
                                                 @endif
                                             </div>
 
-                                            <div class="mt-4 flex justify-end">
-                                                <button type="submit"
-                                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md">
-                                                    {{ $existingComment ? 'Update Comment' : 'Save Comment' }}
-                                                </button>
+                                            <div class="bg-red-50 rounded-lg p-4">
+                                                <h4 class="text-sm font-semibold text-red-900 mb-3">Weakest Subjects
+                                                </h4>
+                                                @if ($student->weak_subjects->count())
+                                                    <div class="space-y-2">
+                                                        @foreach ($student->weak_subjects as $subject)
+                                                            <div class="flex items-center justify-between text-sm">
+                                                                <span
+                                                                    class="text-gray-800">{{ $subject['subject_name'] }}</span>
+                                                                <span class="font-semibold text-red-700">
+                                                                    {{ number_format($subject['average'], 2) }}%
+                                                                </span>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <p class="text-sm text-gray-500">No performance data available.</p>
+                                                @endif
                                             </div>
-                                        </form>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                                                <h4 class="text-sm font-semibold text-emerald-900 mb-3">Attendance
+                                                    Summary
+                                                </h4>
+                                                <div class="space-y-2 text-sm">
+                                                    <p><span class="font-medium">Attendance Rate:</span>
+                                                        <span
+                                                            class="{{ ($attendance['rate'] ?? 0) < 80 && $attendance['rate'] !== null ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold' }}">
+                                                            {{ $attendance['rate'] !== null ? number_format($attendance['rate'], 1) . '%' : 'N/A' }}
+                                                        </span>
+                                                    </p>
+                                                    <p><span class="font-medium">Present:</span>
+                                                        {{ $attendance['present'] }}</p>
+                                                    <p><span class="font-medium">Absent:</span>
+                                                        {{ $attendance['absent'] }}
+                                                    </p>
+                                                    <p><span class="font-medium">Late:</span> {{ $attendance['late'] }}
+                                                    </p>
+                                                    <p><span class="font-medium">Excused:</span>
+                                                        {{ $attendance['excused'] }}</p>
+                                                    <p><span class="font-medium">Total Records:</span>
+                                                        {{ $attendance['total'] }}</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="rounded-lg border border-amber-100 bg-amber-50 p-4">
+                                                <h4 class="text-sm font-semibold text-amber-900 mb-3">Punctuality
+                                                    Summary
+                                                </h4>
+                                                <div class="space-y-2 text-sm">
+                                                    <p><span class="font-medium">On-Time Rate:</span>
+                                                        <span
+                                                            class="{{ ($punctuality['on_time_rate'] ?? 0) < 80 && $punctuality['on_time_rate'] !== null ? 'text-red-600 font-semibold' : 'text-amber-700 font-semibold' }}">
+                                                            {{ $punctuality['on_time_rate'] !== null ? number_format($punctuality['on_time_rate'], 1) . '%' : 'N/A' }}
+                                                        </span>
+                                                    </p>
+                                                    <p><span class="font-medium">On Time:</span>
+                                                        {{ $punctuality['on_time'] }}</p>
+                                                    <p><span class="font-medium">Late:</span>
+                                                        {{ $punctuality['late'] }}
+                                                    </p>
+                                                    <p><span class="font-medium">Very Late:</span>
+                                                        {{ $punctuality['very_late'] }}</p>
+                                                    <p><span class="font-medium">Absent:</span>
+                                                        {{ $punctuality['absent'] }}</p>
+                                                    <p><span class="font-medium">Total Records:</span>
+                                                        {{ $punctuality['total'] }}</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="rounded-lg border border-rose-100 bg-rose-50 p-4">
+                                                <h4 class="text-sm font-semibold text-rose-900 mb-3">Behaviour Summary
+                                                </h4>
+                                                <div class="space-y-2 text-sm">
+                                                    <p><span class="font-medium">Total Incidents:</span>
+                                                        <span
+                                                            class="{{ $behaviour['total'] > 0 ? 'text-rose-700 font-semibold' : 'text-gray-700' }}">
+                                                            {{ $behaviour['total'] }}
+                                                        </span>
+                                                    </p>
+                                                    <p><span class="font-medium">Minor:</span>
+                                                        {{ $behaviour['minor'] }}
+                                                    </p>
+                                                    <p><span class="font-medium">Moderate:</span>
+                                                        {{ $behaviour['moderate'] }}</p>
+                                                    <p><span class="font-medium">Major:</span>
+                                                        {{ $behaviour['major'] }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-white border rounded-lg p-4">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-4">Subject Performance
+                                                Breakdown</h4>
+
+                                            @if ($student->subject_breakdown->count())
+                                                <div class="overflow-x-auto">
+                                                    <table class="min-w-full divide-y divide-gray-200">
+                                                        <thead class="bg-gray-50">
+                                                            <tr>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Subject</th>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Midterm</th>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Endterm</th>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Average</th>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Grade</th>
+                                                                <th
+                                                                    class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                                    Teacher Remark</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="divide-y divide-gray-200">
+                                                            @foreach ($student->subject_breakdown as $row)
+                                                                <tr>
+                                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                                        {{ $row['subject_name'] }}</td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                                        {{ $row['midterm_score'] !== null ? number_format($row['midterm_score'], 2) : '—' }}
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                                        {{ $row['endterm_score'] !== null ? number_format($row['endterm_score'], 2) : '—' }}
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                                        {{ $row['average'] !== null ? number_format($row['average'], 2) . '%' : '—' }}
+                                                                    </td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                                        {{ $row['grade'] ?? '—' }}</td>
+                                                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                                                        {{ $row['remarks'] ?? '—' }}</td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            @else
+                                                <p class="text-sm text-gray-500">No marks available for this student in
+                                                    the
+                                                    selected term.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="bg-white border rounded-lg p-4">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-4">Recent Behaviour
+                                                Records
+                                            </h4>
+
+                                            @if ($behaviour['recent']->count())
+                                                <div class="space-y-3">
+                                                    @foreach ($behaviour['recent'] as $record)
+                                                        <div class="border rounded-lg p-3">
+                                                            <div class="flex items-start justify-between gap-4">
+                                                                <div>
+                                                                    <p class="text-sm font-semibold text-gray-900">
+                                                                        {{ \Illuminate\Support\Carbon::parse($record->record_date)->format('d M Y') }}
+                                                                        ·
+                                                                        {{ ucwords(str_replace('_', ' ', $record->category)) }}
+                                                                    </p>
+                                                                </div>
+
+                                                                <span
+                                                                    class="px-2 py-1 text-xs font-semibold rounded-full
+                                                                    @if ($record->severity === 'major') bg-red-100 text-red-800
+                                                                    @elseif($record->severity === 'moderate')
+                                                                        bg-yellow-100 text-yellow-800
+                                                                    @else
+                                                                        bg-blue-100 text-blue-800 @endif">
+                                                                    {{ ucfirst($record->severity) }}
+                                                                </span>
+                                                            </div>
+
+                                                            <p class="text-sm text-gray-700 mt-2">
+                                                                {{ $record->incident }}
+                                                            </p>
+
+                                                            @if ($record->action_taken)
+                                                                <p class="text-sm text-gray-600 mt-2">
+                                                                    <span class="font-medium">Action Taken:</span>
+                                                                    {{ $record->action_taken }}
+                                                                </p>
+                                                            @endif
+
+                                                            @if ($record->remarks)
+                                                                <p class="text-sm text-gray-600 mt-1">
+                                                                    <span class="font-medium">Remarks:</span>
+                                                                    {{ $record->remarks }}
+                                                                </p>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <p class="text-sm text-gray-500">No behaviour records for this student
+                                                    in
+                                                    the selected term.</p>
+                                            @endif
+                                        </div>
+
+                                        <div class="border rounded-lg p-4">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-4">Official Headmaster
+                                                Comment</h4>
+
+                                            <input type="hidden" name="comments[{{ $index }}][student_id]"
+                                                value="{{ $student->id }}">
+
+                                            <div class="space-y-3 headmaster-comment-form"
+                                                data-midterm-average="{{ $midtermAverage ?? '' }}"
+                                                data-endterm-average="{{ $endtermAverage ?? '' }}"
+                                                data-existing-comment="{{ $existingComment?->comment ? e($existingComment->comment) : '' }}">
+
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                        Preset Comment
+                                                    </label>
+                                                    <select
+                                                        class="headmaster-preset-comment block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                        <option value="">System generated / Select preset
+                                                        </option>
+                                                        <option value="A commendable performance. Keep aiming higher.">
+                                                            A commendable performance. Keep aiming higher.
+                                                        </option>
+                                                        <option
+                                                            value="A satisfactory performance with room for further improvement.">
+                                                            A satisfactory performance with room for further
+                                                            improvement.
+                                                        </option>
+                                                        <option
+                                                            value="The learner shows potential but must apply greater effort.">
+                                                            The learner shows potential but must apply greater effort.
+                                                        </option>
+                                                        <option
+                                                            value="The learner has shown encouraging progress and should maintain the effort.">
+                                                            The learner has shown encouraging progress and should
+                                                            maintain the
+                                                            effort.
+                                                        </option>
+                                                        <option
+                                                            value="The learner’s performance has declined and requires closer attention.">
+                                                            The learner’s performance has declined and requires closer
+                                                            attention.
+                                                        </option>
+                                                        <option
+                                                            value="The learner did not complete the full term assessment and follow-up is required.">
+                                                            The learner did not complete the full term assessment and
+                                                            follow-up is required.
+                                                        </option>
+                                                        <option value="__custom__">Custom comment...</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <textarea name="comments[{{ $index }}][comment]" rows="5"
+                                                        class="headmaster-comment-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                        placeholder="Write the official headmaster comment based on academic performance, attendance, punctuality, behaviour, and overall progress...">{{ old("comments.$index.comment", $existingComment->comment ?? '') }}</textarea>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            @empty
+                                <div class="bg-white shadow-sm rounded-lg p-6">
+                                    <p class="text-gray-500">No students found for the selected class.</p>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        @if ($students->count())
+                            <div class="mt-6 flex justify-end">
+                                <button type="submit"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-5 rounded-md shadow-sm">
+                                    Save All Comments
+                                </button>
                             </div>
-                        @empty
-                            <div class="bg-white shadow-sm rounded-lg p-6">
-                                <p class="text-gray-500">No students found for the selected class.</p>
-                            </div>
-                        @endforelse
-                    </div>
+                        @endif
+                    </form>
                 @endif
             @endif
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const forms = document.querySelectorAll('.headmaster-comment-form');
+
+                forms.forEach(function(form) {
+                    const presetSelect = form.querySelector('.headmaster-preset-comment');
+                    const textarea = form.querySelector('.headmaster-comment-textarea');
+
+                    const existingComment = (form.dataset.existingComment || '').trim();
+                    const midtermAverage = parseNullableNumber(form.dataset.midtermAverage);
+                    const endtermAverage = parseNullableNumber(form.dataset.endtermAverage);
+
+                    if (!existingComment && textarea.value.trim() === '') {
+                        textarea.value = generateHeadmasterComment(midtermAverage, endtermAverage);
+                    }
+
+                    presetSelect.addEventListener('change', function() {
+                        if (presetSelect.value === '__custom__') {
+                            textarea.focus();
+                            return;
+                        }
+
+                        if (presetSelect.value !== '') {
+                            textarea.value = presetSelect.value;
+                        } else if (!existingComment) {
+                            textarea.value = generateHeadmasterComment(midtermAverage, endtermAverage);
+                        }
+                    });
+                });
+            });
+
+            function parseNullableNumber(value) {
+                if (value === '' || value === null || value === undefined) {
+                    return null;
+                }
+
+                const parsed = Number(value);
+                return Number.isNaN(parsed) ? null : parsed;
+            }
+
+            function performancePhrase(score) {
+                if (score === null) {
+                    return 'no recorded performance';
+                }
+                if (score >= 80) {
+                    return 'a very strong performance';
+                }
+                if (score >= 70) {
+                    return 'a good performance';
+                }
+                if (score >= 60) {
+                    return 'a fair performance';
+                }
+                if (score >= 50) {
+                    return 'a satisfactory performance';
+                }
+                if (score >= 40) {
+                    return 'a below-expectation performance';
+                }
+                return 'a weak performance';
+            }
+
+            function generateHeadmasterComment(midterm, endterm) {
+                if (midterm === null && endterm === null) {
+                    return 'No assessment marks were recorded for this learner during the term.';
+                }
+
+                if (midterm !== null && endterm === null) {
+                    return `The learner showed ${performancePhrase(midterm)} in the midterm assessment but did not write the end-of-term assessment.`;
+                }
+
+                if (midterm === null && endterm !== null) {
+                    return `The learner did not have a recorded midterm mark but showed ${performancePhrase(endterm)} in the end-of-term assessment.`;
+                }
+
+                const difference = endterm - midterm;
+
+                if (difference >= 10) {
+                    if (endterm >= 60) {
+                        return 'The learner has shown clear improvement since midterm. This progress is encouraging and should be maintained.';
+                    }
+                    return 'The learner has improved since midterm, but more effort is still needed to reach the expected standard.';
+                }
+
+                if (difference >= 3) {
+                    if (endterm >= 70) {
+                        return 'The learner has improved and is making solid academic progress. Continued effort is encouraged.';
+                    }
+                    return 'The learner has shown some improvement since midterm. More consistency can lead to stronger results.';
+                }
+
+                if (difference <= -10) {
+                    return 'The learner’s performance has declined significantly since midterm and requires serious attention and greater commitment.';
+                }
+
+                if (difference <= -3) {
+                    return 'The learner’s performance has declined since midterm. More focus and consistency are needed.';
+                }
+
+                if (endterm >= 80) {
+                    return 'The learner has maintained a commendably high standard throughout the term. Keep aiming higher.';
+                }
+
+                if (endterm >= 60) {
+                    return 'The learner has shown a satisfactory and fairly steady performance, with room for further improvement.';
+                }
+
+                if (endterm >= 40) {
+                    return 'The learner shows potential but must apply greater effort to improve overall performance.';
+                }
+
+                return 'The learner’s performance remains below expectation and immediate improvement is required.';
+            }
+        </script>
+    @endpush
 </x-app-layout>

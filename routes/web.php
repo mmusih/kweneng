@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\AlumniInterestController;
+use App\Http\Controllers\Profile\PasswordController;
 
 // Existing routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -27,22 +28,28 @@ Route::get('/success-stories', [PageController::class, 'successStories'])->name(
 // Alumni interest registration
 Route::post('/alumni/register-interest', [AlumniInterestController::class, 'store'])->name('alumni.register-interest');
 
+// Shared authenticated password routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/password', [PasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
+});
+
 // Include auth and role-based routes
 require __DIR__ . '/auth.php';
 require __DIR__ . '/admin.php';
 require __DIR__ . '/teacher.php';
 
-// Include student routes with file existence check
+// Include student routes
 if (file_exists(__DIR__ . '/student.php')) {
     require __DIR__ . '/student.php';
 }
 
-// Include parent routes with file existence check
+// Include parent routes
 if (file_exists(__DIR__ . '/parent.php')) {
     require __DIR__ . '/parent.php';
 }
 
-// Include accounts routes with file existence check
+// Include accounts routes
 if (file_exists(__DIR__ . '/accounts.php')) {
     require __DIR__ . '/accounts.php';
 }
@@ -55,9 +62,4 @@ if (file_exists(__DIR__ . '/headmaster.php')) {
 // Include librarian routes
 if (file_exists(__DIR__ . '/librarian.php')) {
     require __DIR__ . '/librarian.php';
-}
-
-// Include accounts officer routes
-if (file_exists(__DIR__ . '/accounts_officer.php')) {
-    require __DIR__ . '/accounts_officer.php';
 }

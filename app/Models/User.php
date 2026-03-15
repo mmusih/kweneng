@@ -92,4 +92,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(AccountsOfficer::class);
     }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
 }

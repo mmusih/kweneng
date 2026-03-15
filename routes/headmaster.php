@@ -12,9 +12,12 @@ Route::middleware(['auth', 'role:headmaster'])->prefix('headmaster')->name('head
 
     Route::get('/comments', [CommentController::class, 'index'])->name('comments.index');
     Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::post('/comments/bulk-store', [CommentController::class, 'bulkStore'])->name('comments.bulk-store');
 
     Route::get('/reports', [ReportCardController::class, 'index'])->name('reports.index');
     Route::get('/reports/student/{student}', [ReportCardController::class, 'show'])->name('reports.show');
+    Route::get('/reports/student/{student}/pdf', [ReportCardController::class, 'pdf'])->name('reports.pdf');
+    Route::get('/reports/bulk/pdf', [ReportCardController::class, 'bulkPdf'])->name('reports.bulk-pdf');
 
     Route::get('/exam-summaries', [ExamSummaryController::class, 'index'])->name('exam-summaries.index');
     Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
