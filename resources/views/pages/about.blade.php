@@ -106,7 +106,7 @@
         </div>
 
 
-        <!-- LEADERSHIP -->
+        <!-- LEADERSHIP - REVISED SECTION WITH IMPROVED PHOTO DISPLAY -->
         <div class="py-20 bg-gray-50">
 
             <div class="max-w-7xl mx-auto px-6 lg:px-8">
@@ -132,35 +132,37 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
 
 
-                    <!-- FOUNDER -->
+                    <!-- FOUNDERS - UPDATED with both Mr and Mrs Gleeson and IMPROVED PHOTO DISPLAY -->
                     <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
 
-                        <div class="h-72 flex items-center justify-center bg-gray-100">
-
-                            <img src="{{ asset('images/martin-gleeson.png') }}" alt="Martin Gleeson"
-                                class="max-h-full max-w-full object-contain p-4">
-
+                        <div class="h-80 flex items-center justify-center bg-gray-100 p-8">
+                            <div
+                                class="w-64 h-64 rounded-full bg-white shadow-xl flex items-center justify-center overflow-hidden border-4 border-indigo-100">
+                                <img src="{{ asset('images/martin-gleeson.png') }}" alt="Martin Gleeson"
+                                    class="w-full h-full object-cover object-center">
+                            </div>
                         </div>
 
                         <div class="p-8">
 
                             <h3 class="text-2xl font-bold text-gray-900">
-                                Mr Martin Gleeson
+                                Mr Martin Gleeson & Mrs G. Gleeson
                             </h3>
 
                             <p class="text-indigo-600 font-semibold mb-4">
-                                Founder & First Headmaster
+                                Founders
                             </p>
 
                             <p class="text-gray-600 leading-relaxed">
-                                Mr Martin Gleeson founded Kweneng International Secondary School with the vision of
+                                The late Mr Martin Gleeson together with his wife Mrs G. Gleeson are the founders of
+                                Kweneng International Secondary School. They established the school with the vision of
                                 providing a disciplined academic environment where learners could achieve excellence
                                 through structured learning, strong teaching and consistent effort.
                             </p>
 
                             <p class="text-gray-600 mt-4 leading-relaxed">
-                                Under his leadership the school established its commitment to Cambridge IGCSE education
-                                and built a reputation for strong academic focus and high expectations.
+                                Under their leadership the school established its commitment to Cambridge IGCSE
+                                education and built a reputation for strong academic focus and high expectations.
                             </p>
 
                         </div>
@@ -169,14 +171,15 @@
 
 
 
-                    <!-- CEO -->
+                    <!-- CEO - IMPROVED PHOTO DISPLAY -->
                     <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
 
-                        <div class="h-72 flex items-center justify-center bg-gray-100">
-
-                            <img src="{{ asset('images/patrick-gleeson.webp') }}" alt="Patrick Gleeson"
-                                class="max-h-full max-w-full object-contain p-4">
-
+                        <div class="h-80 flex items-center justify-center bg-gray-100 p-8">
+                            <div
+                                class="w-64 h-64 rounded-full bg-white shadow-xl flex items-center justify-center overflow-hidden border-4 border-indigo-100">
+                                <img src="{{ asset('images/patrick-gleeson.webp') }}" alt="Patrick Gleeson"
+                                    class="w-full h-full object-cover object-center">
+                            </div>
                         </div>
 
                         <div class="p-8">

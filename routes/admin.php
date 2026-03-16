@@ -17,10 +17,20 @@ use App\Http\Controllers\Admin\ExamSummaryController;
 use App\Http\Controllers\Admin\AccountsOfficerController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ReportCardController;
-
+use App\Http\Controllers\Admin\UserManagementController;
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // User Management
+    Route::get('users', [UserManagementController::class, 'index'])->name('users.index');
+    Route::get('users/create', [UserManagementController::class, 'create'])->name('users.create');
+    Route::post('users', [UserManagementController::class, 'store'])->name('users.store');
+    Route::get('users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
+    Route::put('users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+    Route::patch('users/{user}/activate', [UserManagementController::class, 'activate'])->name('users.activate');
+    Route::patch('users/{user}/deactivate', [UserManagementController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('users.reset-password');
 
     // Student Management
     Route::resource('students', StudentController::class);
@@ -72,12 +82,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('promotions/reverse-promotion', [PromotionController::class, 'reversePromotion'])->name('promotions.reverse-promotion');
 
     // ALUMNI ROUTES - ORDER MATTERS!
-    // Specific routes MUST come BEFORE resource routes
     Route::get('alumni/interests', [AlumniController::class, 'interests'])->name('alumni.interests');
     Route::patch('alumni/interests/{interest}', [AlumniController::class, 'processInterest'])->name('alumni.process-interest');
     Route::post('alumni/interests/{interest}/convert', [AlumniController::class, 'convertInterestToAlumni'])->name('alumni.convert-interest');
 
-    // Resource route MUST come AFTER specific routes
     Route::resource('alumni', AlumniController::class);
 
     // MARKS MANAGEMENT ROUTES
@@ -96,7 +104,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // EXAM SUMMARY ROUTES
     Route::get('/exam-summaries', [ExamSummaryController::class, 'index'])->name('exam-summaries.index');
-
     Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
 
     // REPORT CARD ROUTES
@@ -113,5 +120,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Accounts Officer Management
     Route::resource('accounts-officers', AccountsOfficerController::class)->except(['show']);
+
+    // Activity Logs
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });

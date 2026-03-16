@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kweneng International Secondary School - Cambridge Secondary School</title>
+    <title>Kweneng International Secondary School - Cambridge IGCSE School</title>
     <meta name="description"
-        content="Botswana's leading Cambridge curriculum secondary school with excellent academics, transport coverage, and global recognition.">
+        content="Kweneng International Secondary School offers a strong Cambridge IGCSE learning environment with academic excellence, discipline, and global-minded preparation.">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -415,7 +415,7 @@
                     </h1>
 
                     <p class="hero-text mt-5">
-                        Kweneng International Secondary School offers a strong Cambridge learning environment,
+                        Kweneng International Secondary School offers a strong Cambridge IGCSE learning environment,
                         experienced teachers, disciplined academic culture, and the support students need to grow in
                         knowledge, character, and confidence.
                     </p>
@@ -423,7 +423,7 @@
                     <div class="hero-features">
                         <div class="hero-feature">
                             <i class="bi bi-mortarboard-fill"></i>
-                            Cambridge Curriculum
+                            Cambridge IGCSE
                         </div>
                         <div class="hero-feature">
                             <i class="bi bi-trophy-fill"></i>
@@ -435,14 +435,19 @@
                         <a href="{{ route('admissions') }}" class="btn-main btn-green">
                             Apply Now
                         </a>
-                        <a href="#" class="btn-main btn-blue">
-                            Download Prospectus
+
+                        <a href="{{ asset('documents/Prospectus-2026.pdf') }}" class="btn-main btn-blue"
+                            target="_blank">
+                            Download Prospectus (PDF)
                         </a>
+
                         <a href="{{ route('login') }}" class="btn-main btn-outline">
                             Academic Portal
                         </a>
-                        <a href="#" class="btn-main btn-outline">
-                            Download Yearbook 2025
+
+                        <a href="{{ asset('documents/KISS-2025-Yearbook.pdf') }}" class="btn-main btn-outline"
+                            target="_blank">
+                            Download KISS 2025 Yearbook
                         </a>
                     </div>
                 </div>
@@ -464,10 +469,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="trust-grid">
                 <div class="trust-item"><span>✔</span> 95% Pass Rate</div>
-                <div class="trust-item"><span>✔</span> 20+ Years Excellence</div>
+                <div class="trust-item"><span>✔</span> 20 Years of Excellence</div>
                 <div class="trust-item"><span>✔</span> 3× Top in World</div>
                 <div class="trust-item"><span>✔</span> Honour First</div>
-                <div class="trust-item"><span>✔</span> Cambridge Curriculum</div>
+                <div class="trust-item"><span>✔</span> Cambridge IGCSE</div>
             </div>
         </div>
     </section>
@@ -477,8 +482,8 @@
             <div class="text-center mb-12">
                 <h2 class="section-heading">Why choose Kweneng International</h2>
                 <p class="section-subtext">
-                    A school environment built around academic quality, student support, and preparation for success
-                    beyond the classroom.
+                    A school environment built around academic quality, student support, discipline, and preparation
+                    for success beyond the classroom.
                 </p>
             </div>
 
@@ -516,10 +521,11 @@
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon">🚌</div>
-                    <h3 class="text-xl font-bold mb-2 text-slate-900">Transport Coverage</h3>
+                    <div class="feature-icon">🚐</div>
+                    <h3 class="text-xl font-bold mb-2 text-slate-900">Accessible Location</h3>
                     <p class="text-slate-600">
-                        Reliable transport routes serving major communities and making access easier for families.
+                        The school is accessible through reliable public transportation serving major surrounding
+                        communities.
                     </p>
                 </div>
 
@@ -561,25 +567,38 @@
         </div>
     </section>
 
-    <section class="page-section bg-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="yearbook-card text-center">
-                <div class="yearbook-icon mx-auto">
-                    <i class="bi bi-journal-richtext"></i>
+    <section class="page-section relative overflow-hidden">
+        <div class="absolute inset-0">
+            <img src="{{ asset('images/yearbook-bg.jpg') }}" alt="KISS Yearbook Background"
+                class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-slate-900/70"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/60 to-sky-900/70"></div>
+        </div>
+
+        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-white py-10">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm mb-5">
+                    <i class="bi bi-journal-richtext text-3xl text-white"></i>
                 </div>
-                <h2 class="section-heading mb-4">Our Yearbook 2025 is here</h2>
-                <p class="text-slate-600 text-lg max-w-2xl mx-auto mb-8">
-                    Explore the highlights, memories, school life, and achievements that shaped the year at Kweneng
-                    International Secondary School.
+
+                <h2 class="section-heading mb-4 !text-white">Our 2025 Yearbook is here</h2>
+
+                <p class="text-lg text-slate-200 max-w-3xl mx-auto mb-8 leading-relaxed">
+                    Explore the highlights, memories, school life, and achievements that shaped 2025 at Kweneng
+                    International Secondary School — including a special look back at our 20-year milestone journey.
                 </p>
 
-                <a href="#" class="btn-main btn-blue">
-                    <i class="bi bi-download"></i>
-                    Download Yearbook 2025
-                </a>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="{{ asset('documents/KISS-2025-Yearbook.pdf') }}" class="btn-main btn-blue"
+                        target="_blank">
+                        <i class="bi bi-download"></i>
+                        Download Yearbook 2025
+                    </a>
+                </div>
             </div>
         </div>
-    </section>
+    </section>>
 
     <section class="page-section stats-section">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -596,7 +615,7 @@
                     <p class="mt-3 font-semibold text-slate-700">Pass Rate</p>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">20+</div>
+                    <div class="stat-number">20</div>
                     <p class="mt-3 font-semibold text-slate-700">Years of Excellence</p>
                 </div>
                 <div class="stat-card">
@@ -604,8 +623,8 @@
                     <p class="mt-3 font-semibold text-slate-700">Top in the World</p>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">5+</div>
-                    <p class="mt-3 font-semibold text-slate-700">Transport Routes</p>
+                    <div class="stat-number">IGCSE</div>
+                    <p class="mt-3 font-semibold text-slate-700">Cambridge Programme</p>
                 </div>
             </div>
         </div>
@@ -615,7 +634,7 @@
         <div class="admission-overlay"></div>
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 admission-content text-center py-10">
             <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-5">
-                Join Botswana’s leading Cambridge secondary school
+                Join a leading Cambridge IGCSE secondary school
             </h2>
             <p class="text-lg md:text-xl text-slate-200 mb-10">
                 Begin your child’s journey in a school community focused on academic excellence, discipline, and
@@ -626,10 +645,14 @@
                 <a href="{{ route('admissions') }}" class="btn-main btn-green">
                     Apply Now
                 </a>
-                <a href="#" class="btn-main bg-yellow-500 text-white hover:text-white">
-                    Download Application Form
+
+                <a href="{{ asset('documents/Prospectus-2026.pdf') }}"
+                    class="btn-main bg-yellow-500 text-white hover:text-white" target="_blank">
+                    Download Prospectus
                 </a>
-                <a href="https://wa.me/26777738838" class="btn-main bg-white text-green-700 hover:text-green-700">
+
+                <a href="https://wa.me/26777738838" class="btn-main bg-white text-green-700 hover:text-green-700"
+                    target="_blank">
                     Speak to Admissions
                 </a>
             </div>
@@ -639,9 +662,10 @@
     <section class="page-section bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-10">
-                <h2 class="section-heading">Transport coverage</h2>
+                <h2 class="section-heading">School accessibility</h2>
                 <p class="section-subtext">
-                    Making access to quality education easier for families across major communities.
+                    Families can access the school through reliable public transportation from major surrounding
+                    communities.
                 </p>
             </div>
 
