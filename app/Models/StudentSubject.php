@@ -12,6 +12,7 @@ class StudentSubject extends Model
     protected $fillable = [
         'student_id',
         'subject_id',
+        'teacher_id',
         'class_id',
         'academic_year_id',
         'is_elective',
@@ -21,7 +22,6 @@ class StudentSubject extends Model
         'is_elective' => 'boolean',
     ];
 
-    // Relationships
     public function student()
     {
         return $this->belongsTo(Student::class);
@@ -30,6 +30,11 @@ class StudentSubject extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class);
     }
 
     public function class()

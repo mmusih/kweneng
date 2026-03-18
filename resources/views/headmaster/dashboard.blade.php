@@ -201,10 +201,12 @@
                             @foreach ($dashboard['recentAtRiskStudents'] as $student)
                                 <div class="border rounded-lg p-4 bg-red-50">
                                     <p class="font-semibold text-gray-900">
-                                        {{ $student->user->name ?? 'Unknown Student' }}</p>
+                                        {{ $student->user->name ?? 'Unknown Student' }}
+                                    </p>
                                     <p class="text-sm text-gray-600 mt-1">{{ $student->admission_no ?? 'N/A' }}</p>
                                     <p class="text-sm text-gray-600 mt-1">
-                                        {{ $student->currentClass->name ?? 'No Class' }}</p>
+                                        {{ $student->currentClass->name ?? 'No Class' }}
+                                    </p>
                                 </div>
                             @endforeach
                         </div>
@@ -224,7 +226,7 @@
                         <p class="text-sm text-gray-500 mt-1">Fast access to review, reporting, and oversight tools.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                         <a href="{{ route('headmaster.comments.index') }}"
                             class="border rounded-lg p-5 hover:shadow-md transition hover:border-indigo-300">
                             <h4 class="font-semibold text-gray-900">Headmaster Comments</h4>
@@ -247,6 +249,13 @@
                             class="border rounded-lg p-5 hover:shadow-md transition hover:border-yellow-300">
                             <h4 class="font-semibold text-gray-900">Marks Monitor</h4>
                             <p class="text-sm text-gray-500 mt-1">Track marks entry, completeness, and updates.</p>
+                        </a>
+
+                        <a href="{{ route('teacher.dashboard') }}"
+                            class="border rounded-lg p-5 hover:shadow-md transition hover:border-purple-300">
+                            <h4 class="font-semibold text-gray-900">Teacher Dashboard</h4>
+                            <p class="text-sm text-gray-500 mt-1">Access marks, attendance, punctuality, behaviour, and
+                                teaching tools.</p>
                         </a>
                     </div>
                 </div>

@@ -17,8 +17,11 @@ return new class extends Migration
             $table->boolean('is_primary')->default(false); // Primary teacher for this subject
             $table->text('remarks')->nullable();
             $table->timestamps();
-            
-            $table->unique(['teacher_id', 'subject_id', 'class_id', 'academic_year_id']);
+
+            $table->unique(
+                ['teacher_id', 'subject_id', 'class_id', 'academic_year_id'],
+                'teacher_subject_unique'
+            );
             $table->index(['academic_year_id', 'class_id', 'subject_id']);
         });
     }

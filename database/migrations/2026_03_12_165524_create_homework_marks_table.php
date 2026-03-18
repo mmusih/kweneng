@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('homework_marks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('homework_id')->constrained()->onDelete('cascade');
-            $table->foreignId('student_id')->constrained()->onDelete('cascade');
+            $table->foreignId('homework_id')->constrained('homeworks')->onDelete('cascade');
+            $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
 
             $table->decimal('marks_obtained', 8, 2)->nullable();
             $table->decimal('percentage', 8, 2)->nullable();
@@ -20,8 +20,8 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['homework_id', 'student_id']);
-            $table->index(['student_id']);
+            $table->unique(['homework_id', 'student_id'], 'homework_student_unique');
+            $table->index('student_id');
         });
     }
 

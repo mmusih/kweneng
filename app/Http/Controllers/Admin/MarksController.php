@@ -30,7 +30,6 @@ class MarksController extends Controller
     {
         $query = Mark::with(['student.user', 'subject', 'class', 'teacher.user', 'academicYear', 'term']);
 
-        // Apply filters
         if ($request->filled('academic_year_id')) {
             $query->where('academic_year_id', $request->academic_year_id);
         }
@@ -57,7 +56,6 @@ class MarksController extends Controller
 
         $marks = $query->latest()->paginate(50);
 
-        // Get filter options
         $academicYears = AcademicYear::all();
         $classes = ClassModel::all();
         $subjects = Subject::all();
@@ -75,7 +73,7 @@ class MarksController extends Controller
     public function edit($id)
     {
         $mark = Mark::findOrFail($id);
-        
+
         if (!Gate::allows('override', $mark)) {
             abort(403);
         }
@@ -86,7 +84,7 @@ class MarksController extends Controller
     public function update(Request $request, $id)
     {
         $mark = Mark::findOrFail($id);
-        
+
         if (!Gate::allows('override', $mark)) {
             abort(403);
         }
@@ -98,11 +96,10 @@ class MarksController extends Controller
             'remarks' => 'nullable|string|max:500'
         ]);
 
-        // Recalculate grade if scores changed
         if (isset($validated['midterm_score']) || isset($validated['endterm_score'])) {
             $midterm = $validated['midterm_score'] ?? $mark->midterm_score;
             $endterm = $validated['endterm_score'] ?? $mark->endterm_score;
-            
+
             if ($midterm !== null && $endterm !== null) {
                 $average = ($midterm + $endterm) / 2;
                 $validated['grade'] = $this->marksService->calculateGrade($average);
@@ -117,7 +114,7 @@ class MarksController extends Controller
     public function destroy($id)
     {
         $mark = Mark::findOrFail($id);
-        
+
         if (!Gate::allows('delete', $mark)) {
             abort(403);
         }
@@ -142,31 +139,40 @@ class MarksController extends Controller
         return response()->json($averages);
     }
 
-    // NEW METHODS ADDED BELOW
-
     public function studentSubjectsIndex(Request $request)
     {
-        $query = StudentSubject::with(['student.user', 'subject', 'class', 'academicYear']);
-        
+        $query = StudentSubject::with(['student.user', 'subject', 'class', 'academicYear', 'teacher.user']);
+
         if ($request->filled('academic_year_id')) {
             $query->where('academic_year_id', $request->academic_year_id);
         }
-        
+
         if ($request->filled('class_id')) {
             $query->where('class_id', $request->class_id);
         }
-        
+
         if ($request->filled('subject_id')) {
             $query->where('subject_id', $request->subject_id);
         }
-        
+
+        if ($request->filled('teacher_id')) {
+            $query->where('teacher_id', $request->teacher_id);
+        }
+
         $studentSubjects = $query->latest()->paginate(50);
-        
+
         $academicYears = AcademicYear::all();
         $classes = ClassModel::all();
         $subjects = Subject::all();
-        
-        return view('admin.student-subjects.index', compact('studentSubjects', 'academicYears', 'classes', 'subjects'));
+        $teachers = Teacher::with('user')->get();
+
+        return view('admin.student-subjects.index', compact(
+            'studentSubjects',
+            'academicYears',
+            'classes',
+            'subjects',
+            'teachers'
+        ));
     }
 
     public function studentSubjectsCreate()
@@ -181,38 +187,53 @@ class MarksController extends Controller
             'academic_year_id' => 'required|exists:academic_years,id',
             'class_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
-            'student_ids' => 'required|array',
+            'teacher_id' => 'required|exists:teachers,id',
+            'student_ids' => 'required|array|min:1',
             'student_ids.*' => 'exists:students,id',
             'is_elective' => 'boolean'
         ]);
-        
-        $assignments = [];
-        foreach ($validated['student_ids'] as $studentId) {
-            $assignments[] = [
-                'student_id' => $studentId,
-                'subject_id' => $validated['subject_id'],
-                'class_id' => $validated['class_id'],
-                'academic_year_id' => $validated['academic_year_id'],
-                'is_elective' => $request->boolean('is_elective'),
-                'created_at' => now(),
-                'updated_at' => now()
-            ];
-        }
-        
+
         try {
+            $teacherAssigned = DB::table('teacher_subjects')
+                ->where('teacher_id', $validated['teacher_id'])
+                ->where('subject_id', $validated['subject_id'])
+                ->where('class_id', $validated['class_id'])
+                ->where('academic_year_id', $validated['academic_year_id'])
+                ->exists();
+
+            if (!$teacherAssigned) {
+                return redirect()->back()
+                    ->withErrors(['teacher_id' => 'The selected teacher is not assigned to this subject for this class and academic year.'])
+                    ->withInput();
+            }
+
+            $assignments = [];
+            foreach ($validated['student_ids'] as $studentId) {
+                $assignments[] = [
+                    'student_id' => $studentId,
+                    'subject_id' => $validated['subject_id'],
+                    'teacher_id' => $validated['teacher_id'],
+                    'class_id' => $validated['class_id'],
+                    'academic_year_id' => $validated['academic_year_id'],
+                    'is_elective' => $request->boolean('is_elective'),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
             DB::table('student_subjects')->upsert(
                 $assignments,
-                ['student_id', 'subject_id', 'academic_year_id'],
+                ['student_id', 'subject_id', 'teacher_id', 'academic_year_id'],
                 ['class_id', 'is_elective', 'updated_at']
             );
-            
+
             return redirect()->route('admin.student-subjects.index')
-                            ->with('success', 'Student subject assignments created successfully.');
+                ->with('success', 'Student subject assignments created successfully.');
         } catch (\Exception $e) {
             Log::error('Student subject assignment failed: ' . $e->getMessage());
             return redirect()->back()
-                            ->withErrors(['error' => 'Failed to create assignments. Please try again.'])
-                            ->withInput();
+                ->withErrors(['error' => 'Failed to create assignments. Please try again.'])
+                ->withInput();
         }
     }
 
@@ -221,27 +242,25 @@ class MarksController extends Controller
         try {
             StudentSubject::findOrFail($id)->delete();
             return redirect()->route('admin.student-subjects.index')
-                            ->with('success', 'Assignment removed successfully.');
+                ->with('success', 'Assignment removed successfully.');
         } catch (\Exception $e) {
             Log::error('Student subject removal failed: ' . $e->getMessage());
             return redirect()->back()
-                            ->withErrors(['error' => 'Failed to remove assignment. Please try again.']);
+                ->withErrors(['error' => 'Failed to remove assignment. Please try again.']);
         }
     }
 
-    // AJAX methods for dynamic loading
     public function getClassesByAcademicYear($academicYearId)
     {
-        // Validate academic year exists
         if (!AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
-        
+
         try {
-            $classes = ClassModel::whereHas('classSubjects', function($query) use ($academicYearId) {
+            $classes = ClassModel::whereHas('classSubjects', function ($query) use ($academicYearId) {
                 $query->where('academic_year_id', $academicYearId);
             })->get();
-            
+
             return response()->json($classes);
         } catch (\Exception $e) {
             Log::error('Failed to load classes: ' . $e->getMessage());
@@ -249,66 +268,63 @@ class MarksController extends Controller
         }
     }
 
-public function getStudentsByClass($classId, $academicYearId)
-{
-    if (!ClassModel::find($classId)) {
-        return response()->json(['error' => 'Invalid class'], 404);
-    }
-
-    if (!AcademicYear::find($academicYearId)) {
-        return response()->json(['error' => 'Invalid academic year'], 404);
-    }
-
-    try {
-        $students = Student::whereHas('classHistory', function ($query) use ($classId, $academicYearId) {
-            $query->where('class_id', $classId)
-                  ->where('academic_year_id', $academicYearId)
-                  ->where('status', 'active')
-                  ->whereNull('exited_at');
-        })
-        ->with('user')
-        ->get()
-        ->map(function ($student) {
-            return [
-                'id' => $student->id,
-                'name' => $student->user->name ?? 'Unknown Student',
-                'admission_no' => $student->admission_no ?? 'N/A',
-            ];
-        });
-
-        return response()->json($students);
-    } catch (\Exception $e) {
-        Log::error('Failed to load students', [
-            'message' => $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => $e->getFile(),
-            'class_id' => $classId,
-            'academic_year_id' => $academicYearId,
-        ]);
-
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
-}
-
-
-
-    public function getSubjectsByClass($classId, $academicYearId)
+    public function getStudentsByClass($classId, $academicYearId)
     {
-        // Validate class and academic year exist
         if (!ClassModel::find($classId)) {
             return response()->json(['error' => 'Invalid class'], 404);
         }
-        
+
         if (!AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
-        
+
         try {
-            $subjects = Subject::whereHas('classSubjects', function($query) use ($classId, $academicYearId) {
+            $students = Student::whereHas('classHistory', function ($query) use ($classId, $academicYearId) {
                 $query->where('class_id', $classId)
-                      ->where('academic_year_id', $academicYearId);
+                    ->where('academic_year_id', $academicYearId)
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
+                ->with('user')
+                ->get()
+                ->map(function ($student) {
+                    return [
+                        'id' => $student->id,
+                        'name' => $student->user->name ?? 'Unknown Student',
+                        'admission_no' => $student->admission_no ?? 'N/A',
+                    ];
+                });
+
+            return response()->json($students);
+        } catch (\Exception $e) {
+            Log::error('Failed to load students', [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'class_id' => $classId,
+                'academic_year_id' => $academicYearId,
+            ]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getSubjectsByClass($classId, $academicYearId)
+    {
+        if (!ClassModel::find($classId)) {
+            return response()->json(['error' => 'Invalid class'], 404);
+        }
+
+        if (!AcademicYear::find($academicYearId)) {
+            return response()->json(['error' => 'Invalid academic year'], 404);
+        }
+
+        try {
+            $subjects = Subject::whereHas('classSubjects', function ($query) use ($classId, $academicYearId) {
+                $query->where('class_id', $classId)
+                    ->where('academic_year_id', $academicYearId);
             })->get();
-            
+
             return response()->json($subjects);
         } catch (\Exception $e) {
             Log::error('Failed to load subjects: ' . $e->getMessage());
@@ -316,22 +332,54 @@ public function getStudentsByClass($classId, $academicYearId)
         }
     }
 
+    public function getTeachersBySubject($classId, $subjectId, $academicYearId)
+    {
+        if (!ClassModel::find($classId)) {
+            return response()->json(['error' => 'Invalid class'], 404);
+        }
+
+        if (!Subject::find($subjectId)) {
+            return response()->json(['error' => 'Invalid subject'], 404);
+        }
+
+        if (!AcademicYear::find($academicYearId)) {
+            return response()->json(['error' => 'Invalid academic year'], 404);
+        }
+
+        try {
+            $teachers = DB::table('teacher_subjects')
+                ->join('teachers', 'teacher_subjects.teacher_id', '=', 'teachers.id')
+                ->join('users', 'teachers.user_id', '=', 'users.id')
+                ->where('teacher_subjects.class_id', $classId)
+                ->where('teacher_subjects.subject_id', $subjectId)
+                ->where('teacher_subjects.academic_year_id', $academicYearId)
+                ->select('teachers.id', 'users.name')
+                ->orderBy('users.name')
+                ->get();
+
+            return response()->json($teachers);
+        } catch (\Exception $e) {
+            Log::error('Failed to load teachers: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load teachers'], 500);
+        }
+    }
+
     public function getTermsByAcademicYear($academicYearId)
-{
-    if (!AcademicYear::find($academicYearId)) {
-        return response()->json(['error' => 'Invalid academic year'], 404);
+    {
+        if (!AcademicYear::find($academicYearId)) {
+            return response()->json(['error' => 'Invalid academic year'], 404);
+        }
+
+        try {
+            $terms = Term::where('academic_year_id', $academicYearId)
+                ->orderBy('start_date')
+                ->get(['id', 'name']);
+
+            return response()->json($terms);
+        } catch (\Exception $e) {
+            Log::error('Failed to load terms: ' . $e->getMessage());
+
+            return response()->json(['error' => 'Failed to load terms'], 500);
+        }
     }
-
-    try {
-        $terms = Term::where('academic_year_id', $academicYearId)
-            ->orderBy('start_date')
-            ->get(['id', 'name']);
-
-        return response()->json($terms);
-    } catch (\Exception $e) {
-        Log::error('Failed to load terms: ' . $e->getMessage());
-
-        return response()->json(['error' => 'Failed to load terms'], 500);
-    }
-}
 }
