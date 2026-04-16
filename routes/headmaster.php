@@ -23,4 +23,8 @@ Route::middleware(['auth', 'role:headmaster'])->prefix('headmaster')->name('head
     Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
 
     Route::get('/marks-monitor', [MarksMonitorController::class, 'index'])->name('marks.index');
+
+    Route::get('/marks-monitor/detail', [MarksMonitorController::class, 'show'])
+        ->name('marks.detail');
+    Route::get('/marks-monitor/detail', [MarksMonitorController::class, 'show'])->name('marks.detail');
 });

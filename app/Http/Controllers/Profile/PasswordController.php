@@ -3,57 +3,32 @@
 namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
-use App\Services\ActivityLogService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
-    protected ActivityLogService $activityLogService;
-
-    public function __construct(ActivityLogService $activityLogService)
+    public function edit(Request $request)
     {
-        $this->activityLogService = $activityLogService;
+        return view('auth.force-change-password');
     }
 
-    public function edit()
+    public function update(Request $request): RedirectResponse
     {
-        return view('profile.password');
-    }
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
 
-    public function update(Request $request)
-    {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'current_password' => ['required', 'string'],
-            'password' => ['required', 'confirmed', Password::min(6)],
-        ]);
-
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            return back()->withErrors([
-                'current_password' => 'The current password is incorrect.',
-            ])->withInput();
-        }
-
         $user->update([
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
+            'must_change_password' => false,
         ]);
 
-        $this->activityLogService->log(
-            'user.password_changed',
-            'User changed password',
-            $user,
-            [
-                'role' => $user->role,
-                'email' => $user->email,
-            ],
-            $request
-        );
-
-        return redirect()
-            ->route('password.edit')
-            ->with('success', 'Password changed successfully.');
+        return redirect()->route('dashboard')->with('success', 'Password changed successfully.');
     }
 }

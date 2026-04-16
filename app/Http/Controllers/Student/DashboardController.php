@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\BehaviourRecord;
+use App\Models\LibraryBorrowing;
 use App\Models\Mark;
 use App\Models\Punctuality;
 use App\Models\StudentSubject;
@@ -30,7 +31,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        $cacheKey = 'student_dashboard_' . $user->id . '_' . now()->format('Y-m-d-H');
+        $cacheKey = 'student_dashboard_v3_' . $user->id . '_' . now()->format('Y-m-d-H');
 
         $dashboardData = Cache::remember($cacheKey, 300, function () use ($user) {
             $data = [
@@ -49,6 +50,9 @@ class DashboardController extends Controller
                 'punctualitySummary' => null,
                 'behaviourSummary' => null,
                 'performance' => null,
+                'borrowings' => collect(),
+                'borrowingsCount' => 0,
+                'overdueBorrowingsCount' => 0,
             ];
 
             if (!$user->student) {
@@ -152,23 +156,47 @@ class DashboardController extends Controller
                     'label' => $this->behaviourLabel($behaviourRecords),
                 ];
 
-                $data['performance'] = app(StudentPerformanceService::class)
+                $data['performance'] = $this->studentPerformanceService
                     ->getStudentTermPerformance($student, $currentAcademicYear->id, $currentTerm->id);
             }
+
+            $activeBorrowingsQuery = LibraryBorrowing::with(['bookCopy.book'])
+                ->where('student_id', $student->id)
+                ->whereNull('returned_at');
+
+            $data['borrowings'] = (clone $activeBorrowingsQuery)
+                ->latest('issued_at')
+                ->take(5)
+                ->get();
+
+            $data['borrowingsCount'] = (clone $activeBorrowingsQuery)->count();
+
+            $data['overdueBorrowingsCount'] = (clone $activeBorrowingsQuery)
+                ->whereDate('due_at', '<', now()->toDateString())
+                ->count();
 
             return $data;
         });
 
         return view('student.dashboard', [
-            'student' => $dashboardData['student'],
-            'currentAcademicYear' => $dashboardData['currentAcademicYear'],
-            'currentTerm' => $dashboardData['currentTerm'],
-            'stats' => $dashboardData['stats'],
-            'latestMarks' => $dashboardData['latestMarks'],
-            'attendanceSummary' => $dashboardData['attendanceSummary'],
-            'punctualitySummary' => $dashboardData['punctualitySummary'],
-            'behaviourSummary' => $dashboardData['behaviourSummary'],
-            'performance' => $dashboardData['performance'],
+            'student' => $dashboardData['student'] ?? null,
+            'currentAcademicYear' => $dashboardData['currentAcademicYear'] ?? null,
+            'currentTerm' => $dashboardData['currentTerm'] ?? null,
+            'stats' => $dashboardData['stats'] ?? [
+                'subjectsAssigned' => 0,
+                'subjectsWithMarks' => 0,
+                'midtermAverage' => null,
+                'endtermAverage' => null,
+                'feesBlocked' => false,
+            ],
+            'latestMarks' => $dashboardData['latestMarks'] ?? collect(),
+            'attendanceSummary' => $dashboardData['attendanceSummary'] ?? null,
+            'punctualitySummary' => $dashboardData['punctualitySummary'] ?? null,
+            'behaviourSummary' => $dashboardData['behaviourSummary'] ?? null,
+            'performance' => $dashboardData['performance'] ?? null,
+            'borrowings' => $dashboardData['borrowings'] ?? collect(),
+            'borrowingsCount' => $dashboardData['borrowingsCount'] ?? 0,
+            'overdueBorrowingsCount' => $dashboardData['overdueBorrowingsCount'] ?? 0,
         ]);
     }
 

@@ -29,28 +29,19 @@ class Student extends Model
 
     protected $dates = [
         'date_of_birth',
-        'deleted_at', // Add this for soft deletes
+        'deleted_at',
     ];
 
-    /**
-     * Get the user record associated with the student.
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the current class associated with the student.
-     */
     public function currentClass()
     {
         return $this->belongsTo(ClassModel::class, 'current_class_id');
     }
 
-    /**
-     * Get the parents associated with the student.
-     */
     public function parents()
     {
         return $this->belongsToMany(ParentModel::class, 'parent_student', 'student_id', 'parent_id')
@@ -58,25 +49,16 @@ class Student extends Model
             ->withTimestamps();
     }
 
-    /**
-     * Get class history records.
-     */
     public function classHistory()
     {
         return $this->hasMany(StudentClassHistory::class);
     }
 
-    /**
-     * Get the marks for the student.
-     */
     public function marks()
     {
         return $this->hasMany(Mark::class);
     }
 
-    /**
-     * Get the student subjects.
-     */
     public function studentSubjects()
     {
         return $this->hasMany(StudentSubject::class);
@@ -100,5 +82,15 @@ class Student extends Model
     public function behaviourRecords()
     {
         return $this->hasMany(BehaviourRecord::class);
+    }
+
+    public function termSummaries()
+    {
+        return $this->hasMany(StudentTermSummary::class);
+    }
+
+    public function libraryBorrowings()
+    {
+        return $this->hasMany(LibraryBorrowing::class);
     }
 }

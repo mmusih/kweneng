@@ -16,11 +16,11 @@
 
                     <div class="mb-6">
                         <h3 class="text-2xl font-semibold">Welcome, {{ auth()->user()->name }}!</h3>
-                        <p class="text-gray-600">Monitor your children's academic progress and school information.</p>
+                        <p class="text-gray-600">Monitor your children's academic progress, school information, and
+                            library records.</p>
                     </div>
 
-                    {{-- DASHBOARD STATS --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-6 mb-8">
                         <div class="bg-blue-50 border border-blue-100 p-5 rounded-lg">
                             <p class="text-sm text-blue-700">Total Children</p>
                             <p class="text-3xl font-bold text-blue-600 mt-2">
@@ -48,9 +48,22 @@
                                 {{ $stats['childrenWithMarks'] }}
                             </p>
                         </div>
+
+                        <div class="bg-purple-50 border border-purple-100 p-5 rounded-lg">
+                            <p class="text-sm text-purple-700">Borrowed Books</p>
+                            <p class="text-3xl font-bold text-purple-600 mt-2">
+                                {{ $stats['borrowedBooks'] }}
+                            </p>
+                        </div>
+
+                        <div class="bg-amber-50 border border-amber-100 p-5 rounded-lg">
+                            <p class="text-sm text-amber-700">Overdue Books</p>
+                            <p class="text-3xl font-bold text-amber-600 mt-2">
+                                {{ $stats['overdueBooks'] }}
+                            </p>
+                        </div>
                     </div>
 
-                    {{-- CURRENT ACADEMIC STATUS --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
                             <h4 class="text-lg font-semibold text-gray-800">Current Academic Year</h4>
@@ -76,7 +89,6 @@
                         </div>
                     </div>
 
-                    {{-- CHILDREN CARDS --}}
                     <div class="mb-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Your Children</h4>
 
@@ -100,7 +112,8 @@
 
                                             <div class="ml-4">
                                                 <h5 class="font-medium text-gray-800">
-                                                    {{ $child->user->name ?? 'Unknown Student' }}</h5>
+                                                    {{ $child->user->name ?? 'Unknown Student' }}
+                                                </h5>
                                                 <p class="text-sm text-gray-600">{{ $child->admission_no ?? 'N/A' }}
                                                 </p>
                                             </div>
@@ -139,7 +152,6 @@
                         @endif
                     </div>
 
-                    {{-- BLOCKED NOTICE --}}
                     @if ($blockedChildren->count() > 0)
                         <div class="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
                             <h4 class="text-lg font-semibold text-red-800">Restricted Academic Access</h4>
@@ -150,7 +162,6 @@
                         </div>
                     @endif
 
-                    {{-- MARKS OVERVIEW --}}
                     @if ($accessibleChildren->count() > 0)
                         <div class="mt-8">
                             <div class="mb-4">
@@ -259,11 +270,77 @@
                         </div>
                     @endif
 
-                    {{-- QUICK ACCESS --}}
+                    <div class="mt-8">
+                        <div class="mb-4">
+                            <h4 class="text-lg font-semibold text-gray-800">Children's Library Summary</h4>
+                            <p class="text-sm text-gray-600 mt-1">Current borrowed books and overdue alerts</p>
+                        </div>
+
+                        @if (count($childrenLibrarySummary) > 0)
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach ($childrenLibrarySummary as $librarySummary)
+                                    <div class="border rounded-lg p-4">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h5 class="font-medium text-gray-800">
+                                                {{ $librarySummary['student_name'] }}</h5>
+                                            <span
+                                                class="text-sm text-gray-600">{{ $librarySummary['class_name'] }}</span>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-4 mb-4">
+                                            <div class="bg-purple-50 p-3 rounded">
+                                                <p class="text-xs text-purple-700">Borrowed</p>
+                                                <p class="text-xl font-bold text-purple-600">
+                                                    {{ $librarySummary['borrowed_books'] }}
+                                                </p>
+                                            </div>
+
+                                            <div class="bg-amber-50 p-3 rounded">
+                                                <p class="text-xs text-amber-700">Overdue</p>
+                                                <p class="text-xl font-bold text-amber-600">
+                                                    {{ $librarySummary['overdue_books'] }}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        @if ($librarySummary['borrowings']->count() > 0)
+                                            <div class="space-y-2">
+                                                @foreach ($librarySummary['borrowings'] as $borrowing)
+                                                    @php
+                                                        $isOverdue = $borrowing->due_at && $borrowing->due_at->isPast();
+                                                    @endphp
+                                                    <div
+                                                        class="rounded-md border {{ $isOverdue ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50' }} p-3">
+                                                        <div class="font-medium text-gray-900">
+                                                            {{ $borrowing->bookCopy->book->title ?? 'N/A' }}
+                                                        </div>
+                                                        <div class="text-xs text-gray-500 mt-1">
+                                                            Barcode: {{ $borrowing->bookCopy->barcode ?? 'N/A' }}
+                                                        </div>
+                                                        <div
+                                                            class="text-xs mt-1 {{ $isOverdue ? 'text-red-700' : 'text-gray-600' }}">
+                                                            Due: {{ optional($borrowing->due_at)->format('d M Y') }}
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <p class="text-sm text-gray-500">No active borrowed books.</p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
+                                No library records found.
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="mt-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Quick Access</h4>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             @if ($accessibleChildren->count() > 0)
                                 <a href="{{ route('parent.children.marks.index') }}"
                                     class="border rounded-lg p-4 hover:shadow-md transition">
@@ -301,6 +378,24 @@
                                 </div>
                             @endif
 
+                            <a href="{{ route('parent.children.library.index') }}"
+                                class="border rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex items-center">
+                                    <div class="rounded-full bg-purple-100 p-2">
+                                        <svg class="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                    </div>
+
+                                    <div class="ml-3">
+                                        <h5 class="font-medium text-gray-800">Children Library</h5>
+                                        <p class="text-sm text-gray-600">View borrowed books and due dates</p>
+                                    </div>
+                                </div>
+                            </a>
+
                             <div class="border rounded-lg p-4 opacity-50">
                                 <h5 class="font-medium">Attendance</h5>
                                 <p class="text-sm text-gray-600">Detailed reports coming soon</p>
@@ -313,7 +408,6 @@
                         </div>
                     </div>
 
-                    {{-- ACCOUNT INFO --}}
                     <div class="mt-8">
                         <h4 class="text-lg font-semibold text-gray-800 mb-4">Account Information</h4>
 

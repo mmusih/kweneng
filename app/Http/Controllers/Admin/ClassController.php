@@ -101,7 +101,7 @@ class ClassController extends Controller
             );
     }
 
-    public function edit(ClassModel $class)
+    public function edit(Request $request, ClassModel $class)
     {
         $academicYears = AcademicYear::orderByDesc('year_name')->get();
 
@@ -114,7 +114,38 @@ class ClassController extends Controller
             ->sortBy(fn($teacher) => $teacher->user->name ?? '')
             ->values();
 
-        return view('admin.classes.edit', compact('class', 'academicYears', 'classTeachers'));
+        $studentSearch = trim((string) $request->query('student_search', ''));
+
+        $studentsQuery = $class->students()
+            ->with('user')
+            ->when($studentSearch !== '', function ($query) use ($studentSearch) {
+                $query->where(function ($q) use ($studentSearch) {
+                    $q->where('admission_no', 'like', '%' . $studentSearch . '%')
+                        ->orWhereHas('user', function ($userQuery) use ($studentSearch) {
+                            $userQuery->where('name', 'like', '%' . $studentSearch . '%');
+                        });
+                });
+            })
+            ->orderBy(
+                User::select('name')
+                    ->whereColumn('users.id', 'students.user_id')
+                    ->limit(1)
+            );
+
+        $students = $studentsQuery->paginate(15)->appends($request->query());
+
+        $class->load([
+            'classTeacher.user',
+            'academicYear',
+        ]);
+
+        return view('admin.classes.edit', compact(
+            'class',
+            'academicYears',
+            'classTeachers',
+            'students',
+            'studentSearch'
+        ));
     }
 
     public function update(Request $request, ClassModel $class)
@@ -144,8 +175,178 @@ class ClassController extends Controller
         $class->update($validated);
 
         return redirect()
-            ->route('admin.classes.index')
+            ->route('admin.classes.edit', array_merge(
+                ['class' => $class->id],
+                $request->only(['student_search', 'page'])
+            ))
             ->with('success', 'Class updated successfully.');
+    }
+
+    public function destroy(ClassModel $class)
+    {
+        $class->loadCount([
+            'students',
+            'historyRecords',
+            'classSubjects',
+            'teacherSubjects',
+            'marks',
+            'studentSubjects',
+            'attendances',
+            'punctualities',
+            'behaviourRecords',
+        ]);
+
+        $blockingReasons = [];
+
+        if ($class->students_count > 0) {
+            $blockingReasons[] = 'it still has students assigned to it';
+        }
+
+        if ($class->history_records_count > 0) {
+            $blockingReasons[] = 'it has student class history records';
+        }
+
+        if ($class->class_subjects_count > 0) {
+            $blockingReasons[] = 'it has class subject assignments';
+        }
+
+        if ($class->teacher_subjects_count > 0) {
+            $blockingReasons[] = 'it has teacher subject assignments';
+        }
+
+        if ($class->marks_count > 0) {
+            $blockingReasons[] = 'it has marks records';
+        }
+
+        if ($class->student_subjects_count > 0) {
+            $blockingReasons[] = 'it has student subject records';
+        }
+
+        if ($class->attendances_count > 0) {
+            $blockingReasons[] = 'it has attendance records';
+        }
+
+        if ($class->punctualities_count > 0) {
+            $blockingReasons[] = 'it has punctuality records';
+        }
+
+        if ($class->behaviour_records_count > 0) {
+            $blockingReasons[] = 'it has behaviour records';
+        }
+
+        if (!empty($blockingReasons)) {
+            return redirect()
+                ->route('admin.classes.index')
+                ->withErrors([
+                    'delete' => 'This class cannot be deleted because ' . implode(', ', $blockingReasons) . '.',
+                ]);
+        }
+
+        $class->delete();
+
+        return redirect()
+            ->route('admin.classes.index')
+            ->with('success', 'Class deleted successfully.');
+    }
+
+    public function removeStudent(Request $request, ClassModel $class, Student $student)
+    {
+        if ((int) $student->current_class_id !== (int) $class->id) {
+            return redirect()
+                ->route('admin.classes.edit', array_merge(
+                    ['class' => $class->id],
+                    $request->only(['student_search', 'page'])
+                ))
+                ->withErrors([
+                    'remove_student' => 'This student is not currently assigned to this class.',
+                ]);
+        }
+
+        DB::transaction(function () use ($class, $student) {
+            $student->update([
+                'current_class_id' => null,
+            ]);
+
+            StudentClassHistory::where('student_id', $student->id)
+                ->where('class_id', $class->id)
+                ->where('academic_year_id', $class->academic_year_id)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'updated_at' => now(),
+                ]);
+        });
+
+        return redirect()
+            ->route('admin.classes.edit', array_merge(
+                ['class' => $class->id],
+                $request->only(['student_search', 'page'])
+            ))
+            ->with('success', 'Student removed from class successfully.');
+    }
+
+    public function bulkRemoveStudents(Request $request, ClassModel $class)
+    {
+        $validated = $request->validate([
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
+        ], [
+            'student_ids.required' => 'Please select at least one student.',
+            'student_ids.min' => 'Please select at least one student.',
+        ]);
+
+        $studentIds = collect($validated['student_ids'])
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $students = Student::whereIn('id', $studentIds)
+            ->where('current_class_id', $class->id)
+            ->get();
+
+        if ($students->isEmpty()) {
+            return redirect()
+                ->route('admin.classes.edit', array_merge(
+                    ['class' => $class->id],
+                    $request->only(['student_search', 'page'])
+                ))
+                ->withErrors([
+                    'remove_student' => 'None of the selected students are currently assigned to this class.',
+                ]);
+        }
+
+        DB::transaction(function () use ($class, $students) {
+            $ids = $students->pluck('id');
+
+            Student::whereIn('id', $ids)->update([
+                'current_class_id' => null,
+                'updated_at' => now(),
+            ]);
+
+            StudentClassHistory::whereIn('student_id', $ids)
+                ->where('class_id', $class->id)
+                ->where('academic_year_id', $class->academic_year_id)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'updated_at' => now(),
+                ]);
+        });
+
+        $removedCount = $students->count();
+
+        $query = $request->only(['student_search', 'page']);
+
+        if ($removedCount >= $students->count() && (int) ($query['page'] ?? 1) > 1 && $students->count() === 1) {
+            $query['page'] = max(1, ((int) $query['page']) - 1);
+        }
+
+        return redirect()
+            ->route('admin.classes.edit', array_merge(
+                ['class' => $class->id],
+                $query
+            ))
+            ->with('success', $removedCount . ' student(s) removed from class successfully.');
     }
 
     protected function importClassListFromCsv(string $filePath, ClassModel $class, int $academicYearId): void

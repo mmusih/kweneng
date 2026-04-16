@@ -280,7 +280,7 @@
 
         <div class="info-item">
             <span class="label">Attendance:</span>
-            {{ $attendanceSummary['rate'] !== null ? number_format($attendanceSummary['rate'], 1) . '%' : 'N/A' }}
+            {{ $attendanceSummary['label'] ?? ($attendanceSummary['rate'] !== null ? number_format($attendanceSummary['rate'], 1) . '%' : 'N/A') }}
         </div>
 
         <div class="info-item">

@@ -26,32 +26,38 @@
                         </div>
                     @endif
 
+                    @if ($errors->has('delete'))
+                        <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
+                            {{ $errors->first('delete') }}
+                        </div>
+                    @endif
+
                     @if ($classes->count() > 0)
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Class Name
                                         </th>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Level
                                         </th>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Academic Year
                                         </th>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Class Teacher
                                         </th>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Students
                                         </th>
-                                        <th scope="col"
+                                        <th
                                             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
                                         </th>
@@ -69,7 +75,7 @@
 
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">
-                                                    {{ $class->level }}
+                                                    Form {{ $class->level }}
                                                 </div>
                                             </td>
 
@@ -81,17 +87,11 @@
 
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 @if ($class->classTeacher && $class->classTeacher->user)
-                                                    <div class="text-sm font-medium text-gray-900">
+                                                    <div class="text-sm text-gray-900">
                                                         {{ $class->classTeacher->user->name }}
                                                     </div>
-                                                    <div class="text-xs text-gray-500">
-                                                        {{ $class->classTeacher->user->role === 'headmaster' ? 'Headmaster' : 'Teacher' }}
-                                                    </div>
                                                 @else
-                                                    <span
-                                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                        Not Assigned
-                                                    </span>
+                                                    <span class="text-sm text-gray-500">Not assigned</span>
                                                 @endif
                                             </td>
 
@@ -103,10 +103,23 @@
                                             </td>
 
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <a href="{{ route('admin.classes.edit', $class) }}"
-                                                    class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                                    Edit
-                                                </a>
+                                                <div class="flex items-center gap-3">
+                                                    <a href="{{ route('admin.classes.edit', $class) }}"
+                                                        class="text-indigo-600 hover:text-indigo-900">
+                                                        Edit
+                                                    </a>
+
+                                                    <form action="{{ route('admin.classes.destroy', $class) }}"
+                                                        method="POST" class="inline"
+                                                        onsubmit="return confirm('Are you sure you want to delete this class?');">
+                                                        @csrf
+                                                        @method('DELETE')
+
+                                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach

@@ -13,7 +13,8 @@
                 <div class="p-6 text-gray-900">
                     <div class="mb-6">
                         <h3 class="text-2xl font-semibold">Welcome, {{ auth()->user()->name }}!</h3>
-                        <p class="text-gray-600">Access your academic information and results here.</p>
+                        <p class="text-gray-600">Access your academic information, student life summary, and library
+                            records here.</p>
                     </div>
 
                     @if (!$student)
@@ -37,8 +38,7 @@
                             </div>
                         </div>
                     @else
-                        {{-- TOP STATUS CARDS --}}
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
                             <div class="bg-blue-100 p-6 rounded-lg shadow">
                                 <h4 class="text-lg font-semibold text-blue-800">Current Class</h4>
                                 @if ($student->currentClass)
@@ -100,9 +100,18 @@
                                     {{ $stats['subjectsWithMarks'] ?? 0 }} with marks entered
                                 </p>
                             </div>
+
+                            <div class="bg-indigo-100 p-6 rounded-lg shadow">
+                                <h4 class="text-lg font-semibold text-indigo-800">Books Borrowed</h4>
+                                <p class="text-2xl font-bold text-indigo-600">
+                                    {{ $borrowingsCount ?? 0 }}
+                                </p>
+                                <p class="text-sm text-indigo-700 mt-1">
+                                    {{ $overdueBorrowingsCount ?? 0 }} overdue
+                                </p>
+                            </div>
                         </div>
 
-                        {{-- PERFORMANCE SUMMARY --}}
                         <div class="mt-8">
                             <h4 class="text-lg font-semibold text-gray-800 mb-4">Performance Summary</h4>
 
@@ -168,7 +177,6 @@
                             </div>
                         </div>
 
-                        {{-- ACADEMIC STANDING --}}
                         @if ($performance)
                             <div class="mt-8">
                                 <h4 class="text-lg font-semibold text-gray-800 mb-4">Academic Standing</h4>
@@ -202,7 +210,6 @@
                             </div>
                         @endif
 
-                        {{-- LATEST MARKS SNAPSHOT --}}
                         <div class="mt-8">
                             <div class="flex justify-between items-center mb-4">
                                 <h4 class="text-lg font-semibold text-gray-800">Latest Marks Snapshot</h4>
@@ -238,9 +245,11 @@
                                                     <tr>
                                                         <td class="px-6 py-4 whitespace-nowrap">
                                                             <div class="font-medium text-gray-900">
-                                                                {{ $mark->subject->name ?? 'Unknown Subject' }}</div>
+                                                                {{ $mark->subject->name ?? 'Unknown Subject' }}
+                                                            </div>
                                                             <div class="text-sm text-gray-500">
-                                                                {{ $mark->subject->code ?? 'N/A' }}</div>
+                                                                {{ $mark->subject->code ?? 'N/A' }}
+                                                            </div>
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                             {{ $mark->midterm_score ?? 'N/A' }}
@@ -291,7 +300,102 @@
                             @endif
                         </div>
 
-                        {{-- STUDENT LIFE SUMMARY --}}
+                        <div class="mt-8">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-lg font-semibold text-gray-800">Library</h4>
+                                <a href="{{ route('student.library.index') }}"
+                                    class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                                    View All →
+                                </a>
+                            </div>
+
+                            @if (($borrowings ?? collect())->count() > 0)
+                                <div class="overflow-x-auto">
+                                    <table
+                                        class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Book</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Barcode</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Issued</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Due</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            @foreach ($borrowings as $borrowing)
+                                                @php
+                                                    $isReturned = !is_null($borrowing->returned_at);
+                                                    $isOverdue =
+                                                        !$isReturned &&
+                                                        !empty($borrowing->due_at) &&
+                                                        \Illuminate\Support\Carbon::parse($borrowing->due_at)->isPast();
+                                                @endphp
+                                                <tr class="{{ $isOverdue ? 'bg-red-50' : '' }}">
+                                                    <td class="px-6 py-4">
+                                                        <div class="font-medium text-gray-900">
+                                                            {{ $borrowing->bookCopy->book->title ?? 'N/A' }}
+                                                        </div>
+                                                        <div class="text-sm text-gray-500">
+                                                            {{ $borrowing->bookCopy->book->author ?? 'N/A' }}
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                                        {{ $borrowing->bookCopy->barcode ?? 'N/A' }}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                                        {{ $borrowing->issued_at ? \Illuminate\Support\Carbon::parse($borrowing->issued_at)->format('d M Y') : 'N/A' }}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                                        {{ $borrowing->due_at ? \Illuminate\Support\Carbon::parse($borrowing->due_at)->format('d M Y') : 'N/A' }}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-sm">
+                                                        @if ($isReturned)
+                                                            <span
+                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                Returned
+                                                            </span>
+                                                        @elseif($isOverdue)
+                                                            <span
+                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                Overdue
+                                                            </span>
+                                                        @else
+                                                            <span
+                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                Borrowed
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="bg-gray-50 rounded-lg p-6 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                    <h3 class="mt-2 text-sm font-medium text-gray-900">No books currently issued</h3>
+                                    <p class="mt-1 text-sm text-gray-500">Your borrowed books will appear here when the
+                                        librarian issues them to you.</p>
+                                </div>
+                            @endif
+                        </div>
+
                         @if ($attendanceSummary || $punctualitySummary || $behaviourSummary)
                             <div class="mt-8">
                                 <h4 class="text-lg font-semibold text-gray-800 mb-4">Student Life Summary</h4>
@@ -417,10 +521,9 @@
                             </div>
                         @endif
 
-                        {{-- QUICK INFORMATION --}}
                         <div class="mt-8">
                             <h4 class="text-lg font-semibold text-gray-800 mb-4">Quick Information</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div class="bg-gray-50 p-4 rounded-lg">
                                     <h5 class="font-medium text-gray-700">Access Status</h5>
                                     <div class="mt-2 space-y-2">
@@ -454,6 +557,25 @@
                                             No marks have been entered yet for the current term.
                                         @else
                                             Academic progress information will appear when a term is active.
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <a href="{{ route('student.library.index') }}"
+                                    class="border rounded-lg p-4 hover:shadow-md transition bg-white">
+                                    <h5 class="font-medium text-gray-700">Library</h5>
+                                    <p class="text-sm text-gray-600 mt-2">View your borrowed books and due dates.</p>
+                                </a>
+
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h5 class="font-medium text-gray-700">Library Alerts</h5>
+                                    <p class="text-sm text-gray-600 mt-2">
+                                        {{ $borrowingsCount ?? 0 }} borrowed
+                                        @if (($overdueBorrowingsCount ?? 0) > 0)
+                                            · <span class="font-semibold text-red-600">{{ $overdueBorrowingsCount }}
+                                                overdue</span>
+                                        @else
+                                            · no overdue books
                                         @endif
                                     </p>
                                 </div>

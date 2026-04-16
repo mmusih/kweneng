@@ -74,14 +74,15 @@
                         @endif
                     </div>
 
-                    <!-- Step 2: Select Subject and Term -->
+                    <!-- Step 2: Select Subject and Active Term -->
                     <div id="step2" class="hidden mb-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
-                        <h4 class="text-lg font-semibold mb-4 text-gray-800">Step 2: Select Subject and Term</h4>
+                        <h4 class="text-lg font-semibold mb-4 text-gray-800">Step 2: Select Subject</h4>
 
                         <form id="marks-form-step2">
                             @csrf
                             <input type="hidden" id="selected-class-id" name="class_id">
                             <input type="hidden" id="selected-academic-year-id" name="academic_year_id">
+                            <input type="hidden" id="term_id" name="term_id">
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -94,15 +95,22 @@
                                 </div>
 
                                 <div>
-                                    <x-input-label for="term_id" :value="__('Term')" />
-                                    <select id="term_id" name="term_id"
-                                        class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm data-select"
-                                        required>
-                                        <option value="">Select Term</option>
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-2">
-                                        Term labels show whether Midterm and Endterm are locked.
-                                    </p>
+                                    <x-input-label :value="__('Active Term')" />
+                                    <div id="active-term-banner"
+                                        class="mt-1 hidden rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+                                        <div class="font-semibold">Current active term</div>
+                                        <div id="active-term-label" class="text-sm mt-1"></div>
+                                    </div>
+
+                                    <div id="term-fallback-container" class="hidden">
+                                        <select id="term_id_fallback"
+                                            class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm data-select">
+                                            <option value="">Select Term</option>
+                                        </select>
+                                        <p class="text-xs text-gray-500 mt-2">
+                                            No active term was detected automatically, so please select a term manually.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -110,62 +118,6 @@
                                 <x-primary-button type="button" id="load-students-btn">
                                     {{ __('Load Students') }}
                                 </x-primary-button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Import Marks -->
-                    <div id="import-section" class="hidden mb-8 p-6 bg-cyan-50 rounded-xl border border-cyan-200">
-                        <h4 class="text-lg font-semibold mb-2 text-gray-800">Import Marks (Per Subject)</h4>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Upload one CSV file for one selected class, subject, term, and exam type.
-                            Use:
-                            <span class="font-medium">surname,name,score</span>
-                            and optionally
-                            <span class="font-medium">remarks</span>.
-                        </p>
-
-                        <form method="POST" action="{{ route('teacher.marks.import') }}" enctype="multipart/form-data"
-                            id="marks-import-form">
-                            @csrf
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                                <div>
-                                    <x-input-label for="import_exam_type" :value="__('Exam Type')" />
-                                    <select id="import_exam_type" name="exam_type"
-                                        class="block mt-1 w-full border-gray-300 focus:border-cyan-500 focus:ring-cyan-500 rounded-lg shadow-sm data-select">
-                                        <option value="">Select Exam Type</option>
-                                        <option value="midterm">Midterm</option>
-                                        <option value="endterm">Endterm</option>
-                                    </select>
-                                </div>
-
-                                <div class="xl:col-span-2">
-                                    <x-input-label for="marks_import_file" :value="__('CSV File')" />
-                                    <input id="marks_import_file" name="marks_import_file" type="file"
-                                        accept=".csv,text/csv"
-                                        class="block mt-1 w-full rounded-lg border border-gray-300 bg-white p-2 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 file-input-with-caret" />
-                                </div>
-
-                                <div class="flex items-end">
-                                    <button type="button"
-                                        class="inline-flex items-center px-4 py-2 border border-cyan-600 text-sm font-medium rounded-lg text-cyan-700 bg-white hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition"
-                                        id="import-preview-btn">
-                                        Import Marks
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 rounded-lg bg-white border border-cyan-200 p-4 text-sm text-gray-700">
-                                <p class="font-semibold text-gray-800 mb-2">Expected CSV format</p>
-                                <pre class="text-xs text-gray-600 whitespace-pre-wrap">surname,name,score,remarks
-Lesetedi,Manisha Areka,78,Good effort
-Stanley,Hailey,88,Excellent work</pre>
-                                <p class="mt-3 text-xs text-gray-500">
-                                    Students are matched by <span class="font-medium">surname first</span>, then
-                                    <span class="font-medium">name(s)</span>,
-                                    within the selected class.
-                                </p>
                             </div>
                         </form>
                     </div>
@@ -190,16 +142,14 @@ Stanley,Hailey,88,Excellent work</pre>
                                 class="hidden rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800">
                                 <div class="font-semibold">Midterm marks are locked.</div>
                                 <div class="text-sm mt-1">Midterm scores are read-only. Endterm and remarks may still
-                                    be
-                                    editable if allowed.</div>
+                                    be editable if allowed.</div>
                             </div>
 
                             <div id="endterm-locked-alert"
                                 class="hidden rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
                                 <div class="font-semibold">Endterm marks are locked.</div>
                                 <div class="text-sm mt-1">Endterm scores are read-only. Midterm and remarks may still
-                                    be
-                                    editable if allowed.</div>
+                                    be editable if allowed.</div>
                             </div>
                         </div>
 
@@ -278,8 +228,7 @@ Stanley,Hailey,88,Excellent work</pre>
             }
 
             .cursor-blink:focus,
-            .data-select:focus,
-            .file-input-with-caret:focus {
+            .data-select:focus {
                 caret-color: #16a34a;
                 animation: caretPulse 0.9s step-end infinite;
             }
@@ -305,6 +254,8 @@ Stanley,Hailey,88,Excellent work</pre>
                 midterm_locked: false,
                 endterm_locked: false
             };
+
+            let currentActiveTerm = null;
 
             const presetComments = [
                 '',
@@ -339,10 +290,10 @@ Stanley,Hailey,88,Excellent work</pre>
                     });
                 }
 
-                const importPreviewBtn = document.getElementById('import-preview-btn');
-                if (importPreviewBtn) {
-                    importPreviewBtn.addEventListener('click', function() {
-                        handleImportButton();
+                const fallbackTermSelect = document.getElementById('term_id_fallback');
+                if (fallbackTermSelect) {
+                    fallbackTermSelect.addEventListener('change', function() {
+                        document.getElementById('term_id').value = this.value;
                     });
                 }
             }
@@ -371,7 +322,6 @@ Stanley,Hailey,88,Excellent work</pre>
                 loadTermsFromBackend(academicYearId);
 
                 document.getElementById('step2').classList.remove('hidden');
-                document.getElementById('import-section').classList.remove('hidden');
                 document.getElementById('step3').classList.add('hidden');
 
                 setTimeout(() => {
@@ -418,7 +368,7 @@ Stanley,Hailey,88,Excellent work</pre>
                         return response.json();
                     })
                     .then(data => {
-                        populateTermsDropdown(data);
+                        populateTermsDropdown(data || []);
                     })
                     .catch(error => {
                         alert('Error loading terms: ' + error.message);
@@ -439,32 +389,75 @@ Stanley,Hailey,88,Excellent work</pre>
             }
 
             function populateTermsDropdown(terms) {
-                const termSelect = document.getElementById('term_id');
-                if (termSelect) {
-                    termSelect.innerHTML = '<option value="">Select Term</option>';
-                    terms.forEach(term => {
-                        const option = document.createElement('option');
-                        option.value = term.id;
+                const hiddenTermInput = document.getElementById('term_id');
+                const fallbackSelect = document.getElementById('term_id_fallback');
+                const fallbackContainer = document.getElementById('term-fallback-container');
+                const activeTermBanner = document.getElementById('active-term-banner');
+                const activeTermLabel = document.getElementById('active-term-label');
 
-                        let label = term.name;
-                        let lockParts = [];
+                currentActiveTerm = null;
+                hiddenTermInput.value = '';
 
-                        if (term.midterm_locked) {
-                            lockParts.push('Midterm Locked');
-                        }
-
-                        if (term.endterm_locked) {
-                            lockParts.push('Endterm Locked');
-                        }
-
-                        if (lockParts.length > 0) {
-                            label += ' (' + lockParts.join(', ') + ')';
-                        }
-
-                        option.textContent = label;
-                        termSelect.appendChild(option);
-                    });
+                if (fallbackSelect) {
+                    fallbackSelect.innerHTML = '<option value="">Select Term</option>';
                 }
+
+                const detectedActiveTerm = terms.find(term =>
+                    term.active === true ||
+                    term.is_active === true ||
+                    term.status === 'active'
+                );
+
+                if (detectedActiveTerm) {
+                    currentActiveTerm = detectedActiveTerm;
+                    hiddenTermInput.value = detectedActiveTerm.id;
+
+                    let label = detectedActiveTerm.name;
+                    let lockParts = [];
+
+                    if (detectedActiveTerm.midterm_locked) {
+                        lockParts.push('Midterm Locked');
+                    }
+
+                    if (detectedActiveTerm.endterm_locked) {
+                        lockParts.push('Endterm Locked');
+                    }
+
+                    if (lockParts.length > 0) {
+                        label += ' (' + lockParts.join(', ') + ')';
+                    }
+
+                    activeTermLabel.textContent = label;
+                    activeTermBanner.classList.remove('hidden');
+                    fallbackContainer.classList.add('hidden');
+                    return;
+                }
+
+                activeTermBanner.classList.add('hidden');
+                fallbackContainer.classList.remove('hidden');
+
+                terms.forEach(term => {
+                    const option = document.createElement('option');
+                    option.value = term.id;
+
+                    let label = term.name;
+                    let lockParts = [];
+
+                    if (term.midterm_locked) {
+                        lockParts.push('Midterm Locked');
+                    }
+
+                    if (term.endterm_locked) {
+                        lockParts.push('Endterm Locked');
+                    }
+
+                    if (lockParts.length > 0) {
+                        label += ' (' + lockParts.join(', ') + ')';
+                    }
+
+                    option.textContent = label;
+                    fallbackSelect.appendChild(option);
+                });
             }
 
             function loadStudentsHandler() {
@@ -474,78 +467,11 @@ Stanley,Hailey,88,Excellent work</pre>
                 const termId = document.getElementById('term_id').value;
 
                 if (!classId || !subjectId || !academicYearId || !termId) {
-                    alert('Please select class, subject, and term first');
+                    alert('Please select class and subject first. An active term is also required.');
                     return;
                 }
 
                 loadStudents(classId, subjectId, academicYearId, termId);
-            }
-
-            function handleImportButton() {
-                const classId = document.getElementById('selected-class-id').value;
-                const subjectId = document.getElementById('subject_id').value;
-                const academicYearId = document.getElementById('selected-academic-year-id').value;
-                const termId = document.getElementById('term_id').value;
-                const examType = document.getElementById('import_exam_type').value;
-                const fileInput = document.getElementById('marks_import_file');
-                const importForm = document.getElementById('marks-import-form');
-
-                if (!classId || !subjectId || !academicYearId || !termId) {
-                    alert('Please select class, subject, and term before importing marks.');
-                    return;
-                }
-
-                if (!examType) {
-                    alert('Please select the exam type to import.');
-                    document.getElementById('import_exam_type').focus();
-                    return;
-                }
-
-                if (!fileInput.files.length) {
-                    alert('Please choose a CSV file to import.');
-                    fileInput.focus();
-                    return;
-                }
-
-                let hiddenClass = importForm.querySelector('input[name="class_id"]');
-                let hiddenSubject = importForm.querySelector('input[name="subject_id"]');
-                let hiddenYear = importForm.querySelector('input[name="academic_year_id"]');
-                let hiddenTerm = importForm.querySelector('input[name="term_id"]');
-
-                if (!hiddenClass) {
-                    hiddenClass = document.createElement('input');
-                    hiddenClass.type = 'hidden';
-                    hiddenClass.name = 'class_id';
-                    importForm.appendChild(hiddenClass);
-                }
-
-                if (!hiddenSubject) {
-                    hiddenSubject = document.createElement('input');
-                    hiddenSubject.type = 'hidden';
-                    hiddenSubject.name = 'subject_id';
-                    importForm.appendChild(hiddenSubject);
-                }
-
-                if (!hiddenYear) {
-                    hiddenYear = document.createElement('input');
-                    hiddenYear.type = 'hidden';
-                    hiddenYear.name = 'academic_year_id';
-                    importForm.appendChild(hiddenYear);
-                }
-
-                if (!hiddenTerm) {
-                    hiddenTerm = document.createElement('input');
-                    hiddenTerm.type = 'hidden';
-                    hiddenTerm.name = 'term_id';
-                    importForm.appendChild(hiddenTerm);
-                }
-
-                hiddenClass.value = classId;
-                hiddenSubject.value = subjectId;
-                hiddenYear.value = academicYearId;
-                hiddenTerm.value = termId;
-
-                importForm.submit();
             }
 
             function loadStudents(classId, subjectId, academicYearId, termId) {
@@ -735,6 +661,23 @@ Stanley,Hailey,88,Excellent work</pre>
                 return Number.isNaN(parsed) ? null : parsed;
             }
 
+            function normalizeWholeNumber(value) {
+                if (value === '' || value === null || value === undefined) {
+                    return '';
+                }
+
+                let parsed = parseInt(value, 10);
+
+                if (Number.isNaN(parsed)) {
+                    return '';
+                }
+
+                if (parsed < 0) parsed = 0;
+                if (parsed > 100) parsed = 100;
+
+                return parsed;
+            }
+
             function populateStudentsTable(students, existingMarks, locks) {
                 const tbody = document.getElementById('students-table-body');
 
@@ -761,8 +704,16 @@ Stanley,Hailey,88,Excellent work</pre>
                         const endtermDisabled = locks.term_locked || locks.endterm_locked;
                         const remarksDisabled = locks.term_locked;
 
-                        const midtermValue = existingMark.midterm_score ?? '';
-                        const endtermValue = existingMark.endterm_score ?? '';
+                        const midtermValue = existingMark.midterm_score !== null && existingMark.midterm_score !==
+                            undefined ?
+                            normalizeWholeNumber(existingMark.midterm_score) :
+                            '';
+
+                        const endtermValue = existingMark.endterm_score !== null && existingMark.endterm_score !==
+                            undefined ?
+                            normalizeWholeNumber(existingMark.endterm_score) :
+                            '';
+
                         const existingRemark = existingMark.remarks ?? '';
                         const generatedComment = generateTeacherComment(
                             parseNullableNumber(midtermValue),
@@ -793,7 +744,7 @@ Stanley,Hailey,88,Excellent work</pre>
                             <input type="number"
                                    name="marks[${student.id}][midterm]"
                                    class="mark-input no-spinner cursor-blink block w-full max-w-[120px] px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 bg-white focus:outline-none cursor-text ${midtermDisabled ? 'locked-input' : ''}"
-                                   min="0" max="100" step="0.01"
+                                   min="0" max="100" step="1" inputmode="numeric"
                                    value="${midtermValue}"
                                    placeholder="Midterm"
                                    data-student-id="${student.id}"
@@ -806,7 +757,7 @@ Stanley,Hailey,88,Excellent work</pre>
                             <input type="number"
                                    name="marks[${student.id}][endterm]"
                                    class="mark-input no-spinner cursor-blink block w-full max-w-[120px] px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 bg-white focus:outline-none cursor-text ${endtermDisabled ? 'locked-input' : ''}"
-                                   min="0" max="100" step="0.01"
+                                   min="0" max="100" step="1" inputmode="numeric"
                                    value="${endtermValue}"
                                    placeholder="Endterm"
                                    data-student-id="${student.id}"
@@ -847,7 +798,23 @@ Stanley,Hailey,88,Excellent work</pre>
                     wireCommentFields();
                     wireAutoCommentGeneration();
                     enhanceInputNavigation();
+                    enforceWholeNumbers();
                 }
+            }
+
+            function enforceWholeNumbers() {
+                const numberInputs = document.querySelectorAll('#students-table-body input[type="number"]');
+
+                numberInputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        this.value = this.value.replace(/[^\d]/g, '');
+                    });
+
+                    input.addEventListener('blur', function() {
+                        if (this.value === '') return;
+                        this.value = normalizeWholeNumber(this.value);
+                    });
+                });
             }
 
             function wireCommentFields() {

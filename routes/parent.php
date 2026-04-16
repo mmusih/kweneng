@@ -13,4 +13,10 @@ Route::middleware(['auth', 'role:parent'])->prefix('parent')->name('parent.')->g
         Route::get('/children/{student}/marks/{academicYearId}/{termId}', [MarksController::class, 'show'])
             ->name('children.marks.show');
     });
+
+    Route::get('/children/library', [\App\Http\Controllers\Parent\LibraryController::class, 'index'])
+        ->name('children.library.index');
+
+    Route::get('/children/library', [\App\Http\Controllers\Parent\LibraryController::class, 'index'])
+        ->name('children.library.index');
 });

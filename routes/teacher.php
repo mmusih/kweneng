@@ -7,6 +7,7 @@ use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\PunctualityController;
 use App\Http\Controllers\Teacher\BehaviourController;
 use App\Http\Controllers\Teacher\HomeworkController;
+use App\Http\Controllers\Teacher\TermSummaryController;
 
 Route::middleware(['auth', 'role:teacher,headmaster'])->prefix('teacher')->name('teacher.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -38,4 +39,8 @@ Route::middleware(['auth', 'role:teacher,headmaster'])->prefix('teacher')->name(
     // Behaviour routes
     Route::get('/behaviour', [BehaviourController::class, 'index'])->name('behaviour.index');
     Route::post('/behaviour', [BehaviourController::class, 'store'])->name('behaviour.store');
+
+    // Term summary routes
+    Route::get('/term-summary', [TermSummaryController::class, 'index'])->name('term-summary.index');
+    Route::post('/term-summary', [TermSummaryController::class, 'store'])->name('term-summary.store');
 });

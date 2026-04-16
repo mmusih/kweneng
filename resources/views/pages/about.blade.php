@@ -106,7 +106,7 @@
         </div>
 
 
-        <!-- LEADERSHIP - REVISED SECTION WITH IMPROVED PHOTO DISPLAY -->
+        <!-- LEADERSHIP -->
         <div class="py-20 bg-gray-50">
 
             <div class="max-w-7xl mx-auto px-6 lg:px-8">
@@ -118,61 +118,20 @@
                     </span>
 
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mt-2 mb-4">
-                        Founder & Leadership
+                        Leadership
                     </h2>
 
                     <p class="text-gray-600 max-w-3xl mx-auto">
-                        The leadership of Kweneng International Secondary School continues the founding vision of
+                        The leadership of Kweneng International Secondary School continues a strong tradition of
                         academic excellence and disciplined learning.
                     </p>
 
                 </div>
 
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div class="flex justify-center">
 
-
-                    <!-- FOUNDERS - UPDATED with both Mr and Mrs Gleeson and IMPROVED PHOTO DISPLAY -->
-                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-
-                        <div class="h-80 flex items-center justify-center bg-gray-100 p-8">
-                            <div
-                                class="w-64 h-64 rounded-full bg-white shadow-xl flex items-center justify-center overflow-hidden border-4 border-indigo-100">
-                                <img src="{{ asset('images/martin-gleeson.png') }}" alt="Martin Gleeson"
-                                    class="w-full h-full object-cover object-center">
-                            </div>
-                        </div>
-
-                        <div class="p-8">
-
-                            <h3 class="text-2xl font-bold text-gray-900">
-                                Mr Martin Gleeson & Mrs G. Gleeson
-                            </h3>
-
-                            <p class="text-indigo-600 font-semibold mb-4">
-                                Founders
-                            </p>
-
-                            <p class="text-gray-600 leading-relaxed">
-                                The late Mr Martin Gleeson together with his wife Mrs G. Gleeson are the founders of
-                                Kweneng International Secondary School. They established the school with the vision of
-                                providing a disciplined academic environment where learners could achieve excellence
-                                through structured learning, strong teaching and consistent effort.
-                            </p>
-
-                            <p class="text-gray-600 mt-4 leading-relaxed">
-                                Under their leadership the school established its commitment to Cambridge IGCSE
-                                education and built a reputation for strong academic focus and high expectations.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-
-                    <!-- CEO - IMPROVED PHOTO DISPLAY -->
-                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden max-w-md w-full">
 
                         <div class="h-80 flex items-center justify-center bg-gray-100 p-8">
                             <div
@@ -182,7 +141,7 @@
                             </div>
                         </div>
 
-                        <div class="p-8">
+                        <div class="p-8 text-center">
 
                             <h3 class="text-2xl font-bold text-gray-900">
                                 Mr Patrick Gleeson
@@ -193,25 +152,23 @@
                             </p>
 
                             <p class="text-gray-600 leading-relaxed">
-                                Mr Patrick Gleeson continues the vision of the founder by ensuring that Kweneng
-                                International maintains strong Cambridge academic standards and a learning culture
-                                focused on discipline, motivation and achievement.
+                                Mr Patrick Gleeson leads Kweneng International Secondary School with a focus on
+                                maintaining strong Cambridge academic standards and a disciplined learning culture built
+                                on motivation and achievement.
                             </p>
 
                             <p class="text-gray-600 mt-4 leading-relaxed">
-                                Through his leadership the school continues to invest in quality teaching, modern
-                                learning resources and the development of globally competitive learners.
+                                Under his leadership, the school continues to invest in quality teaching, modern
+                                learning resources, and the development of globally competitive learners.
                             </p>
 
                         </div>
 
                     </div>
 
-
                 </div>
             </div>
         </div>
-
 
 
         <!-- MISSION VISION -->

@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\BehaviourRecord;
+use App\Models\ClassModel;
 use App\Models\HeadmasterComment;
 use App\Models\Punctuality;
 use App\Models\Student;
+use App\Models\StudentTermSummary;
 use App\Models\Term;
-use App\Models\ClassModel;
 use App\Services\ExamSummaryService;
 use App\Services\MarksService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -235,6 +236,7 @@ class ReportCardController extends Controller
             'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
             'rate' => $attendanceTotal > 0 ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1) : null,
             'display' => $attendancePresentEquivalent . '/' . $attendanceTotal,
+            'label' => $attendanceTotal > 0 ? ($attendancePresentEquivalent . '/' . $attendanceTotal) : 'N/A',
         ];
 
         $punctualityRecords = Punctuality::where('student_id', $student->id)
@@ -271,6 +273,32 @@ class ReportCardController extends Controller
             'recent' => $behaviourRecords->take(5),
             'label' => $this->behaviourLabel($behaviourRecords),
         ];
+
+        $termSummary = StudentTermSummary::where('student_id', $student->id)
+            ->where('term_id', $term->id)
+            ->where(function ($query) use ($academicYear) {
+                $query->where('academic_year_id', $academicYear->id)
+                    ->orWhereNull('academic_year_id');
+            })
+            ->latest('id')
+            ->first();
+
+        if ($termSummary) {
+            if (
+                $termSummary->attendance_days_present !== null &&
+                $termSummary->attendance_total_days !== null
+            ) {
+                $attendanceSummary['label'] = $termSummary->attendance_days_present . '/' . $termSummary->attendance_total_days;
+            }
+
+            if (!empty($termSummary->punctuality)) {
+                $punctualitySummary['label'] = $termSummary->punctuality;
+            }
+
+            if (!empty($termSummary->behaviour)) {
+                $behaviourSummary['label'] = $termSummary->behaviour;
+            }
+        }
 
         $headmasterComment = HeadmasterComment::where('student_id', $student->id)
             ->where('term_id', $term->id)

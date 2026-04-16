@@ -13,4 +13,10 @@ Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')
         Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
         Route::get('/marks/{academicYearId}/{termId}', [MarksController::class, 'show'])->name('marks.show');
     });
+
+    Route::get('/library', [\App\Http\Controllers\Student\LibraryController::class, 'index'])
+        ->name('library.index');
+
+    Route::get('/library', [\App\Http\Controllers\Student\LibraryController::class, 'index'])
+        ->name('library.index');
 });

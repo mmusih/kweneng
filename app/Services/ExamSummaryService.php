@@ -46,8 +46,6 @@ class ExamSummaryService
             ->values();
 
         $subjects = Subject::whereIn('id', $subjectIds)
-            ->orderBy('display_order')
-            ->orderBy('name')
             ->get()
             ->map(function ($subject) {
                 return [
@@ -55,6 +53,16 @@ class ExamSummaryService
                     'name' => $subject->name,
                     'code' => $subject->code ?: strtoupper(substr($subject->name, 0, 4)),
                 ];
+            })
+            ->sort(function ($a, $b) {
+                $priorityA = $this->subjectPriority($a);
+                $priorityB = $this->subjectPriority($b);
+
+                if ($priorityA === $priorityB) {
+                    return strcmp(strtoupper($a['name']), strtoupper($b['name']));
+                }
+
+                return $priorityA <=> $priorityB;
             })
             ->values();
 
@@ -200,11 +208,40 @@ class ExamSummaryService
 
     protected function formatScoreWithGrade(float|int $score, ?string $grade): string
     {
-        $formatted = (floor($score) == $score)
-            ? number_format($score, 0)
-            : number_format($score, 2);
+        $formatted = (string) ((int) ceil($score));
 
         return $grade ? $formatted . $grade : $formatted;
+    }
+
+    protected function subjectPriority(array $subject): int
+    {
+        $value = $this->normalizeSubjectKey(($subject['code'] ?? '') . ' ' . ($subject['name'] ?? ''));
+
+        $priorityMap = [
+            1 => ['english'],
+            2 => ['esl', 'englishsecondlanguage', 'englishasasecondlanguage'],
+            3 => ['efl', 'englishfirstlanguage', 'englishasafirstlanguage'],
+            4 => ['maths', 'mathematics', 'math'],
+            5 => ['bio', 'biology'],
+            6 => ['cs', 'computerscience', 'computerstudies'],
+            7 => ['fr', 'french'],
+            8 => ['se', 'setswana', 'sesetswana'],
+        ];
+
+        foreach ($priorityMap as $rank => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($value, $keyword)) {
+                    return $rank;
+                }
+            }
+        }
+
+        return 999;
+    }
+
+    protected function normalizeSubjectKey(string $value): string
+    {
+        return strtolower((string) preg_replace('/[^a-z0-9]/', '', $value));
     }
 
     protected function gradeScale(): array
