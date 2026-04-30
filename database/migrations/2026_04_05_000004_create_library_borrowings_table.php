@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -27,18 +26,6 @@ return new class extends Migration
             $table->index(['due_at', 'status']);
             $table->index(['book_copy_id', 'status']);
         });
-
-        if (DB::getDriverName() !== 'sqlite') {
-            DB::statement("
-                ALTER TABLE library_borrowings
-                ADD CONSTRAINT chk_library_borrowings_one_borrower
-                CHECK (
-                    (student_id IS NOT NULL AND teacher_id IS NULL)
-                    OR
-                    (student_id IS NULL AND teacher_id IS NOT NULL)
-                )
-            ");
-        }
     }
 
     public function down(): void

@@ -21,6 +21,11 @@
                         class="inline-flex items-center px-4 py-2 bg-white text-emerald-700 font-semibold rounded-md shadow-sm hover:bg-emerald-50">
                         Add Book
                     </a>
+
+                    <a href="{{ route('librarian.books.import') }}"
+    class="inline-flex items-center px-4 py-2 bg-teal-900/30 text-white font-semibold rounded-md shadow-sm hover:bg-teal-900/40 border border-white/20">
+    Import CSV
+</a>
                 </div>
             </div>
         </div>

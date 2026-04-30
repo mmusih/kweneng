@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Librarian;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookCategory;
+use App\Models\BookCopy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
@@ -101,18 +103,8 @@ class BookController extends Controller
     public function storeCopy(Request $request, Book $book)
     {
         $validated = $request->validate([
-            'accession_no' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('book_copies', 'accession_no'),
-            ],
-            'barcode' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('book_copies', 'barcode'),
-            ],
+            'accession_no' => ['required', 'string', 'max:255', Rule::unique('book_copies', 'accession_no')],
+            'barcode' => ['required', 'string', 'max:255', Rule::unique('book_copies', 'barcode')],
             'shelf_location' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -129,13 +121,265 @@ class BookController extends Controller
             ->with('success', 'Book copy added successfully.');
     }
 
+    public function import()
+    {
+        return view('librarian.books.import', [
+            'previewRows' => session('book_import_preview', []),
+        ]);
+    }
+
+    public function importPreview(Request $request)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:4096'],
+        ]);
+
+        $handle = fopen($request->file('csv_file')->getRealPath(), 'r');
+
+        if (!$handle) {
+            return back()->withErrors(['csv_file' => 'Could not read uploaded CSV file.']);
+        }
+
+        $header = fgetcsv($handle);
+
+        if (!$header) {
+            fclose($handle);
+            return back()->withErrors(['csv_file' => 'CSV file is empty or invalid.']);
+        }
+
+        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
+
+        $requiredHeader = 'accession_no';
+
+        if (!in_array($requiredHeader, $header, true)) {
+            fclose($handle);
+            return back()->withErrors([
+                'csv_file' => 'CSV must include an accession_no column.',
+            ]);
+        }
+
+        $previewRows = [];
+        $seenAccessions = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNumber++;
+
+            $data = array_combine($header, array_pad($row, count($header), ''));
+
+            if (!$data) {
+                continue;
+            }
+
+            $accessionNo = trim((string) ($data['accession_no'] ?? ''));
+            $isbn = $this->cleanIsbn((string) ($data['isbn'] ?? ''));
+            $barcode = trim((string) ($data['barcode'] ?? '')) ?: $accessionNo;
+
+            $title = trim((string) ($data['title'] ?? ''));
+            $author = trim((string) ($data['author'] ?? ''));
+            $publisher = trim((string) ($data['publisher'] ?? ''));
+            $publicationYear = trim((string) ($data['publication_year'] ?? ''));
+            $description = trim((string) ($data['description'] ?? ''));
+            $category = trim((string) ($data['category'] ?? ''));
+            $shelfLocation = trim((string) ($data['shelf_location'] ?? ''));
+
+            $lookupSource = null;
+            $lookupData = [];
+
+            if ($isbn) {
+                $lookup = $this->lookupFromOpenLibrary($isbn);
+
+                if (!$lookup['found']) {
+                    $lookup = $this->lookupFromGoogleBooks($isbn);
+                }
+
+                if ($lookup['found']) {
+                    $lookupSource = $lookup['source'];
+                    $lookupData = $lookup['data'] ?? [];
+                }
+            }
+
+            $title = $title ?: ($lookupData['title'] ?? '');
+            $author = $author ?: ($lookupData['author'] ?? '');
+            $publisher = $publisher ?: ($lookupData['publisher'] ?? '');
+            $publicationYear = $publicationYear ?: ($lookupData['publication_year'] ?? '');
+            $description = $description ?: ($lookupData['description'] ?? '');
+            $thumbnailUrl = $lookupData['thumbnail_url'] ?? null;
+
+            $errors = [];
+            $warnings = [];
+
+            if ($accessionNo === '') {
+                $errors[] = 'Missing accession number.';
+            }
+
+            if ($title === '') {
+                $errors[] = 'Missing title and no ISBN lookup result was found.';
+            }
+
+            if ($accessionNo !== '' && in_array($accessionNo, $seenAccessions, true)) {
+                $errors[] = 'Duplicate accession number inside CSV.';
+            }
+
+            if ($accessionNo !== '' && BookCopy::where('accession_no', $accessionNo)->exists()) {
+                $errors[] = 'Accession number already exists.';
+            }
+
+            if ($barcode !== '' && BookCopy::where('barcode', $barcode)->exists()) {
+                $errors[] = 'Barcode already exists.';
+            }
+
+            if (!$isbn) {
+                $warnings[] = 'No ISBN supplied; book details will be created from CSV only.';
+            } elseif (!$lookupSource) {
+                $warnings[] = 'ISBN lookup failed; CSV data will be used.';
+            }
+
+            if ($accessionNo !== '') {
+                $seenAccessions[] = $accessionNo;
+            }
+
+            $previewRows[] = [
+                'row_number' => $rowNumber,
+                'accession_no' => $accessionNo,
+                'barcode' => $barcode,
+                'isbn' => $isbn,
+                'title' => $title,
+                'author' => $author,
+                'publisher' => $publisher,
+                'publication_year' => $publicationYear,
+                'description' => $description,
+                'thumbnail_url' => $thumbnailUrl,
+                'category' => $category,
+                'shelf_location' => $shelfLocation,
+                'lookup_source' => $lookupSource,
+                'errors' => $errors,
+                'warnings' => $warnings,
+                'can_import' => count($errors) === 0,
+            ];
+        }
+
+        fclose($handle);
+
+        session(['book_import_preview' => $previewRows]);
+
+        return redirect()
+            ->route('librarian.books.import')
+            ->with('success', 'CSV preview generated. Review the rows before importing.');
+    }
+
+    public function importApply()
+    {
+        $previewRows = session('book_import_preview', []);
+
+        if (empty($previewRows)) {
+            return redirect()
+                ->route('librarian.books.import')
+                ->withErrors(['csv_file' => 'No import preview found. Please upload and preview a CSV first.']);
+        }
+
+        $createdBooks = 0;
+        $updatedBooks = 0;
+        $createdCopies = 0;
+        $skippedRows = 0;
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($previewRows as $row) {
+                if (empty($row['can_import'])) {
+                    $skippedRows++;
+                    continue;
+                }
+
+                $categoryId = null;
+
+                if (!empty($row['category'])) {
+                    $category = BookCategory::firstOrCreate(
+                        ['name' => $row['category']],
+                        ['description' => null, 'is_active' => true]
+                    );
+
+                    $categoryId = $category->id;
+                }
+
+                $book = null;
+
+                if (!empty($row['isbn'])) {
+                    $book = Book::where('isbn', $row['isbn'])->first();
+                }
+
+                if (!$book) {
+                    $book = Book::where('title', $row['title'])
+                        ->when(!empty($row['author']), fn ($q) => $q->where('author', $row['author']))
+                        ->first();
+                }
+
+                $bookData = [
+                    'book_category_id' => $categoryId,
+                    'title' => $row['title'],
+                    'author' => $row['author'] ?: null,
+                    'isbn' => $row['isbn'] ?: null,
+                    'publisher' => $row['publisher'] ?: null,
+                    'publication_year' => $row['publication_year'] ?: null,
+                    'description' => $row['description'] ?: null,
+                    'thumbnail_url' => $row['thumbnail_url'] ?: null,
+                    'is_active' => true,
+                ];
+
+                if ($book) {
+                    $book->update(array_filter($bookData, fn ($value) => $value !== null && $value !== ''));
+                    $updatedBooks++;
+                } else {
+                    $book = Book::create($bookData);
+                    $createdBooks++;
+                }
+
+                if (
+                    BookCopy::where('accession_no', $row['accession_no'])->exists()
+                    || BookCopy::where('barcode', $row['barcode'])->exists()
+                ) {
+                    $skippedRows++;
+                    continue;
+                }
+
+                $book->copies()->create([
+                    'accession_no' => $row['accession_no'],
+                    'barcode' => $row['barcode'] ?: $row['accession_no'],
+                    'shelf_location' => $row['shelf_location'] ?: null,
+                    'status' => 'available',
+                    'is_available' => true,
+                ]);
+
+                $createdCopies++;
+            }
+
+            DB::commit();
+
+            session()->forget('book_import_preview');
+
+            return redirect()
+                ->route('librarian.books.index')
+                ->with(
+                    'success',
+                    "Import complete. Books created: {$createdBooks}, books updated: {$updatedBooks}, copies created: {$createdCopies}, skipped rows: {$skippedRows}."
+                );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return redirect()
+                ->route('librarian.books.import')
+                ->withErrors(['csv_file' => 'Import failed: ' . $e->getMessage()]);
+        }
+    }
+
     public function lookupIsbn(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'isbn' => ['required', 'string', 'max:50'],
         ]);
 
-        $isbn = preg_replace('/[^0-9Xx]/', '', $validated['isbn']);
+        $isbn = $this->cleanIsbn($validated['isbn']);
 
         if (!$isbn) {
             return response()->json([
@@ -144,14 +388,14 @@ class BookController extends Controller
             ], 422);
         }
 
-        // 1) Open Library Search API (preferred)
         $openLibrary = $this->lookupFromOpenLibrary($isbn);
+
         if ($openLibrary['found']) {
             return response()->json($openLibrary);
         }
 
-        // 2) Google Books fallback
         $googleBooks = $this->lookupFromGoogleBooks($isbn);
+
         if ($googleBooks['found']) {
             return response()->json($googleBooks);
         }
@@ -183,24 +427,21 @@ class BookController extends Controller
                 return ['found' => false];
             }
 
-            $title = $doc['title'] ?? null;
-            $author = $doc['author_name'][0] ?? null;
-            $publisher = $doc['publisher'][0] ?? null;
-            $publicationYear = $doc['first_publish_year'] ?? null;
-
-            $thumbnailUrl = "https://covers.openlibrary.org/b/isbn/{$isbn}-M.jpg?default=false";
+            $coverId = $doc['cover_i'] ?? null;
 
             return [
                 'found' => true,
                 'source' => 'open_library',
                 'data' => [
                     'isbn' => $isbn,
-                    'title' => $title,
-                    'author' => $author,
-                    'publisher' => $publisher,
-                    'publication_year' => $publicationYear,
+                    'title' => $doc['title'] ?? null,
+                    'author' => $doc['author_name'][0] ?? null,
+                    'publisher' => $doc['publisher'][0] ?? null,
+                    'publication_year' => $doc['first_publish_year'] ?? null,
                     'description' => null,
-                    'thumbnail_url' => $thumbnailUrl,
+                    'thumbnail_url' => $coverId
+                        ? "https://covers.openlibrary.org/b/id/{$coverId}-M.jpg"
+                        : "https://covers.openlibrary.org/b/isbn/{$isbn}-M.jpg?default=false",
                 ],
             ];
         } catch (\Throwable $e) {
@@ -247,5 +488,10 @@ class BookController extends Controller
         } catch (\Throwable $e) {
             return ['found' => false];
         }
+    }
+
+    protected function cleanIsbn(string $isbn): string
+    {
+        return preg_replace('/[^0-9Xx]/', '', $isbn) ?? '';
     }
 }

@@ -50,6 +50,7 @@ class StudentController extends Controller
     public function create()
     {
         $classes = ClassModel::all();
+
         return view('admin.students.create', compact('classes'));
     }
 
@@ -82,6 +83,7 @@ class StudentController extends Controller
             ]);
 
             $photoPath = null;
+
             if ($request->hasFile('photo')) {
                 $photoPath = $request->file('photo')->store('students', 'public');
             }
@@ -118,9 +120,9 @@ class StudentController extends Controller
                 ->with(
                     'success',
                     'Student created successfully' .
-                        (!empty($validated['current_class_id']) ? ' and enrolled in class.' : '.') .
-                        ' Temporary password: ' . $temporaryPassword .
-                        ' (Student must change it on first login.)'
+                    (!empty($validated['current_class_id']) ? ' and enrolled in class.' : '.') .
+                    ' Temporary password: ' . $temporaryPassword .
+                    ' (Student must change it on first login.)'
                 );
         } catch (\Exception $e) {
             DB::rollBack();
@@ -146,6 +148,7 @@ class StudentController extends Controller
     public function edit(Student $student)
     {
         $classes = ClassModel::all();
+
         return view('admin.students.edit', compact('student', 'classes'));
     }
 
@@ -254,6 +257,58 @@ class StudentController extends Controller
         );
     }
 
+    public function printLogins(Request $request)
+    {
+        $validated = $request->validate([
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['integer', 'exists:students,id'],
+        ], [
+            'student_ids.required' => 'Please select at least one student.',
+            'student_ids.min' => 'Please select at least one student.',
+        ]);
+
+        $students = Student::with(['user', 'currentClass'])
+            ->whereIn('id', $validated['student_ids'])
+            ->orderBy('admission_no')
+            ->get();
+
+        $logins = [];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($students as $student) {
+                if (!$student->user) {
+                    continue;
+                }
+
+                $temporaryPassword = $this->generateTemporaryPassword(8);
+
+                $student->user->update([
+                    'password' => Hash::make($temporaryPassword),
+                    'must_change_password' => true,
+                ]);
+
+                $logins[] = [
+                    'name' => $student->user->name,
+                    'email' => $student->user->email,
+                    'admission_no' => $student->admission_no,
+                    'class' => $student->currentClass?->name ?? 'N/A',
+                    'password' => $temporaryPassword,
+                ];
+            }
+
+            DB::commit();
+
+            return view('admin.students.print-logins', compact('logins'));
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->withErrors(['error' => 'Failed to generate login slips: ' . $e->getMessage()]);
+        }
+    }
+
     public function destroy(Request $request, Student $student)
     {
         try {
@@ -288,7 +343,7 @@ class StudentController extends Controller
 
         try {
             $studentIds = collect($validated['student_ids'])
-                ->map(fn($id) => (int) $id)
+                ->map(fn ($id) => (int) $id)
                 ->unique()
                 ->values();
 

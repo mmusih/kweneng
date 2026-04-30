@@ -12,6 +12,9 @@ Route::middleware(['auth', 'role:librarian'])->prefix('librarian')->name('librar
     Route::get('/books', [BookController::class, 'index'])->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->name('books.store');
+    Route::get('/books/import', [BookController::class, 'import'])->name('books.import');
+Route::post('/books/import/preview', [BookController::class, 'importPreview'])->name('books.import.preview');
+Route::post('/books/import/apply', [BookController::class, 'importApply'])->name('books.import.apply');
     Route::get('/books/{book}/edit', [BookController::class, 'edit'])->name('books.edit');
     Route::put('/books/{book}', [BookController::class, 'update'])->name('books.update');
     Route::post('/books/{book}/copies', [BookController::class, 'storeCopy'])->name('books.copies.store');

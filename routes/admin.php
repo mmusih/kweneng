@@ -205,4 +205,15 @@ Route::middleware(['auth', 'role:admin'])
         |--------------------------------------------------------------------------
         */
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | loging details
+        |--------------------------------------------------------------------------
+        */
+        Route::post('students/print-logins', [StudentController::class, 'printLogins'])
+    ->name('students.print-logins');
+
+    Route::post('parents/{parent}/reset-password', [ParentController::class, 'resetPassword'])
+    ->name('parents.reset-password');
     });

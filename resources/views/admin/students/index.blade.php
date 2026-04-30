@@ -7,7 +7,7 @@
                     Manage Students
                 </h2>
                 <p class="text-blue-100 text-sm mt-1">
-                    Search, filter, and safely remove test students without losing page context.
+                    Search, filter, print login slips, and safely remove test students without losing page context.
                 </p>
             </div>
 
@@ -133,17 +133,15 @@
                     </div>
 
                     @if ($students->count() > 0)
-                        <form action="{{ route('admin.students.bulk-delete') }}" method="POST"
-                            onsubmit="return confirmBulkDelete();">
+                        <form id="students-bulk-form" method="POST">
                             @csrf
-                            @method('DELETE')
 
                             <input type="hidden" name="search" value="{{ request('search') }}">
                             <input type="hidden" name="class_id" value="{{ request('class_id') }}">
                             <input type="hidden" name="page" value="{{ request('page', 1) }}">
 
                             <div
-                                class="mb-4 flex flex-col gap-3 rounded-2xl border border-red-100 bg-gradient-to-r from-red-50 to-pink-50 p-4 md:flex-row md:items-center md:justify-between">
+                                class="mb-4 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 md:flex-row md:items-center md:justify-between">
                                 <div class="flex flex-wrap items-center gap-4">
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" id="select-all"
@@ -153,15 +151,30 @@
                                     </label>
 
                                     <span
-                                        class="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm font-semibold text-red-700 shadow-sm">
-                                        Bulk delete selected students
+                                        class="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm font-semibold text-indigo-700 shadow-sm">
+                                        Bulk actions for selected students
                                     </span>
                                 </div>
 
-                                <button type="submit"
-                                    class="inline-flex items-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-700">
-                                    Delete Selected
-                                </button>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="submit"
+    formaction="{{ route('admin.students.print-logins') }}"
+    formmethod="POST"
+    onclick="return confirmPrintLogins();"
+    class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700">
+    Print Login Slips
+</button>
+
+<button type="submit"
+    formaction="{{ route('admin.students.bulk-delete') }}"
+    formmethod="POST"
+    name="_method"
+    value="DELETE"
+    onclick="return confirmBulkDelete();"
+    class="inline-flex items-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-700">
+    Delete Selected
+</button>
+                                </div>
                             </div>
 
                             <div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm">
@@ -283,6 +296,13 @@
                                                         <span
                                                             class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                                             Inactive
+                                                        </span>
+                                                    @endif
+
+                                                    @if ($student->user->must_change_password)
+                                                        <span
+                                                            class="mt-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                            Must Change Password
                                                         </span>
                                                     @endif
                                                 </td>
@@ -409,8 +429,12 @@
             updateCount();
         });
 
+        function selectedStudentsCount() {
+            return document.querySelectorAll('.student-checkbox:checked').length;
+        }
+
         function confirmBulkDelete() {
-            const checked = document.querySelectorAll('.student-checkbox:checked').length;
+            const checked = selectedStudentsCount();
 
             if (checked === 0) {
                 alert('Please select at least one student.');
@@ -418,6 +442,17 @@
             }
 
             return confirm(`Are you sure you want to delete ${checked} selected student(s)?`);
+        }
+
+        function confirmPrintLogins() {
+            const checked = selectedStudentsCount();
+
+            if (checked === 0) {
+                alert('Please select at least one student.');
+                return false;
+            }
+
+            return confirm(`Generate new temporary passwords and print login slips for ${checked} selected student(s)? Existing passwords for those students will be reset.`);
         }
     </script>
 </x-app-layout>

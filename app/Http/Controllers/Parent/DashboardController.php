@@ -12,7 +12,6 @@ use App\Models\Punctuality;
 use App\Models\Term;
 use App\Services\StudentPerformanceService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -30,9 +29,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        $cacheKey = 'parent_dashboard_v2_' . $user->id . '_' . now()->format('Y-m-d-H');
-
-        $dashboardData = Cache::remember($cacheKey, 300, function () use ($user) {
+        $dashboardData = (function () use ($user) {
             $data = [
                 'children' => collect(),
                 'blockedChildren' => collect(),
@@ -78,8 +75,8 @@ class DashboardController extends Controller
                     ->first();
             }
 
-            $blockedChildren = $children->filter(fn($child) => (bool) $child->fees_blocked)->values();
-            $accessibleChildren = $children->filter(fn($child) => !(bool) $child->fees_blocked)->values();
+            $blockedChildren = $children->filter(fn ($child) => (bool) $child->fees_blocked)->values();
+            $accessibleChildren = $children->filter(fn ($child) => !(bool) $child->fees_blocked)->values();
 
             $data['children'] = $children;
             $data['blockedChildren'] = $blockedChildren;
@@ -105,7 +102,7 @@ class DashboardController extends Controller
                     ->get();
 
                 $childOverdueBooks = $activeBorrowings
-                    ->filter(fn($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
+                    ->filter(fn ($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
                     ->count();
 
                 $borrowedBooks += $activeBorrowings->count();
@@ -151,8 +148,8 @@ class DashboardController extends Controller
                     $childrenWithMarks++;
                 }
 
-                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
-                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
+                $midtermScores = $marks->pluck('midterm_score')->filter(fn ($score) => $score !== null);
+                $endtermScores = $marks->pluck('endterm_score')->filter(fn ($score) => $score !== null);
 
                 $performance = $this->studentPerformanceService
                     ->getStudentTermPerformance($child, $currentAcademicYear->id, $currentTerm->id);
@@ -163,6 +160,7 @@ class DashboardController extends Controller
                     ->get();
 
                 $attendanceRate = null;
+
                 if ($attendanceRecords->count() > 0) {
                     $presentEquivalent = $attendanceRecords->whereIn('status', [
                         Attendance::STATUS_PRESENT,
@@ -210,7 +208,7 @@ class DashboardController extends Controller
             $data['childrenLibrarySummary'] = $childrenLibrarySummary;
 
             return $data;
-        });
+        })();
 
         return view('parent.dashboard', [
             'children' => $dashboardData['children'] ?? collect(),
