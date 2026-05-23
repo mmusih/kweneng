@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
+use App\Support\UserRoles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,17 @@ class PasswordController extends Controller
             'must_change_password' => false,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Password changed successfully.');
+        $redirectTo = match ($user->role) {
+            UserRoles::ADMIN => route('admin.dashboard', false),
+            UserRoles::HEADMASTER => route('headmaster.dashboard', false),
+            UserRoles::TEACHER => route('teacher.dashboard', false),
+            UserRoles::STUDENT => route('student.dashboard', false),
+            UserRoles::PARENT => route('parent.dashboard', false),
+            UserRoles::ACCOUNTS_OFFICER => route('accounts-officer.dashboard', false),
+            UserRoles::LIBRARIAN => route('librarian.dashboard', false),
+            default => '/',
+        };
+
+        return redirect($redirectTo)->with('success', 'Password changed successfully.');
     }
 }

@@ -10,6 +10,8 @@ use App\Models\LibraryBorrowing;
 use App\Models\Mark;
 use App\Models\Punctuality;
 use App\Models\Term;
+use App\Models\Announcement;
+use App\Models\Event;
 use App\Services\StudentPerformanceService;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,6 +38,9 @@ class DashboardController extends Controller
                 'accessibleChildren' => collect(),
                 'currentAcademicYear' => null,
                 'currentTerm' => null,
+                'announcements' => collect(),
+                'upcomingEvents' => collect(),
+                'importantAnnouncements' => collect(),
                 'stats' => [
                     'totalChildren' => 0,
                     'accessibleChildren' => 0,
@@ -75,8 +80,8 @@ class DashboardController extends Controller
                     ->first();
             }
 
-            $blockedChildren = $children->filter(fn ($child) => (bool) $child->fees_blocked)->values();
-            $accessibleChildren = $children->filter(fn ($child) => !(bool) $child->fees_blocked)->values();
+            $blockedChildren = $children->filter(fn($child) => (bool) $child->fees_blocked)->values();
+            $accessibleChildren = $children->filter(fn($child) => !(bool) $child->fees_blocked)->values();
 
             $data['children'] = $children;
             $data['blockedChildren'] = $blockedChildren;
@@ -87,6 +92,35 @@ class DashboardController extends Controller
             $data['stats']['totalChildren'] = $children->count();
             $data['stats']['accessibleChildren'] = $accessibleChildren->count();
             $data['stats']['blockedChildren'] = $blockedChildren->count();
+
+            // Fetch announcements for parents
+            $data['announcements'] = Announcement::published()
+                ->forParents()
+                ->recent(5)
+                ->get()
+                ->filter(function ($announcement) use ($parent) {
+                    return $announcement->isRelevantToParent($parent);
+                });
+
+            // Fetch urgent/high priority announcements
+            $data['importantAnnouncements'] = Announcement::published()
+                ->forParents()
+                ->whereIn('type', ['urgent', 'event'])
+                ->recent(3)
+                ->get()
+                ->filter(function ($announcement) use ($parent) {
+                    return $announcement->isRelevantToParent($parent);
+                });
+
+            // Fetch upcoming events
+            $data['upcomingEvents'] = Event::where('start_datetime', '>=', now())
+                ->where(function ($query) {
+                    $query->where('visibility', 'all')
+                        ->orWhere('visibility', 'parents');
+                })
+                ->orderBy('start_datetime')
+                ->limit(5)
+                ->get();
 
             $marksOverview = [];
             $childrenLibrarySummary = [];
@@ -102,7 +136,7 @@ class DashboardController extends Controller
                     ->get();
 
                 $childOverdueBooks = $activeBorrowings
-                    ->filter(fn ($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
+                    ->filter(fn($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
                     ->count();
 
                 $borrowedBooks += $activeBorrowings->count();
@@ -148,8 +182,8 @@ class DashboardController extends Controller
                     $childrenWithMarks++;
                 }
 
-                $midtermScores = $marks->pluck('midterm_score')->filter(fn ($score) => $score !== null);
-                $endtermScores = $marks->pluck('endterm_score')->filter(fn ($score) => $score !== null);
+                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
+                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
 
                 $performance = $this->studentPerformanceService
                     ->getStudentTermPerformance($child, $currentAcademicYear->id, $currentTerm->id);
@@ -216,6 +250,9 @@ class DashboardController extends Controller
             'accessibleChildren' => $dashboardData['accessibleChildren'] ?? collect(),
             'currentAcademicYear' => $dashboardData['currentAcademicYear'] ?? null,
             'currentTerm' => $dashboardData['currentTerm'] ?? null,
+            'announcements' => $dashboardData['announcements'] ?? collect(),
+            'upcomingEvents' => $dashboardData['upcomingEvents'] ?? collect(),
+            'importantAnnouncements' => $dashboardData['importantAnnouncements'] ?? collect(),
             'stats' => $dashboardData['stats'] ?? [
                 'totalChildren' => 0,
                 'accessibleChildren' => 0,

@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsurePasswordIsChanged;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',        // ← added
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
@@ -22,13 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
         */
 
         $middleware->alias([
-            'role' => RoleMiddleware::class,
+            'role'           => RoleMiddleware::class,
             'results.access' => EnsureResultsAccessAllowed::class,
         ]);
 
         /*
         |--------------------------------------------------------------------------
-        | Global Web Middleware (IMPORTANT)
+        | Global Web Middleware
         |--------------------------------------------------------------------------
         | This ensures users MUST change password before using system
         */

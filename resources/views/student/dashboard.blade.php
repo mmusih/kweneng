@@ -1,589 +1,903 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="mt-16 p-6 bg-white rounded-lg shadow-md border border-gray-200">
-            <h2 class="font-bold text-2xl text-center text-gray-800 leading-tight">
-                Student Dashboard
-            </h2>
-        </div>
-    </x-slot>
+    <x-slot name="header"></x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="mb-6">
-                        <h3 class="text-2xl font-semibold">Welcome, {{ auth()->user()->name }}!</h3>
-                        <p class="text-gray-600">Access your academic information, student life summary, and library
-                            records here.</p>
+    <style>
+        .sd-wrap {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            font-family: 'Figtree', sans-serif;
+        }
+
+        /* Greeting */
+        .sd-greeting {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin-bottom: 1.75rem;
+            padding: 1.25rem 1.5rem;
+            background: #fff;
+            border-radius: 14px;
+            border: 0.5px solid rgba(0, 0, 0, .08);
+        }
+
+        .sd-greeting-text h1 {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: #1a1a18;
+        }
+
+        .sd-greeting-text p {
+            font-size: 0.875rem;
+            color: #888780;
+            margin-top: 3px;
+        }
+
+        .sd-avatar img {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+            flex-shrink: 0;
+        }
+
+        .sd-avatar-fallback {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #EEEDFE;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #fff;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+            flex-shrink: 0;
+        }
+
+        .sd-avatar-fallback span {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: #3C3489;
+        }
+
+        /* Alert */
+        .sd-alert {
+            border-radius: 10px;
+            padding: 13px 18px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .sd-alert.warn {
+            background: #FAEEDA;
+            color: #633806;
+        }
+
+        .sd-alert.info {
+            background: #E6F1FB;
+            color: #0C447C;
+        }
+
+        .sd-alert.danger {
+            background: #FCEBEB;
+            color: #501313;
+        }
+
+        .sd-alert svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Stat row */
+        .sd-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 1.75rem;
+        }
+
+        .sd-stat {
+            border-radius: 14px;
+            padding: 20px 22px;
+        }
+
+        .sd-stat-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            opacity: .75;
+        }
+
+        .sd-stat-val {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-top: 6px;
+            line-height: 1;
+        }
+
+        .sd-stat-sub {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            opacity: .7;
+        }
+
+        .sd-stat-sub.alert {
+            opacity: 1 !important;
+            font-weight: 600;
+            color: #791F1F !important;
+        }
+
+        .s-blue {
+            background: #E6F1FB;
+            color: #0C447C;
+        }
+
+        .s-purple {
+            background: #EEEDFE;
+            color: #3C3489;
+        }
+
+        .s-amber {
+            background: #FAEEDA;
+            color: #633806;
+        }
+
+        .s-teal {
+            background: #E1F5EE;
+            color: #085041;
+        }
+
+        /* Section header */
+        .sd-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1a1a18;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sd-section {
+            margin-bottom: 2rem;
+        }
+
+        /* CTA Buttons replacing tiny links */
+        .sd-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .sd-btn:hover {
+            opacity: .85;
+        }
+
+        .sd-btn-primary {
+            background: #185FA5;
+            color: #fff;
+        }
+
+        .sd-btn-teal {
+            background: #0F6E56;
+            color: #fff;
+        }
+
+        .sd-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Performance cards */
+        .sd-perf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .sd-perf-card {
+            background: #fff;
+            border: 0.5px solid rgba(0, 0, 0, .1);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+
+        .sd-perf-card .pk {
+            font-size: 0.6875rem;
+            color: #888780;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        .sd-perf-card .pv {
+            font-size: 1.625rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .sd-perf-card .pm {
+            font-size: 0.75rem;
+            color: #888780;
+            margin-top: 3px;
+        }
+
+        .pv-blue {
+            color: #0C447C;
+        }
+
+        .pv-green {
+            color: #27500A;
+        }
+
+        .pv-purple {
+            color: #3C3489;
+        }
+
+        /* Badges */
+        .sd-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .b-green {
+            background: #EAF3DE;
+            color: #27500A;
+        }
+
+        .b-amber {
+            background: #FAEEDA;
+            color: #633806;
+        }
+
+        .b-red {
+            background: #FCEBEB;
+            color: #501313;
+        }
+
+        .b-blue {
+            background: #E6F1FB;
+            color: #0C447C;
+        }
+
+        .b-purple {
+            background: #EEEDFE;
+            color: #3C3489;
+        }
+
+        .b-gray {
+            background: #F1EFE8;
+            color: #444441;
+        }
+
+        /* Marks table */
+        .sd-table-wrap {
+            background: #fff;
+            border: 0.5px solid rgba(0, 0, 0, .1);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .sd-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .sd-table th {
+            padding: 12px 18px;
+            text-align: left;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: #888780;
+            background: #F1EFE8;
+        }
+
+        .sd-table td {
+            padding: 14px 18px;
+            border-top: 0.5px solid rgba(0, 0, 0, .07);
+            vertical-align: middle;
+        }
+
+        .sd-table tr:hover td {
+            background: #faf9f5;
+        }
+
+        .sd-sub-name {
+            font-weight: 500;
+            color: #1a1a18;
+        }
+
+        .sd-sub-code {
+            font-size: 0.6875rem;
+            color: #888780;
+        }
+
+        .score {
+            font-weight: 700;
+            font-size: 0.9375rem;
+        }
+
+        .score-hi {
+            color: #27500A;
+        }
+
+        .score-mid {
+            color: #633806;
+        }
+
+        .score-lo {
+            color: #791F1F;
+        }
+
+        .score-na {
+            color: #888780;
+            font-weight: 400;
+        }
+
+        .sd-teacher {
+            color: #888780;
+        }
+
+        /* Library */
+        .sd-lib-wrap {
+            background: #fff;
+            border: 0.5px solid rgba(0, 0, 0, .1);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .sd-lib-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 15px 18px;
+            border-top: 0.5px solid rgba(0, 0, 0, .07);
+            font-size: 0.875rem;
+        }
+
+        .sd-lib-row:first-child {
+            border-top: none;
+        }
+
+        .sd-lib-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #E1F5EE;
+            color: #085041;
+            flex-shrink: 0;
+        }
+
+        .sd-lib-icon svg {
+            width: 19px;
+            height: 19px;
+        }
+
+        .sd-lib-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sd-lib-meta .t {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #1a1a18;
+        }
+
+        .sd-lib-meta .s {
+            font-size: 0.75rem;
+            color: #888780;
+            margin-top: 1px;
+        }
+
+        .sd-lib-status {
+            text-align: right;
+        }
+
+        .sd-lib-due {
+            font-size: 0.75rem;
+            color: #888780;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+
+        /* Student life */
+        .sd-life-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .sd-life-card {
+            background: #fff;
+            border: 0.5px solid rgba(0, 0, 0, .1);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+
+        .sd-life-card h3 {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: #888780;
+            margin-bottom: 12px;
+        }
+
+        .sd-life-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            padding: 4px 0;
+        }
+
+        .sd-life-row span:last-child {
+            font-weight: 600;
+        }
+
+        .sd-bar-wrap {
+            height: 6px;
+            background: #F1EFE8;
+            border-radius: 99px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .sd-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+        }
+
+        /* Empty state */
+        .sd-empty {
+            background: #F1EFE8;
+            border-radius: 14px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .sd-empty svg {
+            width: 40px;
+            height: 40px;
+            color: #B4B2A9;
+            margin: 0 auto;
+        }
+
+        .sd-empty p {
+            font-size: 0.875rem;
+            color: #888780;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .sd-stat-val {
+                font-size: 1.5rem;
+            }
+
+            .sd-table th:nth-child(4),
+            .sd-table td:nth-child(4) {
+                display: none;
+            }
+
+            .sd-btn span {
+                display: none;
+            }
+        }
+    </style>
+
+    <div class="sd-wrap">
+
+        {{-- ───── GREETING ───── --}}
+        <div class="sd-greeting">
+            <div class="sd-avatar">
+                @if ($student && $student->photo)
+                    <img src="{{ Storage::url($student->photo) }}" alt="{{ auth()->user()->name }}">
+                @else
+                    <div class="sd-avatar-fallback">
+                        <span>{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                     </div>
+                @endif
+            </div>
+            <div class="sd-greeting-text">
+                <h1>Hello, {{ explode(' ', auth()->user()->name)[0] }} 👋</h1>
+                <p>
+                    {{ $student?->currentClass?->name ?? 'No class assigned' }}
+                    @if ($currentAcademicYear)
+                        · {{ $currentAcademicYear->year_name }}
+                    @endif
+                    @if ($currentTerm)
+                        · {{ $currentTerm->name }}
+                    @endif
+                </p>
+            </div>
+        </div>
 
-                    @if (!$student)
-                        <div class="bg-yellow-50 rounded-lg p-6">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-yellow-800">Student Record Required</h3>
-                                    <div class="mt-2 text-sm text-yellow-700">
-                                        <p>Your student record could not be found. Please contact the school
-                                            administration.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        @if (!$student)
+
+            {{-- ───── NO STUDENT RECORD ───── --}}
+            <div class="sd-alert warn">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+                Your student record could not be found. Please contact the school administration.
+            </div>
+        @else
+            {{-- ───── ALERTS ───── --}}
+            @if (($overdueBorrowingsCount ?? 0) > 0)
+                <div class="sd-alert danger">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    You have <strong>{{ $overdueBorrowingsCount }} overdue
+                        {{ Str::plural('book', $overdueBorrowingsCount) }}</strong> — please return
+                    {{ $overdueBorrowingsCount === 1 ? 'it' : 'them' }} to the library.
+                </div>
+            @endif
+
+            @if ($stats['feesBlocked'] ?? false)
+                <div class="sd-alert warn">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    Your results access is <strong>blocked</strong>. Please contact the accounts office.
+                </div>
+            @endif
+
+            @if (!$currentTerm)
+                <div class="sd-alert info">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+                    </svg>
+                    There is no active term at the moment. Marks will appear once a term is activated.
+                </div>
+            @endif
+
+            {{-- ───── STAT ROW ───── --}}
+            <div class="sd-stats">
+                <div class="sd-stat s-blue">
+                    <div class="sd-stat-label">Class</div>
+                    <div class="sd-stat-val">{{ $student->currentClass?->name ?? '—' }}</div>
+                    <div class="sd-stat-sub">{{ $currentAcademicYear?->year_name ?? 'No year set' }}</div>
+                </div>
+                <div class="sd-stat s-purple">
+                    <div class="sd-stat-label">Term</div>
+                    <div class="sd-stat-val">{{ $currentTerm?->name ?? '—' }}</div>
+                    <div class="sd-stat-sub">
+                        @if ($currentTerm)
+                            {{ $currentTerm->start_date->format('d M') }} –
+                            {{ $currentTerm->end_date->format('d M') }}
+                        @else
+                            No active term
+                        @endif
+                    </div>
+                </div>
+                <div class="sd-stat s-amber">
+                    <div class="sd-stat-label">Subjects</div>
+                    <div class="sd-stat-val">{{ $stats['subjectsAssigned'] ?? 0 }}</div>
+                    <div class="sd-stat-sub">{{ $stats['subjectsWithMarks'] ?? 0 }} with marks</div>
+                </div>
+                <div class="sd-stat s-teal">
+                    <div class="sd-stat-label">Books out</div>
+                    <div class="sd-stat-val">{{ $borrowingsCount ?? 0 }}</div>
+                    @if (($overdueBorrowingsCount ?? 0) > 0)
+                        <div class="sd-stat-sub alert">{{ $overdueBorrowingsCount }} overdue</div>
                     @else
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-                            <div class="bg-blue-100 p-6 rounded-lg shadow">
-                                <h4 class="text-lg font-semibold text-blue-800">Current Class</h4>
-                                @if ($student->currentClass)
-                                    <p class="text-2xl font-bold text-blue-600">
-                                        {{ $student->currentClass->name }}
-                                    </p>
-                                    <p class="text-sm text-blue-700 mt-1">
-                                        {{ $student->currentClass->academicYear->year_name ?? 'N/A' }}
-                                    </p>
-                                @else
-                                    <p class="text-lg text-blue-600">Not Assigned</p>
-                                @endif
-                            </div>
-
-                            <div class="bg-green-100 p-6 rounded-lg shadow">
-                                <h4 class="text-lg font-semibold text-green-800">Academic Year</h4>
-                                @if ($currentAcademicYear)
-                                    <p class="text-2xl font-bold text-green-600">
-                                        {{ $currentAcademicYear->year_name }}
-                                    </p>
-                                    @if ($currentAcademicYear->active)
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-800 mt-1">
-                                            Active
-                                        </span>
-                                    @endif
-                                @else
-                                    <p class="text-lg text-green-600">Not Set</p>
-                                @endif
-                            </div>
-
-                            <div class="bg-purple-100 p-6 rounded-lg shadow">
-                                <h4 class="text-lg font-semibold text-purple-800">Current Term</h4>
-                                @if ($currentTerm)
-                                    <p class="text-2xl font-bold text-purple-600">
-                                        {{ $currentTerm->name }}
-                                    </p>
-                                    <p class="text-sm text-purple-700 mt-1">
-                                        {{ $currentTerm->start_date->format('M j') }} -
-                                        {{ $currentTerm->end_date->format('M j, Y') }}
-                                    </p>
-                                    @if ($currentTerm->locked)
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-200 text-yellow-800 mt-1">
-                                            Locked
-                                        </span>
-                                    @endif
-                                @else
-                                    <p class="text-lg text-purple-600">No Active Term</p>
-                                @endif
-                            </div>
-
-                            <div class="bg-amber-100 p-6 rounded-lg shadow">
-                                <h4 class="text-lg font-semibold text-amber-800">Subjects Assigned</h4>
-                                <p class="text-2xl font-bold text-amber-600">
-                                    {{ $stats['subjectsAssigned'] ?? 0 }}
-                                </p>
-                                <p class="text-sm text-amber-700 mt-1">
-                                    {{ $stats['subjectsWithMarks'] ?? 0 }} with marks entered
-                                </p>
-                            </div>
-
-                            <div class="bg-indigo-100 p-6 rounded-lg shadow">
-                                <h4 class="text-lg font-semibold text-indigo-800">Books Borrowed</h4>
-                                <p class="text-2xl font-bold text-indigo-600">
-                                    {{ $borrowingsCount ?? 0 }}
-                                </p>
-                                <p class="text-sm text-indigo-700 mt-1">
-                                    {{ $overdueBorrowingsCount ?? 0 }} overdue
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="mt-8">
-                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Performance Summary</h4>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                                <div
-                                    class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
-                                    <div class="flex items-center">
-                                        <div class="rounded-full bg-blue-500 p-3">
-                                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg"
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10" />
-                                            </svg>
-                                        </div>
-                                        <div class="ml-4">
-                                            <h5 class="text-sm font-medium text-gray-900">Midterm Average</h5>
-                                            <p class="text-2xl font-bold text-blue-600">
-                                                {{ ($stats['midtermAverage'] ?? null) !== null ? number_format($stats['midtermAverage'], 2) : 'N/A' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-100">
-                                    <div class="flex items-center">
-                                        <div class="rounded-full bg-green-500 p-3">
-                                            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg"
-                                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <div class="ml-4">
-                                            <h5 class="text-sm font-medium text-gray-900">Endterm Average</h5>
-                                            <p class="text-2xl font-bold text-green-600">
-                                                {{ ($stats['endtermAverage'] ?? null) !== null ? number_format($stats['endtermAverage'], 2) : 'N/A' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                                    <h5 class="text-sm font-medium text-gray-700">Marks Entered</h5>
-                                    <p class="text-2xl font-bold text-gray-900 mt-2">
-                                        {{ $stats['subjectsWithMarks'] ?? 0 }}
-                                    </p>
-                                    <p class="text-sm text-gray-500 mt-1">
-                                        Current term subjects with recorded marks
-                                    </p>
-                                </div>
-
-                                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                                    <h5 class="text-sm font-medium text-gray-700">Results Access</h5>
-                                    @if ($stats['feesBlocked'] ?? false)
-                                        <p class="text-lg font-bold text-red-600 mt-2">Blocked</p>
-                                        <p class="text-sm text-red-500 mt-1">Contact accounts office</p>
-                                    @else
-                                        <p class="text-lg font-bold text-green-600 mt-2">Allowed</p>
-                                        <p class="text-sm text-green-500 mt-1">Access is active</p>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-
-                        @if ($performance)
-                            <div class="mt-8">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-4">Academic Standing</h4>
-
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                        <h5 class="text-sm font-medium text-gray-600">Performance Status</h5>
-                                        <p class="mt-2 text-2xl font-bold text-indigo-600">
-                                            {{ $performance['performance_label'] ?? 'N/A' }}
-                                        </p>
-                                    </div>
-
-                                    <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                        <h5 class="text-sm font-medium text-gray-600">Endterm Position</h5>
-                                        <p class="mt-2 text-2xl font-bold text-green-600">
-                                            @if ($performance['endterm_position'] && $performance['endterm_position']['position'])
-                                                {{ $performance['endterm_position']['position'] }}/{{ $performance['endterm_position']['class_size'] }}
-                                            @else
-                                                N/A
-                                            @endif
-                                        </p>
-                                    </div>
-
-                                    <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                        <h5 class="text-sm font-medium text-gray-600">Trend</h5>
-                                        <p class="mt-2 text-2xl font-bold text-blue-600">
-                                            {{ $performance['trend'] ?? 'N/A' }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="mt-8">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold text-gray-800">Latest Marks Snapshot</h4>
-                                <a href="{{ route('student.marks.index') }}"
-                                    class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                                    View Detailed Marks →
-                                </a>
-                            </div>
-
-                            @if ($currentTerm)
-                                @if ($latestMarks->count() > 0)
-                                    <div class="overflow-x-auto">
-                                        <table
-                                            class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                                            <thead class="bg-gray-50">
-                                                <tr>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Subject</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Midterm</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Endterm</th>
-                                                    <th
-                                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Teacher</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white divide-y divide-gray-200">
-                                                @foreach ($latestMarks as $mark)
-                                                    <tr>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="font-medium text-gray-900">
-                                                                {{ $mark->subject->name ?? 'Unknown Subject' }}
-                                                            </div>
-                                                            <div class="text-sm text-gray-500">
-                                                                {{ $mark->subject->code ?? 'N/A' }}
-                                                            </div>
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            {{ $mark->midterm_score ?? 'N/A' }}
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            {{ $mark->endterm_score ?? 'N/A' }}
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            {{ $mark->teacher?->user?->name ?? 'N/A' }}
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <div class="bg-gray-50 rounded-lg p-6 text-center">
-                                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <h3 class="mt-2 text-sm font-medium text-gray-900">No marks entered yet</h3>
-                                        <p class="mt-1 text-sm text-gray-500">Your current term marks will appear here
-                                            once teachers submit them.</p>
-                                    </div>
-                                @endif
-                            @else
-                                <div class="bg-blue-50 rounded-lg p-6">
-                                    <div class="flex">
-                                        <div class="flex-shrink-0">
-                                            <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div class="ml-3">
-                                            <h3 class="text-sm font-medium text-blue-800">Marks Information</h3>
-                                            <div class="mt-2 text-sm text-blue-700">
-                                                <p>There is no active term currently. Marks will be displayed here once
-                                                    a term is active and marks are entered.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="mt-8">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold text-gray-800">Library</h4>
-                                <a href="{{ route('student.library.index') }}"
-                                    class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                                    View All →
-                                </a>
-                            </div>
-
-                            @if (($borrowings ?? collect())->count() > 0)
-                                <div class="overflow-x-auto">
-                                    <table
-                                        class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Book</th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Barcode</th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Issued</th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Due</th>
-                                                <th
-                                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            @foreach ($borrowings as $borrowing)
-                                                @php
-                                                    $isReturned = !is_null($borrowing->returned_at);
-                                                    $isOverdue =
-                                                        !$isReturned &&
-                                                        !empty($borrowing->due_at) &&
-                                                        \Illuminate\Support\Carbon::parse($borrowing->due_at)->isPast();
-                                                @endphp
-                                                <tr class="{{ $isOverdue ? 'bg-red-50' : '' }}">
-                                                    <td class="px-6 py-4">
-                                                        <div class="font-medium text-gray-900">
-                                                            {{ $borrowing->bookCopy->book->title ?? 'N/A' }}
-                                                        </div>
-                                                        <div class="text-sm text-gray-500">
-                                                            {{ $borrowing->bookCopy->book->author ?? 'N/A' }}
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                                        {{ $borrowing->bookCopy->barcode ?? 'N/A' }}
-                                                    </td>
-                                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                                        {{ $borrowing->issued_at ? \Illuminate\Support\Carbon::parse($borrowing->issued_at)->format('d M Y') : 'N/A' }}
-                                                    </td>
-                                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                                        {{ $borrowing->due_at ? \Illuminate\Support\Carbon::parse($borrowing->due_at)->format('d M Y') : 'N/A' }}
-                                                    </td>
-                                                    <td class="px-6 py-4 text-sm">
-                                                        @if ($isReturned)
-                                                            <span
-                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                                Returned
-                                                            </span>
-                                                        @elseif($isOverdue)
-                                                            <span
-                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                                Overdue
-                                                            </span>
-                                                        @else
-                                                            <span
-                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                                Borrowed
-                                                            </span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="bg-gray-50 rounded-lg p-6 text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                    <h3 class="mt-2 text-sm font-medium text-gray-900">No books currently issued</h3>
-                                    <p class="mt-1 text-sm text-gray-500">Your borrowed books will appear here when the
-                                        librarian issues them to you.</p>
-                                </div>
-                            @endif
-                        </div>
-
-                        @if ($attendanceSummary || $punctualitySummary || $behaviourSummary)
-                            <div class="mt-8">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-4">Student Life Summary</h4>
-
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    @if ($attendanceSummary)
-                                        <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                            <h5 class="text-lg font-semibold text-gray-700 mb-3">Attendance</h5>
-
-                                            <div class="space-y-1 text-sm">
-                                                <div class="flex justify-between">
-                                                    <span>Present</span>
-                                                    <span
-                                                        class="font-semibold text-green-600">{{ $attendanceSummary['present'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Absent</span>
-                                                    <span
-                                                        class="font-semibold text-red-600">{{ $attendanceSummary['absent'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Late</span>
-                                                    <span
-                                                        class="font-semibold text-yellow-600">{{ $attendanceSummary['late'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Excused</span>
-                                                    <span
-                                                        class="font-semibold text-gray-600">{{ $attendanceSummary['excused'] }}</span>
-                                                </div>
-                                            </div>
-
-                                            @if ($attendanceSummary['rate'] !== null)
-                                                <div class="mt-3 text-sm">
-                                                    Attendance Rate:
-                                                    <span
-                                                        class="font-bold text-indigo-600">{{ $attendanceSummary['rate'] }}%</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
-
-                                    @if ($punctualitySummary)
-                                        <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                            <h5 class="text-lg font-semibold text-gray-700 mb-3">Punctuality</h5>
-
-                                            <div class="space-y-1 text-sm">
-                                                <div class="flex justify-between">
-                                                    <span>On Time</span>
-                                                    <span
-                                                        class="font-semibold text-green-600">{{ $punctualitySummary['on_time'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Late</span>
-                                                    <span
-                                                        class="font-semibold text-yellow-600">{{ $punctualitySummary['late'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Very Late</span>
-                                                    <span
-                                                        class="font-semibold text-red-600">{{ $punctualitySummary['very_late'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Absent</span>
-                                                    <span
-                                                        class="font-semibold text-gray-600">{{ $punctualitySummary['absent'] }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    @if ($behaviourSummary)
-                                        <div class="bg-white border rounded-lg p-6 shadow-sm">
-                                            <h5 class="text-lg font-semibold text-gray-700 mb-3">Behaviour</h5>
-
-                                            <div class="space-y-1 text-sm">
-                                                <div class="flex justify-between">
-                                                    <span>Total Records</span>
-                                                    <span
-                                                        class="font-semibold text-gray-900">{{ $behaviourSummary['total'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Minor</span>
-                                                    <span
-                                                        class="font-semibold text-yellow-600">{{ $behaviourSummary['minor'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Moderate</span>
-                                                    <span
-                                                        class="font-semibold text-orange-600">{{ $behaviourSummary['moderate'] }}</span>
-                                                </div>
-
-                                                <div class="flex justify-between">
-                                                    <span>Major</span>
-                                                    <span
-                                                        class="font-semibold text-red-600">{{ $behaviourSummary['major'] }}</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="mt-3 text-sm">
-                                                Status:
-                                                <span
-                                                    class="font-bold text-indigo-600">{{ $behaviourSummary['label'] }}</span>
-                                            </div>
-
-                                            @if ($behaviourSummary['latest'])
-                                                <div class="mt-3 text-xs text-gray-500">
-                                                    Latest: {{ ucfirst($behaviourSummary['latest']->category) }} -
-                                                    {{ ucfirst($behaviourSummary['latest']->severity) }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
-                        <div class="mt-8">
-                            <h4 class="text-lg font-semibold text-gray-800 mb-4">Quick Information</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h5 class="font-medium text-gray-700">Access Status</h5>
-                                    <div class="mt-2 space-y-2">
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-3 h-3 rounded-full {{ $stats['feesBlocked'] ?? false ? 'bg-red-500' : 'bg-green-500' }} mr-2">
-                                            </div>
-                                            <span class="text-sm">
-                                                {{ $stats['feesBlocked'] ?? false ? 'Results Access Blocked' : 'Results Access Enabled' }}
-                                            </span>
-                                        </div>
-
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-3 h-3 rounded-full {{ ($stats['subjectsAssigned'] ?? 0) > 0 ? 'bg-green-500' : 'bg-yellow-500' }} mr-2">
-                                            </div>
-                                            <span class="text-sm">
-                                                {{ $stats['subjectsAssigned'] ?? 0 }} subject(s) assigned
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h5 class="font-medium text-gray-700">Academic Progress</h5>
-                                    <p class="text-sm text-gray-600 mt-2">
-                                        @if (($stats['subjectsWithMarks'] ?? 0) > 0)
-                                            Marks have been entered for {{ $stats['subjectsWithMarks'] }} subject(s)
-                                            this term.
-                                        @elseif($currentTerm)
-                                            No marks have been entered yet for the current term.
-                                        @else
-                                            Academic progress information will appear when a term is active.
-                                        @endif
-                                    </p>
-                                </div>
-
-                                <a href="{{ route('student.library.index') }}"
-                                    class="border rounded-lg p-4 hover:shadow-md transition bg-white">
-                                    <h5 class="font-medium text-gray-700">Library</h5>
-                                    <p class="text-sm text-gray-600 mt-2">View your borrowed books and due dates.</p>
-                                </a>
-
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h5 class="font-medium text-gray-700">Library Alerts</h5>
-                                    <p class="text-sm text-gray-600 mt-2">
-                                        {{ $borrowingsCount ?? 0 }} borrowed
-                                        @if (($overdueBorrowingsCount ?? 0) > 0)
-                                            · <span class="font-semibold text-red-600">{{ $overdueBorrowingsCount }}
-                                                overdue</span>
-                                        @else
-                                            · no overdue books
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="sd-stat-sub">none overdue</div>
                     @endif
                 </div>
             </div>
-        </div>
+
+            {{-- ───── PERFORMANCE ───── --}}
+            <div class="sd-section">
+                <div class="sd-section-title">
+                    Performance
+                    <a href="{{ route('student.marks.index') }}" class="sd-btn sd-btn-primary">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17v-2m3 2v-4m3 4v-6M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                        </svg>
+                        <span>View full marks</span>
+                    </a>
+                </div>
+                <div class="sd-perf-grid">
+                    <div class="sd-perf-card">
+                        <div class="pk">Midterm avg</div>
+                        <div class="pv pv-blue">
+                            {{ ($stats['midtermAverage'] ?? null) !== null ? number_format($stats['midtermAverage'], 1) : 'N/A' }}
+                        </div>
+                        <div class="pm">Across {{ $stats['subjectsWithMarks'] ?? 0 }} subjects</div>
+                    </div>
+                    <div class="sd-perf-card">
+                        <div class="pk">Endterm avg</div>
+                        <div class="pv pv-green">
+                            {{ ($stats['endtermAverage'] ?? null) !== null ? number_format($stats['endtermAverage'], 1) : 'N/A' }}
+                        </div>
+                        <div class="pm">Across {{ $stats['subjectsWithMarks'] ?? 0 }} subjects</div>
+                        @if (($performance['trend'] ?? null) === 'Improving')
+                            <span class="sd-badge b-green">↑ Improving</span>
+                        @elseif (($performance['trend'] ?? null) === 'Declining')
+                            <span class="sd-badge b-red">↓ Declining</span>
+                        @elseif ($performance['trend'] ?? null)
+                            <span class="sd-badge b-gray">{{ $performance['trend'] }}</span>
+                        @endif
+                    </div>
+                    @if ($performance ?? null)
+                        <div class="sd-perf-card">
+                            <div class="pk">Class position</div>
+                            <div class="pv pv-purple">
+                                @if ($performance['endterm_position']['position'] ?? null)
+                                    {{ $performance['endterm_position']['position'] }}/{{ $performance['endterm_position']['class_size'] }}
+                                @else
+                                    N/A
+                                @endif
+                            </div>
+                            <div class="pm">Endterm standing</div>
+                            @if ($performance['performance_label'] ?? null)
+                                <span class="sd-badge b-purple">{{ $performance['performance_label'] }}</span>
+                            @endif
+                        </div>
+                    @endif
+                    <div class="sd-perf-card">
+                        <div class="pk">Results access</div>
+                        @if ($stats['feesBlocked'] ?? false)
+                            <div class="pv" style="color:#791F1F;font-size:1.125rem;margin-top:10px">Blocked</div>
+                            <span class="sd-badge b-red">Contact accounts</span>
+                        @else
+                            <div class="pv" style="color:#27500A;font-size:1.125rem;margin-top:10px">Allowed</div>
+                            <span class="sd-badge b-green">Fees clear</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- ───── MARKS TABLE ───── --}}
+            <div class="sd-section">
+                <div class="sd-section-title">Latest marks</div>
+                @if ($currentTerm && $latestMarks->count() > 0)
+                    <div class="sd-table-wrap">
+                        <table class="sd-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Midterm</th>
+                                    <th>Endterm</th>
+                                    <th>Teacher</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($latestMarks as $mark)
+                                    @php
+                                        $mid = $mark->midterm_score;
+                                        $end = $mark->endterm_score;
+                                        $midClass = is_numeric($mid)
+                                            ? ($mid >= 70
+                                                ? 'score-hi'
+                                                : ($mid >= 50
+                                                    ? 'score-mid'
+                                                    : 'score-lo'))
+                                            : 'score-na';
+                                        $endClass = is_numeric($end)
+                                            ? ($end >= 70
+                                                ? 'score-hi'
+                                                : ($end >= 50
+                                                    ? 'score-mid'
+                                                    : 'score-lo'))
+                                            : 'score-na';
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <div class="sd-sub-name">{{ $mark->subject->name ?? 'Unknown' }}</div>
+                                            <div class="sd-sub-code">{{ $mark->subject->code ?? '' }}</div>
+                                        </td>
+                                        <td><span class="score {{ $midClass }}">{{ $mid ?? 'N/A' }}</span></td>
+                                        <td><span class="score {{ $endClass }}">{{ $end ?? 'N/A' }}</span></td>
+                                        <td class="sd-teacher">{{ $mark->teacher?->user?->name ?? 'N/A' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="sd-empty">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p>{{ $currentTerm ? 'No marks have been entered yet for this term.' : 'No active term — marks will appear here once a term is activated.' }}
+                        </p>
+                    </div>
+                @endif
+            </div>
+
+            {{-- ───── LIBRARY ───── --}}
+            <div class="sd-section">
+                <div class="sd-section-title">
+                    Library
+                    <a href="{{ route('student.library.index') }}" class="sd-btn sd-btn-teal">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>View all books</span>
+                    </a>
+                </div>
+                @if (($borrowings ?? collect())->count() > 0)
+                    <div class="sd-lib-wrap">
+                        @foreach ($borrowings as $borrowing)
+                            @php
+                                $isReturned = !is_null($borrowing->returned_at);
+                                $isOverdue =
+                                    !$isReturned &&
+                                    !empty($borrowing->due_at) &&
+                                    \Carbon\Carbon::parse($borrowing->due_at)->isPast();
+                            @endphp
+                            <div class="sd-lib-row">
+                                <div class="sd-lib-icon">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <div class="sd-lib-meta">
+                                    <div class="t">{{ $borrowing->bookCopy->book->title ?? 'N/A' }}</div>
+                                    <div class="s">
+                                        {{ $borrowing->bookCopy->book->author ?? '' }}{{ ($borrowing->bookCopy->book->author ?? null) && ($borrowing->bookCopy->barcode ?? null) ? ' · ' : '' }}{{ $borrowing->bookCopy->barcode ?? '' }}
+                                    </div>
+                                </div>
+                                <div class="sd-lib-status">
+                                    @if ($isReturned)
+                                        <span class="sd-badge b-gray">Returned</span>
+                                        <div class="sd-lib-due">
+                                            {{ \Carbon\Carbon::parse($borrowing->returned_at)->format('d M Y') }}</div>
+                                    @elseif ($isOverdue)
+                                        <span class="sd-badge b-red">Overdue</span>
+                                        <div class="sd-lib-due">Was due
+                                            {{ \Carbon\Carbon::parse($borrowing->due_at)->format('d M Y') }}</div>
+                                    @else
+                                        <span class="sd-badge b-green">Borrowed</span>
+                                        @if ($borrowing->due_at)
+                                            <div class="sd-lib-due">Due
+                                                {{ \Carbon\Carbon::parse($borrowing->due_at)->format('d M Y') }}</div>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="sd-empty">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <p>No books currently issued. Your borrowed books will appear here.</p>
+                    </div>
+                @endif
+            </div>
+
+            {{-- ───── STUDENT LIFE ───── --}}
+            @if ($attendanceSummary || $punctualitySummary || $behaviourSummary)
+                <div class="sd-section">
+                    <div class="sd-section-title">Student life</div>
+                    <div class="sd-life-grid">
+
+                        @if ($attendanceSummary)
+                            <div class="sd-life-card">
+                                <h3>Attendance</h3>
+                                <div class="sd-life-row"><span>Present</span><span
+                                        style="color:#27500A">{{ $attendanceSummary['present'] }}</span></div>
+                                <div class="sd-life-row"><span>Absent</span><span
+                                        style="color:#791F1F">{{ $attendanceSummary['absent'] }}</span></div>
+                                <div class="sd-life-row"><span>Late</span><span
+                                        style="color:#633806">{{ $attendanceSummary['late'] }}</span></div>
+                                <div class="sd-life-row"><span>Excused</span><span
+                                        style="color:#888780">{{ $attendanceSummary['excused'] }}</span></div>
+                                @if ($attendanceSummary['rate'] !== null)
+                                    <div class="sd-bar-wrap">
+                                        <div class="sd-bar-fill"
+                                            style="width:{{ min($attendanceSummary['rate'], 100) }}%; background:#3B6D11;">
+                                        </div>
+                                    </div>
+                                    <div style="font-size:.6875rem;color:#888780;margin-top:5px">
+                                        {{ $attendanceSummary['rate'] }}% attendance rate</div>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if ($punctualitySummary)
+                            <div class="sd-life-card">
+                                <h3>Punctuality</h3>
+                                <div class="sd-life-row"><span>On time</span><span
+                                        style="color:#27500A">{{ $punctualitySummary['on_time'] }}</span></div>
+                                <div class="sd-life-row"><span>Late</span><span
+                                        style="color:#633806">{{ $punctualitySummary['late'] }}</span></div>
+                                <div class="sd-life-row"><span>Very late</span><span
+                                        style="color:#791F1F">{{ $punctualitySummary['very_late'] }}</span></div>
+                                <div class="sd-life-row"><span>Absent</span><span
+                                        style="color:#888780">{{ $punctualitySummary['absent'] }}</span></div>
+                                @php
+                                    $pTotal =
+                                        $punctualitySummary['on_time'] +
+                                        $punctualitySummary['late'] +
+                                        $punctualitySummary['very_late'] +
+                                        $punctualitySummary['absent'];
+                                    $pRate = $pTotal > 0 ? round(($punctualitySummary['on_time'] / $pTotal) * 100) : 0;
+                                @endphp
+                                <div class="sd-bar-wrap">
+                                    <div class="sd-bar-fill" style="width:{{ $pRate }}%; background:#854F0B;">
+                                    </div>
+                                </div>
+                                <div style="font-size:.6875rem;color:#888780;margin-top:5px">{{ $pRate }}%
+                                    on-time rate</div>
+                            </div>
+                        @endif
+
+                        @if ($behaviourSummary)
+                            <div class="sd-life-card">
+                                <h3>Behaviour</h3>
+                                <div class="sd-life-row"><span>Total records</span><span
+                                        style="color:#2C2C2A">{{ $behaviourSummary['total'] }}</span></div>
+                                <div class="sd-life-row"><span>Minor</span><span
+                                        style="color:#633806">{{ $behaviourSummary['minor'] }}</span></div>
+                                <div class="sd-life-row"><span>Moderate</span><span
+                                        style="color:#E24B4A">{{ $behaviourSummary['moderate'] }}</span></div>
+                                <div class="sd-life-row"><span>Major</span><span
+                                        style="color:#791F1F">{{ $behaviourSummary['major'] }}</span></div>
+                                @if ($behaviourSummary['label'] ?? null)
+                                    <span
+                                        class="sd-badge {{ $behaviourSummary['total'] == 0 ? 'b-green' : ($behaviourSummary['major'] > 0 ? 'b-red' : 'b-amber') }}"
+                                        style="margin-top:10px">
+                                        {{ $behaviourSummary['label'] }}
+                                    </span>
+                                @endif
+                                @if ($behaviourSummary['latest'] ?? null)
+                                    <div style="font-size:.6875rem;color:#888780;margin-top:6px">
+                                        Latest: {{ ucfirst($behaviourSummary['latest']->category) }} –
+                                        {{ ucfirst($behaviourSummary['latest']->severity) }}
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+
+                    </div>
+                </div>
+            @endif
+
+        @endif
     </div>
 </x-app-layout>

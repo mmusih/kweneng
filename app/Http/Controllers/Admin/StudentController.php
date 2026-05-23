@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\GenerateLoginSlip;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Student;
-use App\Models\User;
-use App\Models\ClassModel;
 use App\Models\AcademicYear;
+use App\Models\Mark;
+use App\Models\Student;
 use App\Models\StudentClassHistory;
 use App\Models\StudentSubject;
-use App\Models\Mark;
+use App\Models\ClassModel;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
@@ -57,15 +58,15 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'admission_no' => 'required|unique:students,admission_no',
-            'gender' => 'required|in:male,female',
-            'date_of_birth' => 'required|date',
+            'name'             => 'required|string|max:255',
+            'email'            => 'required|email|unique:users,email',
+            'admission_no'     => 'required|unique:students,admission_no',
+            'gender'           => 'required|in:male,female',
+            'date_of_birth'    => 'required|date',
             'current_class_id' => 'nullable|exists:classes,id',
-            'photo' => 'nullable|image|mimes:jpeg,png,webp|max:2048',
-            'results_access' => 'nullable',
-            'fees_blocked' => 'nullable',
+            'photo'            => 'nullable|image|mimes:jpeg,png,webp|max:2048',
+            'results_access'   => 'nullable',
+            'fees_blocked'     => 'nullable',
         ]);
 
         try {
@@ -74,12 +75,12 @@ class StudentController extends Controller
             $temporaryPassword = $this->generateTemporaryPassword();
 
             $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($temporaryPassword),
+                'name'                 => $validated['name'],
+                'email'                => $validated['email'],
+                'password'             => Hash::make($temporaryPassword),
                 'must_change_password' => true,
-                'role' => 'student',
-                'status' => 'active',
+                'role'                 => 'student',
+                'status'               => 'active',
             ]);
 
             $photoPath = null;
@@ -89,27 +90,27 @@ class StudentController extends Controller
             }
 
             $student = Student::create([
-                'user_id' => $user->id,
-                'admission_no' => $validated['admission_no'],
-                'gender' => $validated['gender'],
-                'date_of_birth' => $validated['date_of_birth'],
+                'user_id'          => $user->id,
+                'admission_no'     => $validated['admission_no'],
+                'gender'           => $validated['gender'],
+                'date_of_birth'    => $validated['date_of_birth'],
                 'current_class_id' => $validated['current_class_id'] ?? null,
-                'photo' => $photoPath,
-                'results_access' => $request->has('results_access'),
-                'fees_blocked' => $request->has('fees_blocked'),
+                'photo'            => $photoPath,
+                'results_access'   => $request->has('results_access'),
+                'fees_blocked'     => $request->has('fees_blocked'),
             ]);
 
-            if (!empty($validated['current_class_id'])) {
+            if (! empty($validated['current_class_id'])) {
                 $currentAcademicYear = AcademicYear::where('status', 'open')->first();
 
                 if ($currentAcademicYear) {
                     StudentClassHistory::create([
-                        'student_id' => $student->id,
-                        'class_id' => $validated['current_class_id'],
+                        'student_id'       => $student->id,
+                        'class_id'         => $validated['current_class_id'],
                         'academic_year_id' => $currentAcademicYear->id,
-                        'status' => 'active',
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'status'           => 'active',
+                        'created_at'       => now(),
+                        'updated_at'       => now(),
                     ]);
                 }
             }
@@ -120,9 +121,9 @@ class StudentController extends Controller
                 ->with(
                     'success',
                     'Student created successfully' .
-                    (!empty($validated['current_class_id']) ? ' and enrolled in class.' : '.') .
-                    ' Temporary password: ' . $temporaryPassword .
-                    ' (Student must change it on first login.)'
+                        (! empty($validated['current_class_id']) ? ' and enrolled in class.' : '.') .
+                        ' Temporary password: ' . $temporaryPassword .
+                        ' (Student must change it on first login.)'
                 );
         } catch (\Exception $e) {
             DB::rollBack();
@@ -155,22 +156,22 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
-            'admission_no' => ['required', Rule::unique('students', 'admission_no')->ignore($student->id)],
-            'gender' => 'required|in:male,female',
-            'date_of_birth' => 'required|date',
+            'name'             => 'required|string|max:255',
+            'email'            => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
+            'admission_no'     => ['required', Rule::unique('students', 'admission_no')->ignore($student->id)],
+            'gender'           => 'required|in:male,female',
+            'date_of_birth'    => 'required|date',
             'current_class_id' => 'nullable|exists:classes,id',
-            'photo' => 'nullable|image|mimes:jpeg,png,webp|max:2048',
-            'results_access' => 'nullable',
-            'fees_blocked' => 'nullable',
+            'photo'            => 'nullable|image|mimes:jpeg,png,webp|max:2048',
+            'results_access'   => 'nullable',
+            'fees_blocked'     => 'nullable',
         ]);
 
         try {
             DB::beginTransaction();
 
             $student->user->update([
-                'name' => $validated['name'],
+                'name'  => $validated['name'],
                 'email' => $validated['email'],
             ]);
 
@@ -188,12 +189,12 @@ class StudentController extends Controller
             $originalClassId = $student->current_class_id;
 
             $studentData = [
-                'admission_no' => $validated['admission_no'],
-                'gender' => $validated['gender'],
-                'date_of_birth' => $validated['date_of_birth'],
+                'admission_no'     => $validated['admission_no'],
+                'gender'           => $validated['gender'],
+                'date_of_birth'    => $validated['date_of_birth'],
                 'current_class_id' => $validated['current_class_id'] ?? null,
-                'results_access' => $request->has('results_access'),
-                'fees_blocked' => $request->has('fees_blocked'),
+                'results_access'   => $request->has('results_access'),
+                'fees_blocked'     => $request->has('fees_blocked'),
             ];
 
             if (isset($validated['photo'])) {
@@ -202,7 +203,7 @@ class StudentController extends Controller
 
             $student->update($studentData);
 
-            if (!empty($validated['current_class_id']) && $validated['current_class_id'] != $originalClassId) {
+            if (! empty($validated['current_class_id']) && $validated['current_class_id'] != $originalClassId) {
                 $currentAcademicYear = AcademicYear::where('status', 'open')->first();
 
                 if ($currentAcademicYear) {
@@ -212,18 +213,18 @@ class StudentController extends Controller
 
                     if ($existingEnrollment) {
                         $existingEnrollment->update([
-                            'class_id' => $validated['current_class_id'],
-                            'status' => 'active',
+                            'class_id'   => $validated['current_class_id'],
+                            'status'     => 'active',
                             'updated_at' => now(),
                         ]);
                     } else {
                         StudentClassHistory::create([
-                            'student_id' => $student->id,
-                            'class_id' => $validated['current_class_id'],
+                            'student_id'       => $student->id,
+                            'class_id'         => $validated['current_class_id'],
                             'academic_year_id' => $currentAcademicYear->id,
-                            'status' => 'active',
-                            'created_at' => now(),
-                            'updated_at' => now(),
+                            'status'           => 'active',
+                            'created_at'       => now(),
+                            'updated_at'       => now(),
                         ]);
                     }
                 }
@@ -247,7 +248,7 @@ class StudentController extends Controller
         $temporaryPassword = $this->generateTemporaryPassword();
 
         $student->user->update([
-            'password' => Hash::make($temporaryPassword),
+            'password'             => Hash::make($temporaryPassword),
             'must_change_password' => true,
         ]);
 
@@ -257,14 +258,22 @@ class StudentController extends Controller
         );
     }
 
+    /**
+     * Generate login slips for selected students.
+     *
+     * Uses GenerateLoginSlip::for() which:
+     *   - Resets the student password (memorable format)
+     *   - Generates a fresh 48-hour parent invite code
+     *   - Returns all slip data in one array
+     */
     public function printLogins(Request $request)
     {
         $validated = $request->validate([
-            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids'   => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ], [
             'student_ids.required' => 'Please select at least one student.',
-            'student_ids.min' => 'Please select at least one student.',
+            'student_ids.min'      => 'Please select at least one student.',
         ]);
 
         $students = Student::with(['user', 'currentClass'])
@@ -274,36 +283,22 @@ class StudentController extends Controller
 
         $logins = [];
 
-        DB::beginTransaction();
-
         try {
             foreach ($students as $student) {
-                if (!$student->user) {
+                if (! $student->user) {
                     continue;
                 }
 
-                $temporaryPassword = $this->generateTemporaryPassword(8);
+                // GenerateLoginSlip handles its own DB transaction per student
+                $slip = GenerateLoginSlip::for($student);
 
-                $student->user->update([
-                    'password' => Hash::make($temporaryPassword),
-                    'must_change_password' => true,
-                ]);
-
-                $logins[] = [
-                    'name' => $student->user->name,
-                    'email' => $student->user->email,
-                    'admission_no' => $student->admission_no,
+                $logins[] = array_merge($slip, [
                     'class' => $student->currentClass?->name ?? 'N/A',
-                    'password' => $temporaryPassword,
-                ];
+                ]);
             }
-
-            DB::commit();
 
             return view('admin.students.print-logins', compact('logins'));
         } catch (\Exception $e) {
-            DB::rollBack();
-
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to generate login slips: ' . $e->getMessage()]);
         }
@@ -334,16 +329,16 @@ class StudentController extends Controller
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([
-            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids'   => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ], [
             'student_ids.required' => 'Please select at least one student.',
-            'student_ids.min' => 'Please select at least one student.',
+            'student_ids.min'      => 'Please select at least one student.',
         ]);
 
         try {
             $studentIds = collect($validated['student_ids'])
-                ->map(fn ($id) => (int) $id)
+                ->map(fn($id) => (int) $id)
                 ->unique()
                 ->values();
 
@@ -389,6 +384,10 @@ class StudentController extends Controller
         }
     }
 
+    /**
+     * Used by store() and resetPassword() only.
+     * printLogins() now delegates entirely to GenerateLoginSlip.
+     */
     private function generateTemporaryPassword(int $length = 10): string
     {
         return Str::upper(Str::random($length));

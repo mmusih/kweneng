@@ -36,15 +36,24 @@ class AuthenticatedSessionController extends Controller
             ])->onlyInput('email');
         }
 
+        // Intercept before the role-based redirect — the middleware also
+        // guards all subsequent requests, but catching it here gives a
+        // cleaner UX (no flash of the dashboard before the redirect).
+        if ($user->must_change_password) {
+            return redirect()
+                ->route('password.edit')
+                ->with('warning', 'You must change your temporary password before continuing.');
+        }
+
         return match ($user->role) {
-            UserRoles::ADMIN => redirect()->intended(route('admin.dashboard', false)),
-            UserRoles::HEADMASTER => redirect()->intended(route('headmaster.dashboard', false)),
-            UserRoles::TEACHER => redirect()->intended(route('teacher.dashboard', false)),
-            UserRoles::STUDENT => redirect()->intended(route('student.dashboard', false)),
-            UserRoles::PARENT => redirect()->intended(route('parent.dashboard', false)),
+            UserRoles::ADMIN           => redirect()->intended(route('admin.dashboard', false)),
+            UserRoles::HEADMASTER      => redirect()->intended(route('headmaster.dashboard', false)),
+            UserRoles::TEACHER         => redirect()->intended(route('teacher.dashboard', false)),
+            UserRoles::STUDENT         => redirect()->intended(route('student.dashboard', false)),
+            UserRoles::PARENT          => redirect()->intended(route('parent.dashboard', false)),
             UserRoles::ACCOUNTS_OFFICER => redirect()->intended(route('accounts-officer.dashboard', false)),
-            UserRoles::LIBRARIAN => redirect()->intended(route('librarian.dashboard', false)),
-            default => redirect('/'),
+            UserRoles::LIBRARIAN       => redirect()->intended(route('librarian.dashboard', false)),
+            default                    => redirect('/'),
         };
     }
 

@@ -18,6 +18,7 @@ Route::middleware(['auth', 'role:teacher,headmaster'])->prefix('teacher')->name(
     Route::post('/marks/students', [MarksController::class, 'showStudents'])->name('marks.students');
     Route::post('/marks', [MarksController::class, 'store'])->name('marks.store');
     Route::post('/marks/import', [MarksController::class, 'import'])->name('marks.import');
+    Route::get('/marks/print', [MarksController::class, 'printResults'])->name('marks.print');
     Route::get('/marks/{id}/edit', [MarksController::class, 'edit'])->name('marks.edit');
     Route::put('/marks/{id}', [MarksController::class, 'update'])->name('marks.update');
     Route::get('/marks/terms/{academicYearId}', [MarksController::class, 'loadTerms'])->name('marks.load-terms');

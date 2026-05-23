@@ -50,6 +50,12 @@
         $coreSubjects = \App\Models\Subject::where('is_core', true)->count();
         $classAssignments = \App\Models\ClassSubject::count();
 
+        // Events and Announcements counts
+        $totalEvents = \App\Models\Event::count();
+        $upcomingEvents = \App\Models\Event::where('start_datetime', '>=', now())->count();
+        $totalAnnouncements = \App\Models\Announcement::count();
+        $recentAnnouncements = \App\Models\Announcement::where('created_at', '>=', now()->subDays(7))->count();
+
         $schoolAverage = $schoolOverview['schoolAverage'] ?? null;
         $bestClass = $schoolOverview['bestClass'] ?? null;
         $weakestClass = $schoolOverview['weakestClass'] ?? null;
@@ -146,6 +152,96 @@
                 </div>
             </div>
 
+            {{-- EVENTS & ANNOUNCEMENTS --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <div class="mb-6 border-b border-gray-200 pb-3">
+                        <h3 class="text-xl font-semibold text-gray-800">Events & Announcements</h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Manage school events, calendar, and important announcements
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <a href="{{ route('admin.events.index') }}"
+                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-bold text-gray-900">{{ $totalEvents }}</p>
+                                    <p class="text-sm text-gray-600">Total Events</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-sm text-gray-500">
+                                {{ $upcomingEvents }} upcoming
+                            </div>
+                        </a>
+
+                        <a href="{{ route('admin.events.calendar') }}"
+                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-900">Calendar</p>
+                                    <p class="text-sm text-gray-600">View events</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-sm text-gray-500">
+                                Visual schedule
+                            </div>
+                        </a>
+
+                        <a href="{{ route('admin.events.create') }}"
+                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-900">New Event</p>
+                                    <p class="text-sm text-gray-600">Create event</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-sm text-gray-500">
+                                Add to calendar
+                            </div>
+                        </a>
+
+                        <a href="{{ route('admin.announcements.index') }}"
+                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-bold text-gray-900">{{ $totalAnnouncements }}</p>
+                                    <p class="text-sm text-gray-600">Announcements</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-sm text-gray-500">
+                                {{ $recentAnnouncements }} this week
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             {{-- PEOPLE & USER MANAGEMENT --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
@@ -231,7 +327,8 @@
                                 class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-emerald-300 hover:-translate-y-1">
                                 <div class="flex items-center">
                                     <div class="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 6.253v13m0-13l-8-3v13l8 3 8-3v-13l-8 3z" />
                                         </svg>

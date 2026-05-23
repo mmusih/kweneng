@@ -6,10 +6,11 @@ use App\Support\UserRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'name',
@@ -26,8 +27,8 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'email_verified_at'    => 'datetime',
+        'password'             => 'hashed',
         'must_change_password' => 'boolean',
     ];
 
@@ -41,7 +42,6 @@ class User extends Authenticatable
         if (is_array($roles)) {
             return in_array($this->role, $roles, true);
         }
-
         return $this->role === $roles;
     }
 

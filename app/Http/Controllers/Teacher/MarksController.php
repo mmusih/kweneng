@@ -515,6 +515,83 @@ class MarksController extends Controller
         }
     }
 
+    public function printResults(Request $request)
+    {
+        $teacher = Auth::user()->teacher;
+
+        if (!$request->filled('term_id') || !$request->filled('class_id')) {
+            $assignedClasses = \App\Models\TeacherSubject::where('teacher_id', $teacher->id)
+                ->with('class.academicYear')
+                ->get()
+                ->pluck('class')
+                ->filter()
+                ->unique('id')
+                ->sortBy('name')
+                ->values();
+
+            $academicYearIds = $assignedClasses->pluck('academic_year_id')->unique()->filter();
+
+            $terms = \App\Models\Term::whereIn('academic_year_id', $academicYearIds)
+                ->with('academicYear')
+                ->orderByDesc('academic_year_id')
+                ->orderBy('name')
+                ->get();
+
+            $termsJson = $terms->map(fn($t) => [
+                'id'               => $t->id,
+                'name'             => $t->name,
+                'academic_year_id' => $t->academic_year_id,
+                'year_name'        => $t->academicYear->year_name ?? '',
+                'status'           => $t->status,
+            ])->values();
+
+            return view('teacher.marks.print-select', compact('assignedClasses', 'terms', 'termsJson'));
+        }
+
+        $validated = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'term_id'  => 'required|exists:terms,id',
+        ]);
+
+        $assignedSubjects = \App\Models\TeacherSubject::where('teacher_id', $teacher->id)
+            ->where('class_id', $validated['class_id'])
+            ->with('subject')
+            ->get();
+
+        if ($assignedSubjects->isEmpty()) {
+            abort(403, 'You are not assigned to teach any subjects in this class.');
+        }
+
+        $subjectIds = $assignedSubjects->pluck('subject_id');
+        $class      = \App\Models\ClassModel::with('academicYear')->findOrFail($validated['class_id']);
+        $term       = \App\Models\Term::findOrFail($validated['term_id']);
+
+        $marks = \App\Models\Mark::with(['student', 'subject'])
+            ->where('class_id', $validated['class_id'])
+            ->where('term_id', $validated['term_id'])
+            ->whereIn('subject_id', $subjectIds)
+            ->get();
+
+        $results = $marks->groupBy('student_id')->map(fn($m) => $m->keyBy('subject_id'));
+
+        $students = \App\Models\Student::with('user')
+            ->where('current_class_id', $validated['class_id'])
+            ->join('users', 'users.id', '=', 'students.user_id')
+            ->orderBy('users.name')
+            ->select('students.*')
+            ->get();
+
+        $subjects = $assignedSubjects->pluck('subject')->sortBy('name');
+
+        return view('teacher.marks.print', compact(
+            'class',
+            'term',
+            'students',
+            'subjects',
+            'results'
+        ));
+    }
+
     protected function rowIsEmpty(array $row): bool
     {
         foreach ($row as $value) {

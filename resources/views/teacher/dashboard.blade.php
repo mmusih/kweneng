@@ -117,16 +117,16 @@
                 </div>
             </div>
 
-            <!-- General Actions -->
+            <!-- Main Actions -->
             <div class="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
                 <div class="mb-6 border-b border-gray-200 pb-3">
                     <h3 class="text-xl font-semibold text-gray-800">Main Actions</h3>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Access your core teaching tools
-                    </p>
+                    <p class="text-sm text-gray-500 mt-1">Access your core teaching tools</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                    <!-- Enter Marks -->
                     <a href="{{ route('teacher.marks.index') }}"
                         class="border rounded-xl p-6 min-h-[130px] bg-gradient-to-br from-blue-50 to-white shadow-sm hover:shadow-md transition-all hover:-translate-y-1 flex items-start">
                         <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4 shrink-0">
@@ -141,6 +141,7 @@
                         </div>
                     </a>
 
+                    <!-- Homework -->
                     <a href="{{ route('teacher.homeworks.index') }}"
                         class="border rounded-xl p-6 min-h-[130px] bg-gradient-to-br from-cyan-50 to-white shadow-sm hover:shadow-md transition-all hover:-translate-y-1 flex items-start">
                         <div class="p-3 rounded-full bg-cyan-100 text-cyan-600 mr-4 shrink-0">
@@ -155,21 +156,21 @@
                         </div>
                     </a>
 
-                    <div
-                        class="border rounded-xl p-6 min-h-[130px] bg-gradient-to-br from-indigo-50 to-white shadow-sm flex items-start">
+                    <!-- Print Results -->
+                    <a href="{{ route('teacher.marks.print') }}" target="_blank"
+                        class="border rounded-xl p-6 min-h-[130px] bg-gradient-to-br from-indigo-50 to-white shadow-sm hover:shadow-md transition-all hover:-translate-y-1 flex items-start">
                         <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4 shrink-0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
                         </div>
                         <div>
-                            <h4 class="text-lg font-semibold text-gray-900">Teaching Overview</h4>
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ $teachingAssignments->count() }} active assignment(s) linked to your account.
-                            </p>
+                            <h4 class="text-lg font-semibold text-gray-900">Print Results</h4>
+                            <p class="text-sm text-gray-500 mt-1">Select a class and term to print results.</p>
                         </div>
-                    </div>
+                    </a>
+
                 </div>
             </div>
 
@@ -275,17 +276,14 @@
                                         class="inline-flex items-center px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-md hover:bg-emerald-700">
                                         Attendance
                                     </a>
-
                                     <a href="{{ route('teacher.punctuality.index', ['class_id' => $class->id]) }}"
                                         class="inline-flex items-center px-3 py-2 bg-amber-600 text-white text-sm font-semibold rounded-md hover:bg-amber-700">
                                         Punctuality
                                     </a>
-
                                     <a href="{{ route('teacher.behaviour.index', ['class_id' => $class->id]) }}"
                                         class="inline-flex items-center px-3 py-2 bg-rose-600 text-white text-sm font-semibold rounded-md hover:bg-rose-700">
                                         Behaviour
                                     </a>
-
                                     <a href="{{ route('teacher.term-summary.index', ['class_id' => $class->id]) }}"
                                         class="inline-flex items-center px-3 py-2 bg-violet-600 text-white text-sm font-semibold rounded-md hover:bg-violet-700">
                                         Term Summary
@@ -297,8 +295,7 @@
                 @else
                     <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
                         You are not currently assigned as a class teacher. Attendance, punctuality, behaviour, and term
-                        summary tools
-                        become available once a class is assigned to you as class teacher.
+                        summary tools become available once a class is assigned to you as class teacher.
                     </div>
                 @endif
             </div>

@@ -18,6 +18,9 @@ use App\Http\Controllers\Admin\AccountsOfficerController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\LoginSlipController;
+use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\AnnouncementController;
 
 Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
@@ -49,6 +52,11 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])
             ->name('students.reset-password');
+
+        Route::get('students/{student}/slip', [LoginSlipController::class, 'show'])
+            ->name('students.slip');
+        Route::post('students/slips/bulk', [LoginSlipController::class, 'bulk'])
+            ->name('students.slips.bulk');
 
         /*
         |--------------------------------------------------------------------------
@@ -101,16 +109,14 @@ Route::middleware(['auth', 'role:admin'])
         | Subjects
         |--------------------------------------------------------------------------
         */
-        Route::resource('subjects', SubjectController::class);
-
-        // Assign subjects to classes
+        // Static subject routes BEFORE resource to avoid wildcard conflicts
         Route::get('subjects/manage/classes', [SubjectController::class, 'manageClassAssignments'])->name('subjects.manage-classes');
         Route::post('subjects/manage/classes/bulk-save', [SubjectController::class, 'bulkSaveClassAssignments'])->name('subjects.bulk-save-classes');
-
-        // Assign teachers to subjects/classes
         Route::get('subjects/manage/teachers', [SubjectController::class, 'manageTeacherAssignments'])->name('subjects.manage-teachers');
         Route::post('subjects/manage/teachers/bulk-save', [SubjectController::class, 'bulkSaveTeacherAssignments'])->name('subjects.bulk-save-teachers');
         Route::delete('subjects/remove/teacher', [SubjectController::class, 'removeTeacherFromSubject'])->name('subjects.remove-teacher');
+
+        Route::resource('subjects', SubjectController::class);
 
         /*
         |--------------------------------------------------------------------------
@@ -137,16 +143,16 @@ Route::middleware(['auth', 'role:admin'])
         | Marks
         |--------------------------------------------------------------------------
         */
+        // Static marks routes BEFORE wildcard {id} routes
+        Route::get('/marks/student-averages', [MarksController::class, 'getStudentAverages'])->name('marks.student-averages');
+        Route::post('/marks/import-preview', [MarksController::class, 'importPreview'])->name('marks.import-preview');
+        Route::post('/marks/import-apply', [MarksController::class, 'importApply'])->name('marks.import-apply');
+
         Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
         Route::get('/marks/{id}', [MarksController::class, 'show'])->name('marks.show');
         Route::get('/marks/{id}/edit', [MarksController::class, 'edit'])->name('marks.edit');
         Route::put('/marks/{id}', [MarksController::class, 'update'])->name('marks.update');
         Route::delete('/marks/{id}', [MarksController::class, 'destroy'])->name('marks.destroy');
-
-        // Marks utilities
-        Route::get('/marks/student-averages', [MarksController::class, 'getStudentAverages'])->name('marks.student-averages');
-        Route::post('/marks/import-preview', [MarksController::class, 'importPreview'])->name('marks.import-preview');
-        Route::post('/marks/import-apply', [MarksController::class, 'importApply'])->name('marks.import-apply');
 
         /*
         |--------------------------------------------------------------------------
@@ -157,17 +163,14 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/student-subjects/create', [MarksController::class, 'studentSubjectsCreate'])->name('student-subjects.create');
         Route::post('/student-subjects', [MarksController::class, 'studentSubjectsStore'])->name('student-subjects.store');
 
-        // CSV preview/apply for student subject assignments
         Route::post('/student-subjects/import-preview', [MarksController::class, 'studentSubjectsImportPreview'])->name('student-subjects.import-preview');
         Route::post('/student-subjects/import-apply', [MarksController::class, 'studentSubjectsImportApply'])->name('student-subjects.import-apply');
 
-        // Bulk delete must come BEFORE the single {id} delete route
+        // Bulk delete BEFORE single {id} delete
         Route::delete('/student-subjects/bulk-remove', [MarksController::class, 'studentSubjectsBulkDestroy'])->name('student-subjects.bulk-destroy');
-
-        // Single delete
         Route::delete('/student-subjects/{id}', [MarksController::class, 'studentSubjectsDestroy'])->name('student-subjects.destroy');
 
-        // Dynamic helper endpoints for dependent dropdowns / AJAX loading
+        // Dynamic helper endpoints
         Route::get('/student-subjects/classes/{academicYearId}', [MarksController::class, 'getClassesByAcademicYear']);
         Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
         Route::get('/student-subjects/subjects/{classId}/{academicYearId}', [MarksController::class, 'getSubjectsByClass']);
@@ -208,12 +211,35 @@ Route::middleware(['auth', 'role:admin'])
 
         /*
         |--------------------------------------------------------------------------
-        | loging details
+        | Login Details
         |--------------------------------------------------------------------------
         */
         Route::post('students/print-logins', [StudentController::class, 'printLogins'])
-    ->name('students.print-logins');
+            ->name('students.print-logins');
 
-    Route::post('parents/{parent}/reset-password', [ParentController::class, 'resetPassword'])
-    ->name('parents.reset-password');
+        Route::post('parents/{parent}/reset-password', [ParentController::class, 'resetPassword'])
+            ->name('parents.reset-password');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Events
+        |--------------------------------------------------------------------------
+        */
+        // !! Static routes MUST come BEFORE Route::resource() to avoid
+        // !! Laravel treating 'calendar' and 'get-events' as {event} wildcards.
+        Route::get('events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
+        Route::get('events/get-events', [EventController::class, 'getEvents'])->name('events.get-events');
+        Route::delete('events/comments/{comment}', [EventController::class, 'deleteComment'])->name('events.delete-comment');
+
+        Route::resource('events', EventController::class);
+
+        // Nested event route (has its own {event} param, safe after resource)
+        Route::post('events/{event}/comments', [EventController::class, 'addComment'])->name('events.add-comment');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Announcements
+        |--------------------------------------------------------------------------
+        */
+        Route::resource('announcements', AnnouncementController::class);
     });

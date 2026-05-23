@@ -23,14 +23,18 @@ class Student extends Model
 
     protected $casts = [
         'results_access' => 'boolean',
-        'fees_blocked' => 'boolean',
-        'date_of_birth' => 'date',
+        'fees_blocked'   => 'boolean',
+        'date_of_birth'  => 'date',
     ];
 
     protected $dates = [
         'date_of_birth',
         'deleted_at',
     ];
+
+    // -------------------------------------------------------------------------
+    // Relationships
+    // -------------------------------------------------------------------------
 
     public function user()
     {
@@ -47,6 +51,22 @@ class Student extends Model
         return $this->belongsToMany(ParentModel::class, 'parent_student', 'student_id', 'parent_id')
             ->withPivot('relationship')
             ->withTimestamps();
+    }
+
+    /**
+     * All parent invite codes ever generated for this student.
+     */
+    public function parentCodes()
+    {
+        return $this->hasMany(StudentParentCode::class);
+    }
+
+    /**
+     * Only the current valid (unused + not expired) parent code.
+     */
+    public function activeParentCode()
+    {
+        return $this->hasOne(StudentParentCode::class)->valid()->latest();
     }
 
     public function classHistory()
