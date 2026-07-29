@@ -1,6 +1,17 @@
 <x-app-layout>
     @php
-        $summaryRoutePrefix = $summaryRoutePrefix ?? (request()->routeIs('office.*') ? 'office' : 'admin');
+        $summaryRoutePrefix =
+            $summaryRoutePrefix ??
+            (request()->routeIs('accounts-officer.*')
+                ? 'accounts-officer'
+                : (request()->routeIs('office.*')
+                    ? 'office'
+                    : 'admin'));
+        $summaryDashboardRoute = match ($summaryRoutePrefix) {
+            'accounts-officer' => 'accounts-officer.dashboard',
+            'office' => 'office.dashboard',
+            default => 'admin.dashboard',
+        };
         $hasSummary = !empty($summary);
         $summaryQuery = [
             'academic_year_id' => $selectedAcademicYearId,
@@ -12,11 +23,17 @@
 
     <x-slot name="header">
         <div class="mt-16 p-6 bg-slate-800 rounded-2xl shadow-sm border border-slate-700">
-            <div>
-                <h2 class="text-2xl font-semibold text-white">Exam Summary Sheets</h2>
-                <p class="text-slate-400 text-sm mt-1">
-                    Generate, preview and download class summary sheets.
-                </p>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-semibold text-white">Exam Summary Sheets</h2>
+                    <p class="text-slate-400 text-sm mt-1">
+                        Generate, preview and download class summary sheets.
+                    </p>
+                </div>
+                <a href="{{ route($summaryDashboardRoute) }}"
+                    class="text-sm font-semibold text-white hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
+                    Back to Dashboard
+                </a>
             </div>
         </div>
     </x-slot>

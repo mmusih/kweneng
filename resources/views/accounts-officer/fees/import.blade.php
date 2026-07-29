@@ -1,9 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 flex items-center justify-between">
+        <div class="mt-16 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Import Fee Balances</h2>
-            <a href="{{ route('accounts-officer.fees.index') }}"
-                class="text-sm text-indigo-600 hover:text-indigo-800">Back to Fees</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <x-accounts-officer-dashboard-link />
+                <a href="{{ route('accounts-officer.fees.index') }}"
+                    class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Back to Fees</a>
+            </div>
         </div>
     </x-slot>
 

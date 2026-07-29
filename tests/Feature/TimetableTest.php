@@ -52,6 +52,53 @@ class TimetableTest extends TestCase
             ->assertSee('School timetable');
     }
 
+    public function test_rotating_cycle_skips_weekends_and_can_resume_from_an_admin_selected_day(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
+        $year = $this->academicYear();
+
+        $this->actingAs($admin)
+            ->post(route('admin.timetable.templates.store'), [
+                'academic_year_id' => $year->id,
+                'name' => 'Six-day rotating timetable',
+                'cycle_type' => 'rotating',
+                'cycle_length' => 6,
+                'cycle_start_date' => '2026-07-06',
+                'cycle_start_day_number' => 4,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $template = TimetableTemplate::with(['days', 'cycleAnchors'])->firstOrFail();
+
+        $this->assertSame(4, $template->dayForDate('2026-07-06')?->day_number);
+        $this->assertSame(2, $template->dayForDate('2026-07-10')?->day_number);
+        $this->assertNull($template->dayForDate('2026-07-11'));
+        $this->assertNull($template->dayForDate('2026-07-12'));
+        $this->assertSame(3, $template->dayForDate('2026-07-13')?->day_number);
+
+        $this->actingAs($admin)
+            ->post(route('admin.timetable.cycle-anchors.store', $template), [
+                'anchor_date' => '2026-07-20',
+                'day_number' => 6,
+                'note' => 'Resume after short break',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $template->refresh()->load(['days', 'cycleAnchors']);
+
+        $this->assertSame(3, $template->dayForDate('2026-07-13')?->day_number);
+        $this->assertSame(6, $template->dayForDate('2026-07-20')?->day_number);
+        $this->assertSame(1, $template->dayForDate('2026-07-21')?->day_number);
+
+        $this->actingAs($admin)
+            ->from(route('admin.timetable.index', ['template_id' => $template->id]))
+            ->post(route('admin.timetable.cycle-anchors.store', $template), [
+                'anchor_date' => '2026-07-25',
+                'day_number' => 2,
+            ])
+            ->assertSessionHasErrors('anchor_date');
+    }
+
     public function test_clash_detection_rejects_an_overlapping_teacher_lesson(): void
     {
         $fixture = $this->fixture();

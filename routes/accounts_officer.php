@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\ExamSummaryController;
+use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\AccountsOfficer\DashboardController;
 use App\Http\Controllers\AccountsOfficer\StudentFeesBlockController;
 use App\Http\Controllers\AccountsOfficer\FeeImportController;
@@ -29,6 +31,9 @@ Route::middleware(['auth', 'role:accounts_officer'])
 
         Route::patch('/students/{student}/toggle-fees-block', [StudentFeesBlockController::class, 'toggle'])
             ->name('students.toggle-fees-block');
+
+        Route::post('/students/bulk-fees-block', [StudentFeesBlockController::class, 'bulk'])
+            ->name('students.bulk-fees-block');
 
         Route::post('/students/{student}/block', [StudentFeesBlockController::class, 'block'])
             ->name('students.block');
@@ -62,4 +67,26 @@ Route::middleware(['auth', 'role:accounts_officer'])
 
         Route::patch('/fees/import-rows/{row}/manual-match', [FeeImportController::class, 'manualMatch'])
             ->name('fees.import-rows.manual-match');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Result summaries and report cards
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/exam-summaries', [ExamSummaryController::class, 'index'])
+            ->name('exam-summaries.index');
+        Route::get('/exam-summaries/preview', [ExamSummaryController::class, 'preview'])
+            ->name('exam-summaries.preview');
+        Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])
+            ->name('exam-summaries.pdf');
+
+        Route::get('/reports', [ReportCardController::class, 'index'])
+            ->name('reports.index');
+        Route::get('/reports/student/{student}', [ReportCardController::class, 'show'])
+            ->name('reports.show');
+        Route::get('/reports/student/{student}/pdf', [ReportCardController::class, 'pdf'])
+            ->name('reports.pdf');
+        Route::get('/reports/bulk/pdf', [ReportCardController::class, 'bulkPdf'])
+            ->name('reports.bulk-pdf');
     });

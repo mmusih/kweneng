@@ -11,6 +11,8 @@ class Syllabus extends Model
 {
     use HasFactory;
 
+    protected $table = 'syllabuses';
+
     protected $fillable = [
         'created_by',
         'academic_year_id',

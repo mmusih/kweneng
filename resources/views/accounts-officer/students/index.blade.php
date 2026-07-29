@@ -1,10 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-4 bg-gradient-to-r from-red-500 to-pink-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="mt-16 p-4 bg-gradient-to-r from-red-500 to-pink-600 rounded-lg shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Student Results Access Control
             </h2>
+            <x-accounts-officer-dashboard-link light />
         </div>
     </x-slot>
 
@@ -17,9 +18,21 @@
                 </div>
             @endif
 
+            @if ($errors->any())
+                <div class="rounded-lg bg-red-50 p-4 text-red-800 border border-red-200">
+                    <ul class="list-disc pl-5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @include('accounts-officer.students._bulk-controls', ['bulkControlId' => 'students-bulk'])
+
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <form method="GET" action="{{ route('accounts-officer.students.index') }}">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Search</label>
                             <input type="text" name="search" value="{{ request('search') }}"
@@ -53,6 +66,13 @@
                             </select>
                         </div>
 
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Balance over (P)</label>
+                            <input type="number" name="balance_over" value="{{ request('balance_over') }}" min="0"
+                                step="0.01" placeholder="Any balance"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
+                        </div>
+
                         <div class="flex items-end">
                             <button type="submit"
                                 class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md">
@@ -80,6 +100,9 @@
                                         Class</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Latest Balance</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Results Status</th>
                                     <th
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -97,6 +120,13 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ $student->currentClass->name ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                            @if ($student->latestFeeBalance)
+                                                P{{ number_format((float) $student->latestFeeBalance->closing_balance, 2) }}
+                                            @else
+                                                <span class="font-normal text-gray-500">Not imported</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @if ($student->fees_blocked)

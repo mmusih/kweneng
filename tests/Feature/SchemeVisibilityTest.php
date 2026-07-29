@@ -24,6 +24,16 @@ class SchemeVisibilityTest extends TestCase
             ->assertSee(route('teacher.schemes.index', absolute: false));
     }
 
+    public function test_teacher_can_open_scheme_creation_with_the_syllabus_bank(): void
+    {
+        $user = $this->teacherUser();
+
+        $this->actingAs($user)
+            ->get(route('teacher.schemes.create'))
+            ->assertOk()
+            ->assertSee('Create Scheme of Work');
+    }
+
     public function test_hod_sees_direct_scheme_review_entry_point(): void
     {
         $user = $this->teacherUser();

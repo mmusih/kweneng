@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubject;
+use App\Models\TimetableCycleAnchor;
 use App\Models\TimetableDay;
 use App\Models\TimetableEntry;
 use App\Models\TimetableGroup;
@@ -16,6 +17,7 @@ use App\Models\TimetablePeriod;
 use App\Models\TimetableRoom;
 use App\Models\TimetableTemplate;
 use App\Services\TimetableService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +43,7 @@ class TimetableController extends Controller
 
         $template?->load([
             'academicYear',
+            'cycleAnchors',
             'days.periods',
             'days.entries.startPeriod',
             'days.entries.endPeriod',
@@ -114,11 +117,30 @@ class TimetableController extends Controller
             ])],
             'cycle_length' => ['required', 'integer', 'between:1,7'],
             'cycle_start_date' => ['nullable', 'date', 'required_if:cycle_type,rotating'],
+            'cycle_start_day_number' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'lte:cycle_length',
+                'required_if:cycle_type,rotating',
+            ],
         ]);
+
+        if (
+            $data['cycle_type'] === TimetableTemplate::CYCLE_ROTATING
+            && Carbon::parse($data['cycle_start_date'])->isWeekend()
+        ) {
+            throw ValidationException::withMessages([
+                'cycle_start_date' => 'The first rotating-cycle date must be a weekday.',
+            ]);
+        }
 
         $template = DB::transaction(function () use ($data) {
             $template = TimetableTemplate::create([
-                ...$data,
+                'academic_year_id' => $data['academic_year_id'],
+                'name' => $data['name'],
+                'cycle_type' => $data['cycle_type'],
+                'cycle_length' => $data['cycle_length'],
                 'cycle_start_date' => $data['cycle_type'] === TimetableTemplate::CYCLE_ROTATING
                     ? $data['cycle_start_date']
                     : null,
@@ -138,12 +160,62 @@ class TimetableController extends Controller
                 ]);
             }
 
+            if ($data['cycle_type'] === TimetableTemplate::CYCLE_ROTATING) {
+                $template->cycleAnchors()->create([
+                    'anchor_date' => $data['cycle_start_date'],
+                    'day_number' => $data['cycle_start_day_number'],
+                    'note' => 'Initial cycle date',
+                ]);
+            }
+
             return $template;
         });
 
         return redirect()
             ->route('admin.timetable.index', ['template_id' => $template->id])
             ->with('success', 'Timetable template created. Add the school-day periods next.');
+    }
+
+    public function storeCycleAnchor(
+        Request $request,
+        TimetableTemplate $template,
+    ): RedirectResponse {
+        abort_unless($template->cycle_type === TimetableTemplate::CYCLE_ROTATING, 404);
+
+        $data = $request->validate([
+            'anchor_date' => ['required', 'date'],
+            'day_number' => ['required', 'integer', 'between:1,'.$template->cycle_length],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if (Carbon::parse($data['anchor_date'])->isWeekend()) {
+            throw ValidationException::withMessages([
+                'anchor_date' => 'Choose a weekday. Weekends do not have a rotating cycle day.',
+            ]);
+        }
+
+        $template->cycleAnchors()->updateOrCreate(
+            ['anchor_date' => $data['anchor_date']],
+            [
+                'day_number' => $data['day_number'],
+                'note' => $data['note'] ?? null,
+            ],
+        );
+
+        return back()->with(
+            'success',
+            "Cycle reset saved: {$data['anchor_date']} is Cycle Day {$data['day_number']}.",
+        );
+    }
+
+    public function destroyCycleAnchor(
+        TimetableTemplate $template,
+        TimetableCycleAnchor $anchor,
+    ): RedirectResponse {
+        abort_unless($anchor->timetable_template_id === $template->id, 404);
+        $anchor->delete();
+
+        return back()->with('success', 'Cycle reset removed.');
     }
 
     public function storePeriod(

@@ -371,6 +371,10 @@ class ReportCardController extends Controller
 
     private function routePrefix(): string
     {
-        return request()->routeIs('office.*') ? 'office' : 'admin';
+        return match (true) {
+            request()->routeIs('accounts-officer.*') => 'accounts-officer',
+            request()->routeIs('office.*') => 'office',
+            default => 'admin',
+        };
     }
 }

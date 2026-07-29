@@ -31,7 +31,7 @@ class TimetableService
             return null;
         }
 
-        return TimetableTemplate::with(['academicYear', 'days.periods'])
+        return TimetableTemplate::with(['academicYear', 'days.periods', 'cycleAnchors'])
             ->where('academic_year_id', $academicYearId)
             ->where('is_active', true)
             ->where('is_published', true)

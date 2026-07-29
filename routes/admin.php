@@ -93,6 +93,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index');
         Route::post('timetable/templates', [TimetableController::class, 'storeTemplate'])->name('timetable.templates.store');
         Route::post('timetable/templates/{template}/publish', [TimetableController::class, 'publish'])->name('timetable.templates.publish');
+        Route::post('timetable/templates/{template}/cycle-anchors', [TimetableController::class, 'storeCycleAnchor'])->name('timetable.cycle-anchors.store');
+        Route::delete('timetable/templates/{template}/cycle-anchors/{anchor}', [TimetableController::class, 'destroyCycleAnchor'])->name('timetable.cycle-anchors.destroy');
         Route::post('timetable/templates/{template}/days/{day}/periods', [TimetableController::class, 'storePeriod'])->name('timetable.periods.store');
         Route::post('timetable/rooms', [TimetableController::class, 'storeRoom'])->name('timetable.rooms.store');
         Route::post('timetable/groups', [TimetableController::class, 'storeGroup'])->name('timetable.groups.store');

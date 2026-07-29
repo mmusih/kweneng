@@ -1,5 +1,21 @@
 <x-app-layout>
-    @php($reportRoutePrefix = $reportRoutePrefix ?? (request()->routeIs('admin.*') ? 'admin' : (request()->routeIs('office.*') ? 'office' : 'headmaster')))
+    @php
+        $reportRoutePrefix =
+            $reportRoutePrefix ??
+            (request()->routeIs('accounts-officer.*')
+                ? 'accounts-officer'
+                : (request()->routeIs('admin.*')
+                    ? 'admin'
+                    : (request()->routeIs('office.*')
+                        ? 'office'
+                        : 'headmaster')));
+        $reportDashboardRoute = match ($reportRoutePrefix) {
+            'accounts-officer' => 'accounts-officer.dashboard',
+            'headmaster' => 'headmaster.dashboard',
+            'office' => 'office.dashboard',
+            default => 'admin.dashboard',
+        };
+    @endphp
     <x-slot name="header">
         <div class="mt-16 p-6 kw-page-header rounded-2xl shadow-sm">
             <div class="flex items-center justify-between">
@@ -12,7 +28,7 @@
                     </p>
                 </div>
 
-                <a href="{{ route($reportRoutePrefix === 'headmaster' ? 'headmaster.dashboard' : ($reportRoutePrefix === 'office' ? 'office.dashboard' : 'admin.dashboard')) }}"
+                <a href="{{ route($reportDashboardRoute) }}"
                     class="text-white hover:text-white/80 text-sm font-medium flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

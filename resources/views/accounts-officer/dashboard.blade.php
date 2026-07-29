@@ -60,7 +60,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mt-6">
                         <a href="{{ route('accounts-officer.fees.index') }}"
                             class="block rounded-lg border border-emerald-100 bg-emerald-50 p-5 hover:bg-emerald-100 transition">
                             <div class="flex items-center justify-between">
@@ -111,9 +111,38 @@
                                 </div>
                             </div>
                         </a>
+
+                        <a href="{{ route('accounts-officer.exam-summaries.index') }}"
+                            class="block rounded-lg border border-sky-100 bg-sky-50 p-5 hover:bg-sky-100 transition">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-sky-700 font-medium">Result Summaries</p>
+                                    <p class="text-xs text-sky-600 mt-1">Review class result summaries</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-sky-600 text-white flex items-center justify-center">
+                                    <x-icon name="presentation-chart" class="w-5 h-5" />
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('accounts-officer.reports.index') }}"
+                            class="block rounded-lg border border-violet-100 bg-violet-50 p-5 hover:bg-violet-100 transition">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-violet-700 font-medium">Report Cards</p>
+                                    <p class="text-xs text-violet-600 mt-1">View and download student reports</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center">
+                                    <x-icon name="document-report" class="w-5 h-5" />
+                                </div>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
+
+            @include('accounts-officer.students._bulk-controls', ['bulkControlId' => 'dashboard-bulk'])
 
         </div>
     </div>

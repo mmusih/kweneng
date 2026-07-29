@@ -1,5 +1,15 @@
 <x-app-layout>
-    @php($reportRoutePrefix = $reportRoutePrefix ?? (request()->routeIs('admin.*') ? 'admin' : (request()->routeIs('office.*') ? 'office' : 'headmaster')))
+    @php
+        $reportRoutePrefix =
+            $reportRoutePrefix ??
+            (request()->routeIs('accounts-officer.*')
+                ? 'accounts-officer'
+                : (request()->routeIs('admin.*')
+                    ? 'admin'
+                    : (request()->routeIs('office.*')
+                        ? 'office'
+                        : 'headmaster')));
+    @endphp
     <x-slot name="header">
         <div
             class="mt-16 p-6 kw-page-header rounded-2xl shadow-sm flex items-center justify-between">

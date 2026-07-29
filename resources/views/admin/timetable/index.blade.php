@@ -60,18 +60,24 @@
                     <label class="text-sm font-medium text-gray-700">
                         Cycle
                         <select name="cycle_type" id="cycle-type" class="mt-1 w-full rounded-lg border-gray-300">
-                            <option value="weekly">Weekly</option>
-                            <option value="rotating">Rotating cycle</option>
+                            <option value="weekly" @selected(old('cycle_type') === 'weekly')>Weekly</option>
+                            <option value="rotating" @selected(old('cycle_type') === 'rotating')>Rotating cycle</option>
                         </select>
                     </label>
                     <label class="text-sm font-medium text-gray-700">
                         Number of days
-                        <input type="number" name="cycle_length" value="{{ old('cycle_length', 5) }}" min="1" max="7" required class="mt-1 w-full rounded-lg border-gray-300">
+                        <input id="cycle-length" type="number" name="cycle_length" value="{{ old('cycle_length', 5) }}" min="1" max="7" required class="mt-1 w-full rounded-lg border-gray-300">
                     </label>
-                    <label id="cycle-start-field" class="hidden text-sm font-medium text-gray-700">
-                        Cycle starts on
-                        <input type="date" name="cycle_start_date" value="{{ old('cycle_start_date') }}" class="mt-1 w-full rounded-lg border-gray-300">
-                    </label>
+                    <div id="cycle-start-fields" class="hidden sm:col-span-2 grid-cols-1 gap-4 sm:grid-cols-2">
+                        <label class="text-sm font-medium text-gray-700">
+                            First school date
+                            <input type="date" name="cycle_start_date" value="{{ old('cycle_start_date') }}" class="mt-1 w-full rounded-lg border-gray-300">
+                        </label>
+                        <label class="text-sm font-medium text-gray-700">
+                            Day on that date
+                            <input id="cycle-start-day" type="number" name="cycle_start_day_number" value="{{ old('cycle_start_day_number', 1) }}" min="1" max="{{ old('cycle_length', 5) }}" class="mt-1 w-full rounded-lg border-gray-300">
+                        </label>
+                    </div>
                     <button class="sm:col-span-2 rounded-lg bg-[#124E66] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0f4054]">
                         Create cycle
                     </button>
@@ -129,6 +135,72 @@
         </section>
 
         @if ($template)
+            @if ($template->cycle_type === \App\Models\TimetableTemplate::CYCLE_ROTATING)
+                @php($todayCycleDay = $template->dayForDate(today()))
+                <section class="rounded-2xl border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
+                    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-cyan-700">Rotating-cycle control</p>
+                            <h3 class="mt-1 text-lg font-semibold text-cyan-950">Set the cycle day after a break</h3>
+                            <p class="mt-1 max-w-2xl text-sm text-cyan-800">
+                                Choose a school date and declare which cycle day it is. Saturdays and Sundays are skipped automatically, and the sequence continues from the latest dated setting.
+                            </p>
+                        </div>
+                        <div class="rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-cyan-200">
+                            <p class="text-xs uppercase tracking-wide text-gray-500">Today · {{ today()->format('d M Y') }}</p>
+                            <p class="mt-1 font-semibold text-cyan-950">
+                                {{ $todayCycleDay?->name ?? (today()->isWeekend() ? 'Weekend — no cycle day' : 'No cycle day set') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ route('admin.timetable.cycle-anchors.store', $template) }}" class="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_1.5fr_auto] md:items-end">
+                        @csrf
+                        <label class="text-sm font-medium text-gray-700">
+                            School date
+                            <input type="date" name="anchor_date" value="{{ old('anchor_date', today()->toDateString()) }}" required class="mt-1 w-full rounded-lg border-cyan-200 bg-white">
+                        </label>
+                        <label class="text-sm font-medium text-gray-700">
+                            Cycle day
+                            <select name="day_number" required class="mt-1 w-full rounded-lg border-cyan-200 bg-white">
+                                @foreach ($template->days as $day)
+                                    <option value="{{ $day->day_number }}" @selected(old('day_number') == $day->day_number)>{{ $day->name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="text-sm font-medium text-gray-700">
+                            Reason or note
+                            <input name="note" value="{{ old('note') }}" class="mt-1 w-full rounded-lg border-cyan-200 bg-white" placeholder="e.g. Resume after mid-term break">
+                        </label>
+                        <button class="rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-cyan-800">
+                            Set cycle day
+                        </button>
+                    </form>
+
+                    <div class="mt-5">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-cyan-800">Cycle history</p>
+                        <div class="mt-2 space-y-2">
+                            @foreach ($template->cycleAnchors->sortByDesc('anchor_date') as $anchor)
+                                <div class="flex flex-col gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-cyan-100 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <span class="font-semibold text-gray-900">{{ $anchor->anchor_date->format('d M Y') }}</span>
+                                        <span class="text-gray-600">is Cycle Day {{ $anchor->day_number }}</span>
+                                        @if ($anchor->note)
+                                            <span class="text-gray-500">· {{ $anchor->note }}</span>
+                                        @endif
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.timetable.cycle-anchors.destroy', [$template, $anchor]) }}" onsubmit="return confirm('Remove this cycle setting?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="text-xs font-semibold text-red-600 hover:text-red-800">Remove</button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+            @endif
+
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900">1. School-day structure</h3>
@@ -404,10 +476,26 @@
 
     <script>
         const cycleType = document.getElementById('cycle-type');
-        const cycleStart = document.getElementById('cycle-start-field');
-        const toggleCycleStart = () => cycleStart?.classList.toggle('hidden', cycleType?.value !== 'rotating');
+        const cycleStart = document.getElementById('cycle-start-fields');
+        const cycleLength = document.getElementById('cycle-length');
+        const cycleStartDay = document.getElementById('cycle-start-day');
+        const toggleCycleStart = () => {
+            const rotating = cycleType?.value === 'rotating';
+            cycleStart?.classList.toggle('hidden', !rotating);
+            cycleStart?.classList.toggle('grid', rotating);
+        };
+        const updateCycleDayMaximum = () => {
+            if (cycleStartDay && cycleLength) {
+                cycleStartDay.max = cycleLength.value;
+                if (Number(cycleStartDay.value) > Number(cycleLength.value)) {
+                    cycleStartDay.value = cycleLength.value;
+                }
+            }
+        };
         cycleType?.addEventListener('change', toggleCycleStart);
+        cycleLength?.addEventListener('input', updateCycleDayMaximum);
         toggleCycleStart();
+        updateCycleDayMaximum();
 
         const entryDay = document.getElementById('entry-day');
         const filterPeriods = () => {
