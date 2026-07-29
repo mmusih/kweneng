@@ -1,26 +1,32 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\StudentController;
-use App\Http\Controllers\Admin\ClassController;
-use App\Http\Controllers\Admin\TeacherController;
-use App\Http\Controllers\Admin\ParentController;
-use App\Http\Controllers\Admin\AlumniController;
 use App\Http\Controllers\Admin\AcademicYearController;
-use App\Http\Controllers\Admin\TermController;
-use App\Http\Controllers\Admin\PromotionController;
-use App\Http\Controllers\Admin\SubjectController;
-use App\Http\Controllers\Admin\MarksController;
-use App\Http\Controllers\Admin\LibrarianController;
-use App\Http\Controllers\Admin\ExamSummaryController;
 use App\Http\Controllers\Admin\AccountsOfficerController;
 use App\Http\Controllers\Admin\ActivityLogController;
-use App\Http\Controllers\Admin\ReportCardController;
-use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Admin\LoginSlipController;
-use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\AlumniController;
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\ClassController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\ExamSummaryController;
+use App\Http\Controllers\Admin\LibrarianController;
+use App\Http\Controllers\Admin\LoginSlipController;
+use App\Http\Controllers\Admin\MarksController;
+use App\Http\Controllers\Admin\MessageController;
+use App\Http\Controllers\Admin\ParentAbsenceNoticeController;
+use App\Http\Controllers\Admin\ParentController;
+use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\ReportCardController;
+use App\Http\Controllers\Admin\SchoolDocumentController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\SubjectController;
+use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Admin\TermController;
+use App\Http\Controllers\Admin\TimetableController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Hod\SchemeDashboardController as SchemeOversightController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
@@ -70,6 +76,29 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('librarians', LibrarianController::class)->except(['show']);
         Route::resource('accounts-officers', AccountsOfficerController::class)->except(['show']);
 
+        Route::resource('departments', DepartmentController::class)->except(['create', 'show', 'edit']);
+        Route::post('departments/{department}/assign', [DepartmentController::class, 'assign'])->name('departments.assign');
+        Route::delete('departments/{department}/assignments/{assignment}', [DepartmentController::class, 'removeAssignment'])->name('departments.assignments.destroy');
+
+        Route::get('schemes', [SchemeOversightController::class, 'index'])->name('schemes.index');
+        Route::get('schemes/{scheme}', [SchemeOversightController::class, 'show'])->name('schemes.show');
+        Route::patch('schemes/{scheme}/approve', [SchemeOversightController::class, 'approve'])->name('schemes.approve');
+        Route::patch('schemes/{scheme}/request-changes', [SchemeOversightController::class, 'requestChanges'])->name('schemes.request-changes');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Timetable
+        |--------------------------------------------------------------------------
+        */
+        Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index');
+        Route::post('timetable/templates', [TimetableController::class, 'storeTemplate'])->name('timetable.templates.store');
+        Route::post('timetable/templates/{template}/publish', [TimetableController::class, 'publish'])->name('timetable.templates.publish');
+        Route::post('timetable/templates/{template}/days/{day}/periods', [TimetableController::class, 'storePeriod'])->name('timetable.periods.store');
+        Route::post('timetable/rooms', [TimetableController::class, 'storeRoom'])->name('timetable.rooms.store');
+        Route::post('timetable/groups', [TimetableController::class, 'storeGroup'])->name('timetable.groups.store');
+        Route::post('timetable/templates/{template}/entries', [TimetableController::class, 'storeEntry'])->name('timetable.entries.store');
+        Route::delete('timetable/templates/{template}/entries/{entry}', [TimetableController::class, 'destroyEntry'])->name('timetable.entries.destroy');
+
         /*
         |--------------------------------------------------------------------------
         | Class Student Management
@@ -109,7 +138,6 @@ Route::middleware(['auth', 'role:admin'])
         | Subjects
         |--------------------------------------------------------------------------
         */
-        // Static subject routes BEFORE resource to avoid wildcard conflicts
         Route::get('subjects/manage/classes', [SubjectController::class, 'manageClassAssignments'])->name('subjects.manage-classes');
         Route::post('subjects/manage/classes/bulk-save', [SubjectController::class, 'bulkSaveClassAssignments'])->name('subjects.bulk-save-classes');
         Route::get('subjects/manage/teachers', [SubjectController::class, 'manageTeacherAssignments'])->name('subjects.manage-teachers');
@@ -143,7 +171,6 @@ Route::middleware(['auth', 'role:admin'])
         | Marks
         |--------------------------------------------------------------------------
         */
-        // Static marks routes BEFORE wildcard {id} routes
         Route::get('/marks/student-averages', [MarksController::class, 'getStudentAverages'])->name('marks.student-averages');
         Route::post('/marks/import-preview', [MarksController::class, 'importPreview'])->name('marks.import-preview');
         Route::post('/marks/import-apply', [MarksController::class, 'importApply'])->name('marks.import-apply');
@@ -166,11 +193,9 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('/student-subjects/import-preview', [MarksController::class, 'studentSubjectsImportPreview'])->name('student-subjects.import-preview');
         Route::post('/student-subjects/import-apply', [MarksController::class, 'studentSubjectsImportApply'])->name('student-subjects.import-apply');
 
-        // Bulk delete BEFORE single {id} delete
         Route::delete('/student-subjects/bulk-remove', [MarksController::class, 'studentSubjectsBulkDestroy'])->name('student-subjects.bulk-destroy');
         Route::delete('/student-subjects/{id}', [MarksController::class, 'studentSubjectsDestroy'])->name('student-subjects.destroy');
 
-        // Dynamic helper endpoints
         Route::get('/student-subjects/classes/{academicYearId}', [MarksController::class, 'getClassesByAcademicYear']);
         Route::get('/student-subjects/students/{classId}/{academicYearId}', [MarksController::class, 'getStudentsByClass'])->name('student-subjects.students');
         Route::get('/student-subjects/subjects/{classId}/{academicYearId}', [MarksController::class, 'getSubjectsByClass']);
@@ -190,6 +215,7 @@ Route::middleware(['auth', 'role:admin'])
         |--------------------------------------------------------------------------
         */
         Route::get('/exam-summaries', [ExamSummaryController::class, 'index'])->name('exam-summaries.index');
+        Route::get('/exam-summaries/preview', [ExamSummaryController::class, 'preview'])->name('exam-summaries.preview');
         Route::get('/exam-summaries/pdf', [ExamSummaryController::class, 'pdf'])->name('exam-summaries.pdf');
 
         /*
@@ -225,15 +251,12 @@ Route::middleware(['auth', 'role:admin'])
         | Events
         |--------------------------------------------------------------------------
         */
-        // !! Static routes MUST come BEFORE Route::resource() to avoid
-        // !! Laravel treating 'calendar' and 'get-events' as {event} wildcards.
         Route::get('events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
         Route::get('events/get-events', [EventController::class, 'getEvents'])->name('events.get-events');
         Route::delete('events/comments/{comment}', [EventController::class, 'deleteComment'])->name('events.delete-comment');
 
         Route::resource('events', EventController::class);
 
-        // Nested event route (has its own {event} param, safe after resource)
         Route::post('events/{event}/comments', [EventController::class, 'addComment'])->name('events.add-comment');
 
         /*
@@ -242,4 +265,54 @@ Route::middleware(['auth', 'role:admin'])
         |--------------------------------------------------------------------------
         */
         Route::resource('announcements', AnnouncementController::class);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Parent Messages (inbox)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
+        Route::get('messages/{message}', [MessageController::class, 'show'])->name('messages.show');
+        Route::post('messages/{message}/reply', [MessageController::class, 'reply'])->name('messages.reply');
+
+        /*
+        |--------------------------------------------------------------------------
+        | School Documents
+        |--------------------------------------------------------------------------
+        */
+        Route::get('documents', [SchoolDocumentController::class, 'index'])->name('documents.index');
+        Route::post('documents', [SchoolDocumentController::class, 'store'])->name('documents.store');
+        Route::patch('documents/{document}/toggle', [SchoolDocumentController::class, 'toggleActive'])->name('documents.toggle');
+        Route::delete('documents/{document}', [SchoolDocumentController::class, 'destroy'])->name('documents.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Announcements
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/announcements/{announcement}/tracking', [AnnouncementController::class, 'tracking'])
+            ->name('announcements.tracking');
+        Route::get('/announcements/{announcement}/tracking/export', [AnnouncementController::class, 'exportTrackingCsv'])
+            ->name('announcements.tracking.export');
+
+        Route::post('/announcements/{announcement}/tracking/reminder', [AnnouncementController::class, 'sendTrackingReminder'])
+            ->name('announcements.tracking.reminder');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Absense Notices
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/absence-notices', [ParentAbsenceNoticeController::class, 'index'])
+            ->name('absence-notices.index');
+
+        Route::get('/absence-notices/{absenceNotice}', [ParentAbsenceNoticeController::class, 'show'])
+            ->name('absence-notices.show');
+
+        Route::patch('/absence-notices/{absenceNotice}/seen', [ParentAbsenceNoticeController::class, 'markSeen'])
+            ->name('absence-notices.seen');
+
+        Route::patch('/absence-notices/{absenceNotice}/resolved', [ParentAbsenceNoticeController::class, 'markResolved'])
+            ->name('absence-notices.resolved');
     });

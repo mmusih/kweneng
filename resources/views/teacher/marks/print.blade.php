@@ -167,19 +167,27 @@
                     </td>
                     @foreach ($subjects as $subject)
                         @php
-                            $mark = $results[$student->id][$subject->id] ?? null;
+                            $allowedSubjects = $allowedSubjectIdsByStudent->get($student->id, collect());
+                            $isAssignedForSubject = $allowedSubjects->contains((int) $subject->id);
+                            $mark = $isAssignedForSubject ? ($results[$student->id][$subject->id] ?? null) : null;
                         @endphp
-                        <td class="score">
-                            {{ $mark?->midterm_score !== null ? number_format($mark->midterm_score, 1) : '—' }}
-                        </td>
-                        <td class="score">
-                            {{ $mark?->endterm_score !== null ? number_format($mark->endterm_score, 1) : '—' }}
-                        </td>
-                        <td class="grade">
-                            <span class="{{ $mark?->grade ? '' : 'no-mark' }}">
-                                {{ $mark?->grade ?? '—' }}
-                            </span>
-                        </td>
+                        @if (!$isAssignedForSubject)
+                            <td class="score no-mark">N/A</td>
+                            <td class="score no-mark">N/A</td>
+                            <td class="grade no-mark">N/A</td>
+                        @else
+                            <td class="score">
+                                {{ $mark?->midterm_score !== null ? number_format($mark->midterm_score, 1) : '—' }}
+                            </td>
+                            <td class="score">
+                                {{ $mark?->endterm_score !== null ? number_format($mark->endterm_score, 1) : '—' }}
+                            </td>
+                            <td class="grade">
+                                <span class="{{ $mark?->grade ? '' : 'no-mark' }}">
+                                    {{ $mark?->grade ?? '—' }}
+                                </span>
+                            </td>
+                        @endif
                     @endforeach
                 </tr>
             @endforeach

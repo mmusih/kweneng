@@ -31,7 +31,12 @@
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-between mt-4">
+            <a href="{{ route('password.request') }}"
+                class="text-sm text-indigo-600 hover:text-indigo-500 underline">
+                {{ __('Forgot your password?') }}
+            </a>
+
             <x-primary-button class="ms-3">
                 {{ __('Log in') }}
             </x-primary-button>

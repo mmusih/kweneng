@@ -1,20 +1,31 @@
 <x-app-layout>
+    @php
+        $summaryRoutePrefix = $summaryRoutePrefix ?? (request()->routeIs('office.*') ? 'office' : 'admin');
+        $hasSummary = !empty($summary);
+        $summaryQuery = [
+            'academic_year_id' => $selectedAcademicYearId,
+            'class_id' => $selectedClassId,
+            'term_id' => $selectedTermId,
+            'exam_type' => $selectedExamType,
+        ];
+    @endphp
+
     <x-slot name="header">
-        <div class="mt-16 p-4 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg shadow-lg">
-            <h2 class="text-2xl font-semibold text-white">
-                Exam Summary Sheets
-            </h2>
-            <p class="text-blue-100 text-sm mt-1">
-                Generate, preview, and download class summary sheets.
-            </p>
+        <div class="mt-16 p-6 bg-slate-800 rounded-2xl shadow-sm border border-slate-700">
+            <div>
+                <h2 class="text-2xl font-semibold text-white">Exam Summary Sheets</h2>
+                <p class="text-slate-400 text-sm mt-1">
+                    Generate, preview and download class summary sheets.
+                </p>
+            </div>
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8 bg-slate-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if ($errors->any())
-                <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+                <div class="bg-red-50 border border-red-200 text-red-800 rounded-xl p-4 shadow-sm">
                     <div class="font-semibold mb-2">Please correct the following:</div>
                     <ul class="list-disc pl-5 space-y-1">
                         @foreach ($errors->all() as $error)
@@ -24,9 +35,12 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm rounded-xl border border-slate-200">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div class="p-6 border-b border-slate-100">
+                    <h3 class="text-sm font-semibold uppercase tracking-widest text-slate-400">Filters</h3>
+                </div>
                 <div class="p-6">
-                    <form method="GET" action="{{ route('admin.exam-summaries.index') }}"
+                    <form method="GET" action="{{ route($summaryRoutePrefix . '.exam-summaries.index') }}"
                         class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                         <div>
@@ -38,7 +52,7 @@
                                 <option value="">Select academic year</option>
                                 @foreach ($academicYears as $academicYear)
                                     <option value="{{ $academicYear->id }}"
-                                        {{ (string) $selectedAcademicYearId === (string) $academicYear->id ? 'selected' : '' }}>
+                                        @selected((string) $selectedAcademicYearId === (string) $academicYear->id)>
                                         {{ $academicYear->year_name }}
                                     </option>
                                 @endforeach
@@ -54,7 +68,7 @@
                                 <option value="">Select class</option>
                                 @foreach ($classes as $class)
                                     <option value="{{ $class->id }}"
-                                        {{ (string) $selectedClassId === (string) $class->id ? 'selected' : '' }}>
+                                        @selected((string) $selectedClassId === (string) $class->id)>
                                         {{ $class->name }}
                                     </option>
                                 @endforeach
@@ -69,8 +83,7 @@
                                 class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Select term</option>
                                 @foreach ($terms as $term)
-                                    <option value="{{ $term->id }}"
-                                        {{ (string) $selectedTermId === (string) $term->id ? 'selected' : '' }}>
+                                    <option value="{{ $term->id }}" @selected((string) $selectedTermId === (string) $term->id)>
                                         {{ $term->name }}
                                     </option>
                                 @endforeach
@@ -83,10 +96,8 @@
                             </label>
                             <select name="exam_type" id="exam_type"
                                 class="w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="midterm" {{ $selectedExamType === 'midterm' ? 'selected' : '' }}>Midterm
-                                </option>
-                                <option value="endterm" {{ $selectedExamType === 'endterm' ? 'selected' : '' }}>Endterm
-                                </option>
+                                <option value="midterm" @selected($selectedExamType === 'midterm')>Midterm</option>
+                                <option value="endterm" @selected($selectedExamType === 'endterm')>Endterm</option>
                             </select>
                         </div>
 
@@ -96,24 +107,14 @@
                                 Load Summary
                             </button>
 
-                            @if ($summary)
-                                <a href="{{ route('admin.exam-summaries.preview', [
-                                    'academic_year_id' => $selectedAcademicYearId,
-                                    'class_id' => $selectedClassId,
-                                    'term_id' => $selectedTermId,
-                                    'exam_type' => $selectedExamType,
-                                ]) }}"
+                            @if ($hasSummary)
+                                <a href="{{ route($summaryRoutePrefix . '.exam-summaries.preview', $summaryQuery) }}"
                                     target="_blank"
                                     class="inline-flex items-center px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg shadow-sm">
                                     Open Preview
                                 </a>
 
-                                <a href="{{ route('admin.exam-summaries.pdf', [
-                                    'academic_year_id' => $selectedAcademicYearId,
-                                    'class_id' => $selectedClassId,
-                                    'term_id' => $selectedTermId,
-                                    'exam_type' => $selectedExamType,
-                                ]) }}"
+                                <a href="{{ route($summaryRoutePrefix . '.exam-summaries.pdf', $summaryQuery) }}"
                                     class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">
                                     Download PDF
                                 </a>
@@ -123,10 +124,9 @@
                 </div>
             </div>
 
-            @if ($summary)
-                <div class="bg-white shadow-sm rounded-xl border border-slate-200">
-                    <div
-                        class="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            @if ($hasSummary)
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <div class="p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                         <div>
                             <h3 class="text-lg font-semibold text-slate-900">
                                 {{ $summary['class']->name }} - {{ ucfirst($summary['exam_type']) }} Summary
@@ -161,56 +161,48 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($summary['rows'] as $i => $row)
+                                    @forelse ($summary['rows'] as $i => $row)
                                         @php
-                                            $parts = preg_split('/\s+/', trim($row['student_name']), 2);
+                                            $parts = preg_split('/\s+/', trim($row['student_name'] ?? ''), 2);
                                             $surname = $parts[0] ?? '';
                                             $name = $parts[1] ?? '';
+                                            $rowAverage = $row['average'] !== null ? (int) ceil($row['average']) : '';
+                                            $rowTotal = $row['total'] !== null ? (int) ceil($row['total']) : '';
                                         @endphp
-                                        <tr class="{{ $i % 2 ? 'bg-slate-100' : 'bg-white' }}">
-                                            <td class="px-2 py-2 border border-slate-200 text-center">
-                                                {{ $i + 1 }}</td>
-                                            <td class="px-2 py-2 border border-slate-200 text-left whitespace-nowrap">
-                                                {{ $surname }}</td>
-                                            <td class="px-2 py-2 border border-slate-200 text-left whitespace-nowrap">
-                                                {{ $name }}</td>
-                                            <td class="px-2 py-2 border border-slate-200 text-center">
-                                                {{ $summary['class']->name }}</td>
+                                        <tr class="{{ $i % 2 ? 'bg-slate-50' : 'bg-white' }}">
+                                            <td class="px-2 py-2 border border-slate-200 text-center">{{ $i + 1 }}</td>
+                                            <td class="px-2 py-2 border border-slate-200 text-left whitespace-nowrap">{{ $surname }}</td>
+                                            <td class="px-2 py-2 border border-slate-200 text-left whitespace-nowrap">{{ $name }}</td>
+                                            <td class="px-2 py-2 border border-slate-200 text-center">{{ $summary['class']->name }}</td>
 
                                             @foreach ($summary['subjects'] as $subject)
-                                                <td
-                                                    class="px-2 py-2 border border-slate-200 text-center whitespace-nowrap">
+                                                <td class="px-2 py-2 border border-slate-200 text-center whitespace-nowrap">
                                                     {{ $row['scores'][$subject['id']]['display'] ?? '' }}
                                                 </td>
                                             @endforeach
 
-                                            <td class="px-2 py-2 border border-slate-200 text-center">
-                                                {{ $row['average'] !== null ? (int) ceil($row['average']) : '' }}
-                                            </td>
-                                            <td class="px-2 py-2 border border-slate-200 text-center">
-                                                {{ $row['total'] !== null ? (int) ceil($row['total']) : '' }}
-                                            </td>
-                                            <td class="px-2 py-2 border border-slate-200 text-center">
-                                                {{ $row['position'] ?? '' }}
+                                            <td class="px-2 py-2 border border-slate-200 text-center">{{ $rowAverage }}</td>
+                                            <td class="px-2 py-2 border border-slate-200 text-center">{{ $rowTotal }}</td>
+                                            <td class="px-2 py-2 border border-slate-200 text-center">{{ $row['position'] ?? '' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="{{ 7 + count($summary['subjects']) }}" class="px-2 py-8 border border-slate-200 text-center text-slate-500">
+                                                No marks found for the selected class, term and exam type.
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @endforelse
 
                                     <tr class="bg-amber-50 font-semibold">
-                                        <td colspan="4" class="px-2 py-2 border border-slate-200 text-center">Average
-                                        </td>
+                                        <td colspan="4" class="px-2 py-2 border border-slate-200 text-center">Average</td>
 
                                         @foreach ($summary['subjects'] as $subject)
                                             @php
-                                                $avg = collect($summary['subject_averages'])->firstWhere(
-                                                    'subject_id',
-                                                    $subject['id'],
-                                                );
+                                                $avg = collect($summary['subject_averages'] ?? [])->firstWhere('subject_id', $subject['id']);
+                                                $avgDisplay = !empty($avg['average']) ? ((int) ceil($avg['average'])) . ($avg['grade'] ?? '') : '';
                                             @endphp
                                             <td class="px-2 py-2 border border-slate-200 text-center whitespace-nowrap">
-                                                @if (!empty($avg['average']))
-                                                    {{ (int) ceil($avg['average']) }}{{ $avg['grade'] ?? '' }}
-                                                @endif
+                                                {{ $avgDisplay }}
                                             </td>
                                         @endforeach
 
@@ -233,7 +225,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm rounded-xl border border-slate-200">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
                     <div class="p-4 border-b border-slate-200">
                         <h3 class="text-lg font-semibold text-slate-900">PDF Preview</h3>
                         <p class="text-sm text-slate-600">
@@ -241,18 +233,17 @@
                         </p>
                     </div>
                     <div class="p-4">
-                        <iframe
-                            src="{{ route('admin.exam-summaries.preview', [
-                                'academic_year_id' => $selectedAcademicYearId,
-                                'class_id' => $selectedClassId,
-                                'term_id' => $selectedTermId,
-                                'exam_type' => $selectedExamType,
-                            ]) }}"
+                        <iframe src="{{ route($summaryRoutePrefix . '.exam-summaries.preview', $summaryQuery) }}"
                             class="w-full rounded-lg border border-slate-300" style="height: 900px;"></iframe>
                     </div>
                 </div>
+            @else
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <p class="text-sm text-slate-600">
+                        Select an academic year, class, term and exam type to load a summary sheet.
+                    </p>
+                </div>
             @endif
-
         </div>
     </div>
 </x-app-layout>

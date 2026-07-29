@@ -11,10 +11,22 @@
                     </p>
                 </div>
 
-                <a href="{{ route('librarian.books.index') }}"
-                    class="inline-flex items-center px-4 py-2 bg-white text-emerald-700 font-semibold rounded-md shadow-sm hover:bg-emerald-50">
-                    Back to Catalog
-                </a>
+                <div class="flex flex-wrap gap-2">
+                    <form method="POST" action="{{ route('librarian.books.destroy', $book) }}"
+                        onsubmit="return confirm('Delete this book and all of its copies? This cannot be undone.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="inline-flex items-center px-4 py-2 bg-rose-600 text-white font-semibold rounded-md shadow-sm hover:bg-rose-700">
+                            Delete Book
+                        </button>
+                    </form>
+
+                    <a href="{{ route('librarian.books.index') }}"
+                        class="inline-flex items-center px-4 py-2 bg-white text-emerald-700 font-semibold rounded-md shadow-sm hover:bg-emerald-50">
+                        Back to Catalog
+                    </a>
+                </div>
             </div>
         </div>
     </x-slot>
@@ -242,3 +254,4 @@
         </div>
     </div>
 </x-app-layout>
+

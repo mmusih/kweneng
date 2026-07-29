@@ -46,6 +46,13 @@
                         </div>
                     @endif
 
+                    @if ($activeAcademicYear && $activeTerm)
+                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                            <div class="font-semibold">Current marks context</div>
+                            <div class="text-sm mt-1">{{ $activeAcademicYear->year_name }} · {{ $activeTerm->name }} is selected by default.</div>
+                        </div>
+                    @endif
+
                     <!-- CSV Import -->
                     <div class="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
                         <div class="mb-4">
@@ -68,7 +75,7 @@
                                     <option value="">Select Academic Year</option>
                                     @foreach ($academicYears as $year)
                                         <option value="{{ $year->id }}"
-                                            {{ request('academic_year_id') == $year->id ? 'selected' : '' }}>
+                                            {{ (int) old('academic_year_id', $selectedAcademicYearId) === (int) $year->id ? 'selected' : '' }}>
                                             {{ $year->year_name }}
                                         </option>
                                     @endforeach
@@ -81,16 +88,16 @@
                                     class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                     required>
                                     <option value="">Select Term</option>
-                                    @if (request('academic_year_id'))
+                                    @if ($selectedAcademicYearId)
                                         @php
                                             $importTerms = \App\Models\Term::where(
                                                 'academic_year_id',
-                                                request('academic_year_id'),
+                                                $selectedAcademicYearId,
                                             )->get();
                                         @endphp
                                         @foreach ($importTerms as $term)
                                             <option value="{{ $term->id }}"
-                                                {{ request('term_id') == $term->id ? 'selected' : '' }}>
+                                                {{ (int) old('term_id', $selectedTermId) === (int) $term->id ? 'selected' : '' }}>
                                                 {{ $term->name }}
                                             </option>
                                         @endforeach
@@ -311,7 +318,7 @@
                                     <option value="">All Academic Years</option>
                                     @foreach ($academicYears as $year)
                                         <option value="{{ $year->id }}"
-                                            {{ request('academic_year_id') == $year->id ? 'selected' : '' }}>
+                                            {{ (int) $selectedAcademicYearId === (int) $year->id ? 'selected' : '' }}>
                                             {{ $year->year_name }}
                                         </option>
                                     @endforeach
@@ -323,16 +330,16 @@
                                 <select id="term_id" name="term_id"
                                     class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                                     <option value="">All Terms</option>
-                                    @if (request('academic_year_id'))
+                                    @if ($selectedAcademicYearId)
                                         @php
                                             $terms = \App\Models\Term::where(
                                                 'academic_year_id',
-                                                request('academic_year_id'),
+                                                $selectedAcademicYearId,
                                             )->get();
                                         @endphp
                                         @foreach ($terms as $term)
                                             <option value="{{ $term->id }}"
-                                                {{ request('term_id') == $term->id ? 'selected' : '' }}>
+                                                {{ (int) $selectedTermId === (int) $term->id ? 'selected' : '' }}>
                                                 {{ $term->name }}
                                             </option>
                                         @endforeach

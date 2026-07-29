@@ -50,16 +50,48 @@ class LoginSlipController extends Controller
      */
     public function bulk(Request $request): View
     {
-        $request->validate([
-            'student_ids'   => ['required', 'array', 'min:1'],
-            'student_ids.*' => ['integer', 'exists:students,id'],
+        $validated = $request->validate([
+            'selection_scope' => ['nullable', 'in:selected,filtered'],
+            'student_ids'     => ['required_if:selection_scope,selected', 'array'],
+            'student_ids.*'   => ['integer', 'exists:students,id'],
+            'search'          => ['nullable', 'string', 'max:255'],
+            'class_id'        => ['nullable', 'integer', 'exists:classes,id'],
         ]);
 
-        $slips = Student::with('user')
-            ->whereIn('id', $request->student_ids)
-            ->get()
-            ->map(fn (Student $s) => GenerateLoginSlip::for($s));
+        $scope = $validated['selection_scope'] ?? 'selected';
 
-        return view('admin.students.login-slips-bulk', compact('slips'));
+        $studentsQuery = Student::with(['user', 'currentClass']);
+
+        if ($scope === 'filtered') {
+            $search = trim((string) ($validated['search'] ?? ''));
+
+            if ($search !== '') {
+                $studentsQuery->where(function ($q) use ($search) {
+                    $q->where('admission_no', 'like', "%{$search}%")
+                        ->orWhere('identity_document_number', 'like', "%{$search}%")
+                        ->orWhere('nationality', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            if (! empty($validated['class_id'])) {
+                $studentsQuery->where('current_class_id', $validated['class_id']);
+            }
+        } else {
+            $studentsQuery->whereIn('id', $validated['student_ids'] ?? []);
+        }
+
+        $slips = $studentsQuery
+            ->orderBy('current_class_id')
+            ->orderBy('admission_no')
+            ->get()
+            ->map(fn(Student $s) => GenerateLoginSlip::for($s));
+
+        return view('admin.students.print-logins', [
+            'logins' => $slips,
+        ]);
     }
 }

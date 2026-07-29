@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-4 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg flex items-center justify-between">
+            class="mt-16 p-4 kw-page-header rounded-2xl shadow-sm flex items-center justify-between">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 User Management
             </h2>
@@ -15,7 +15,7 @@
 
     <div id="navbar-spacer"></div>
 
-    <div class="py-8">
+    <div class="py-8 kw-soft-section min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if (session('success'))
@@ -24,7 +24,7 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm rounded-lg p-6">
+            <div class="bg-white kw-panel p-6">
                 <form method="GET" action="{{ route('admin.users.index') }}">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
@@ -75,7 +75,7 @@
                 </form>
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div class="bg-white kw-panel overflow-hidden">
                 <div class="p-6 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">Users</h3>
                 </div>
@@ -111,6 +111,9 @@
                                                 'teacher' => 'bg-blue-100 text-blue-800',
                                                 'librarian' => 'bg-emerald-100 text-emerald-800',
                                                 'accounts_officer' => 'bg-amber-100 text-amber-800',
+                                                'office' => 'bg-sky-100 text-sky-800',
+                                                'register_officer' => 'bg-orange-100 text-orange-800',
+                                                'inventory' => 'bg-lime-100 text-lime-800',
                                                 default => 'bg-gray-100 text-gray-800',
                                             };
                                         @endphp

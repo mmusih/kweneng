@@ -41,10 +41,10 @@
 
         {{-- Address --}}
         <div>
-            <x-input-label for="address" :value="__('Home Address')" />
+            <x-input-label for="address" :value="__('Home Address (Optional)')" />
             <textarea id="address" name="address" rows="3"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                required>{{ old('address') }}</textarea>
+                >{{ old('address') }}</textarea>
             <x-input-error :messages="$errors->get('address')" class="mt-2" />
         </div>
 
@@ -69,11 +69,11 @@
             <x-text-input id="invite_code" name="invite_code" type="text"
                 class="mt-1 block w-full tracking-widest uppercase font-mono"
                 :value="old('invite_code')"
-                maxlength="10"
+                maxlength="14"
                 placeholder="e.g. K3X7PM2WQN"
                 required />
             <p class="mt-1 text-xs text-gray-500">
-                This 10-character code is printed on your child's school login slip. It is valid for 48 hours.
+                This 10-character code is printed on your child's school login slip. It is valid for 7 days.
             </p>
             <x-input-error :messages="$errors->get('invite_code')" class="mt-2" />
         </div>
@@ -103,4 +103,11 @@
             </x-primary-button>
         </div>
     </form>
+
+    <script>
+        document.getElementById('invite_code')?.addEventListener('input', function () {
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10);
+        });
+    </script>
+
 </x-guest-layout>

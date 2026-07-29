@@ -622,6 +622,18 @@
                 </div>
             </div>
 
+            <a href="{{ route('student.timetable') }}"
+                class="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 transition hover:border-sky-400">
+                <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-sky-700">Timetable</div>
+                    <div class="mt-1 font-semibold text-sky-950">See today’s lessons and your full week</div>
+                </div>
+                <svg class="h-6 w-6 text-sky-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5m-15 12h13.5A1.5 1.5 0 0020.25 19.5V6.75a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5V19.5a1.5 1.5 0 001.5 1.5z" />
+                </svg>
+            </a>
+
             {{-- ───── PERFORMANCE ───── --}}
             <div class="sd-section">
                 <div class="sd-section-title">

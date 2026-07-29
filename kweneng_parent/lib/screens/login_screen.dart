@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/flutter_providers.dart';
+
 import '../core/theme.dart';
+import '../providers/flutter_providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+
   bool _obscure = true;
 
   @override
@@ -25,11 +27,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
     if (!_formKey.currentState!.validate()) return;
+
     final ok = await ref
         .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passCtrl.text);
-    if (ok && mounted) context.go('/dashboard');
+        .login(_emailCtrl.text.trim(), _passCtrl.text.trim());
+
+    if (!mounted || !ok) return;
+
+    final auth = ref.read(authProvider);
+    context.go(auth.mustChangePassword ? '/change-password' : '/dashboard');
   }
 
   @override
@@ -38,20 +47,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.primary,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── Header with logo ──────────────────────────────
-            Expanded(
-              flex: 2,
-              child: Center(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Image.asset(
                       'assets/images/logo.png',
-                      width: 110,
-                      height: 110,
+                      width: 100,
+                      height: 100,
                     ),
                     const SizedBox(height: 14),
                     const Text(
@@ -67,29 +76,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       'Secondary School',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.75),
+                        color: Colors.white.withValues(alpha: 0.75),
                         fontSize: 14,
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            // ── Form card ─────────────────────────────────────
-            Expanded(
-              flex: 3,
-              child: Container(
+              Container(
                 width: double.infinity,
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height * 0.62,
+                ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'Parent Sign In',
@@ -108,11 +115,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // Error banner
-                      if (auth.error != null)
+                      if (auth.error != null) ...[
                         Container(
-                          margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF2F2),
@@ -139,27 +143,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ],
                           ),
                         ),
-
-                      // Email
+                        const SizedBox(height: 16),
+                      ],
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.email],
                         decoration: const InputDecoration(
                           labelText: 'Email address',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Please enter your email'
-                            : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 14),
-
-                      // Password
                       TextFormField(
                         controller: _passCtrl,
                         obscureText: _obscure,
                         textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
                         onFieldSubmitted: (_) => _submit(),
                         decoration: InputDecoration(
                           labelText: 'Password',
@@ -174,13 +181,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 setState(() => _obscure = !_obscure),
                           ),
                         ),
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'Please enter your password'
-                            : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          return null;
+                        },
                       ),
-                      const SizedBox(height: 24),
-
-                      // Submit button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: auth.isLoading
+                              ? null
+                              : () => context.push('/forgot-password'),
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       ElevatedButton(
                         onPressed: auth.isLoading ? null : _submit,
                         child: auth.isLoading
@@ -194,24 +211,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               )
                             : const Text('Sign In'),
                       ),
-
-                      const Spacer(),
-                      Center(
-                        child: Text(
-                          'Contact school admin if you have trouble logging in.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade400,
-                          ),
-                          textAlign: TextAlign.center,
+                      const SizedBox(height: 18),
+                      TextButton(
+                        onPressed: auth.isLoading
+                            ? null
+                            : () => context.push('/parent-register'),
+                        child: const Text('Have a parent code? Register here'),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Contact school admin if you have trouble logging in.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade400,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -24,6 +24,18 @@ class AcademicYear extends Model
         'active' => 'boolean',
     ];
 
+
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
+
+    public static function current(): ?self
+    {
+        return static::active()->where('status', self::STATUS_OPEN)->first()
+            ?: static::active()->first();
+    }
+
     public function classes()
     {
         return $this->hasMany(ClassModel::class);

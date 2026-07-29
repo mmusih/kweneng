@@ -16,13 +16,7 @@ class UserManagementController extends Controller
 {
     public function index(Request $request)
     {
-        $allowedRoles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $allowedRoles = UserRoles::manageableStaff();
 
         $query = User::query()
             ->whereIn('role', $allowedRoles)
@@ -55,26 +49,14 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        $roles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $roles = UserRoles::manageableStaff();
 
         return view('admin.users.create', compact('roles'));
     }
 
     public function store(Request $request)
     {
-        $allowedRoles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $allowedRoles = UserRoles::manageableStaff();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -107,13 +89,7 @@ class UserManagementController extends Controller
     {
         $this->ensureManageableUser($user);
 
-        $roles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $roles = UserRoles::manageableStaff();
 
         return view('admin.users.edit', compact('user', 'roles'));
     }
@@ -122,13 +98,7 @@ class UserManagementController extends Controller
     {
         $this->ensureManageableUser($user);
 
-        $allowedRoles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $allowedRoles = UserRoles::manageableStaff();
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -208,13 +178,7 @@ class UserManagementController extends Controller
 
     protected function ensureManageableUser(User $user): void
     {
-        $allowedRoles = [
-            UserRoles::ADMIN,
-            UserRoles::TEACHER,
-            UserRoles::HEADMASTER,
-            UserRoles::LIBRARIAN,
-            UserRoles::ACCOUNTS_OFFICER,
-        ];
+        $allowedRoles = UserRoles::manageableStaff();
 
         abort_unless(in_array($user->role, $allowedRoles, true), 404);
     }

@@ -3,185 +3,155 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
+use App\Models\ClassModel;
 use App\Models\Event;
 use App\Models\EventComment;
-use App\Models\ClassModel;
-use App\Models\AcademicYear;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class EventController extends Controller
 {
-    /**
-     * Display a listing of the events.
-     */
     public function index()
     {
         $events = Event::with(['classModel', 'academicYear', 'creator', 'comments'])
             ->orderBy('start_datetime', 'desc')
             ->paginate(20);
 
-        return view('admin.events.index', compact('events'));
+        return view('admin.events.index', [
+            'events' => $events,
+            'eventRoutePrefix' => $this->routePrefix(),
+        ]);
     }
 
-    /**
-     * Show the form for creating a new event.
-     */
     public function create()
     {
-        $classes = ClassModel::all();
+        $classes = ClassModel::with('academicYear')
+            ->orderBy('level')
+            ->orderBy('name')
+            ->get();
+
         $academicYears = AcademicYear::where('status', '!=', 'closed')
             ->orderBy('year_name', 'desc')
             ->get();
 
-        return view('admin.events.create', compact('classes', 'academicYears'));
+        return view('admin.events.create', [
+            'classes' => $classes,
+            'academicYears' => $academicYears,
+            'eventRoutePrefix' => $this->routePrefix(),
+        ]);
     }
 
-    /**
-     * Store a newly created event in storage.
-     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title'              => 'required|string|max:255',
-            'description'        => 'nullable|string',
-            'start_datetime'     => 'required|date',
-            'end_datetime'       => 'nullable|date|after_or_equal:start_datetime',
-            'type'               => 'required|in:holiday,exam,meeting,activity,ceremony,other',
-            'visibility'         => 'required|in:all,parents,teachers,students,specific_class',
-            'class_id'           => 'nullable|exists:classes,id',
-            'academic_year_id'   => 'nullable|exists:academic_years,id',
-            'is_all_day'         => 'nullable|boolean',
-            'is_recurring'       => 'nullable|boolean',
-            'recurrence_pattern' => 'nullable|string|max:50',
-        ]);
+        $validated = $this->validateEvent($request);
 
-        // Checkboxes are absent from the request when unchecked — force a proper boolean
-        $validated['is_all_day']   = $request->boolean('is_all_day');
+        $validated['is_all_day'] = $request->boolean('is_all_day');
         $validated['is_recurring'] = $request->boolean('is_recurring');
-
-        $validated['created_by']      = Auth::id();
+        $validated['created_by'] = Auth::id();
         $validated['created_by_role'] = Auth::user()->role;
 
-        // Handle visibility logic
-        if ($validated['visibility'] === 'specific_class' && empty($validated['class_id'])) {
-            return back()
-                ->withErrors(['class_id' => 'Class is required when visibility is set to specific class.'])
-                ->withInput();
-        }
+        $validated = $this->normaliseEventData($validated);
 
         Event::create($validated);
 
-        return redirect()->route('admin.events.index')
-            ->with('success', 'Event created successfully.');
+        return redirect()->route($this->routePrefix() . '.events.index')
+            ->with('success', $validated['type'] === Event::TYPE_HOLIDAY
+                ? 'Holiday saved successfully. Attendance registers will show this date as a holiday.'
+                : 'Event created successfully.');
     }
 
-    /**
-     * Display the specified event.
-     */
     public function show(Event $event)
     {
         $event->load(['classModel', 'academicYear', 'creator', 'comments.user']);
-        return view('admin.events.show', compact('event'));
+
+        return view('admin.events.show', [
+            'event' => $event,
+            'eventRoutePrefix' => $this->routePrefix(),
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified event.
-     */
     public function edit(Event $event)
     {
-        $classes = ClassModel::all();
+        $classes = ClassModel::with('academicYear')
+            ->orderBy('level')
+            ->orderBy('name')
+            ->get();
+
         $academicYears = AcademicYear::where('status', '!=', 'closed')
             ->orderBy('year_name', 'desc')
             ->get();
 
-        return view('admin.events.edit', compact('event', 'classes', 'academicYears'));
+        return view('admin.events.edit', [
+            'event' => $event,
+            'classes' => $classes,
+            'academicYears' => $academicYears,
+            'eventRoutePrefix' => $this->routePrefix(),
+        ]);
     }
 
-    /**
-     * Update the specified event in storage.
-     */
     public function update(Request $request, Event $event)
     {
-        $validated = $request->validate([
-            'title'              => 'required|string|max:255',
-            'description'        => 'nullable|string',
-            'start_datetime'     => 'required|date',
-            'end_datetime'       => 'nullable|date|after_or_equal:start_datetime',
-            'type'               => 'required|in:holiday,exam,meeting,activity,ceremony,other',
-            'visibility'         => 'required|in:all,parents,teachers,students,specific_class',
-            'class_id'           => 'nullable|exists:classes,id',
-            'academic_year_id'   => 'nullable|exists:academic_years,id',
-            'is_all_day'         => 'nullable|boolean',
-            'is_recurring'       => 'nullable|boolean',
-            'recurrence_pattern' => 'nullable|string|max:50',
-        ]);
+        $validated = $this->validateEvent($request);
 
-        // Checkboxes are absent from the request when unchecked — force a proper boolean
-        $validated['is_all_day']   = $request->boolean('is_all_day');
+        $validated['is_all_day'] = $request->boolean('is_all_day');
         $validated['is_recurring'] = $request->boolean('is_recurring');
-
-        // Handle visibility logic
-        if ($validated['visibility'] === 'specific_class' && empty($validated['class_id'])) {
-            return back()
-                ->withErrors(['class_id' => 'Class is required when visibility is set to specific class.'])
-                ->withInput();
-        }
+        $validated = $this->normaliseEventData($validated);
 
         $event->update($validated);
 
-        return redirect()->route('admin.events.index')
-            ->with('success', 'Event updated successfully.');
+        return redirect()->route($this->routePrefix() . '.events.index')
+            ->with('success', $validated['type'] === Event::TYPE_HOLIDAY
+                ? 'Holiday updated successfully. Attendance registers will reflect the calendar change.'
+                : 'Event updated successfully.');
     }
 
-    /**
-     * Remove the specified event from storage.
-     */
     public function destroy(Event $event)
     {
         $event->delete();
 
-        return redirect()->route('admin.events.index')
+        return redirect()->route($this->routePrefix() . '.events.index')
             ->with('success', 'Event deleted successfully.');
     }
 
-    /**
-     * Calendar view of events.
-     */
     public function calendar()
     {
         $academicYears = AcademicYear::where('status', '!=', 'closed')
             ->orderBy('year_name', 'desc')
             ->get();
 
-        return view('admin.events.calendar', compact('academicYears'));
+        return view('admin.events.calendar', [
+            'academicYears' => $academicYears,
+            'eventRoutePrefix' => $this->routePrefix(),
+        ]);
     }
 
-    /**
-     * Get events for a specific date range (for AJAX/FullCalendar calls).
-     */
     public function getEvents(Request $request)
     {
         $start = $request->get('start');
-        $end   = $request->get('end');
+        $end = $request->get('end');
 
         $events = Event::with(['classModel'])
             ->whereBetween('start_datetime', [$start, $end])
             ->orderBy('start_datetime')
             ->get();
 
-        $formattedEvents = $events->map(function ($event) {
+        $formattedEvents = $events->map(function (Event $event) {
             return [
-                'id'            => $event->id,
-                'title'         => $event->title,
-                'start'         => $event->start_datetime->toIso8601String(),
-                'end'           => $event->end_datetime?->toIso8601String(),
-                'allDay'        => $event->is_all_day,
-                'className'     => 'event-' . $event->type,
+                'id' => $event->id,
+                'title' => $event->type === Event::TYPE_HOLIDAY ? 'Holiday: ' . $event->title : $event->title,
+                'start' => $event->start_datetime->toIso8601String(),
+                'end' => $event->end_datetime?->toIso8601String(),
+                'allDay' => $event->is_all_day,
+                'className' => 'event-' . $event->type,
+                'backgroundColor' => $event->type === Event::TYPE_HOLIDAY ? '#f59e0b' : null,
+                'borderColor' => $event->type === Event::TYPE_HOLIDAY ? '#d97706' : null,
                 'extendedProps' => [
-                    'type'        => $event->type,
+                    'type' => $event->type,
                     'description' => $event->description,
-                    'visibility'  => $event->visibility,
+                    'visibility' => $event->visibility,
+                    'attendance_affects' => $event->type === Event::TYPE_HOLIDAY,
                 ],
             ];
         });
@@ -189,9 +159,6 @@ class EventController extends Controller
         return response()->json($formattedEvents);
     }
 
-    /**
-     * Add a comment to an event.
-     */
     public function addComment(Request $request, Event $event)
     {
         $validated = $request->validate([
@@ -199,26 +166,71 @@ class EventController extends Controller
         ]);
 
         EventComment::create([
-            'event_id'         => $event->id,
-            'user_id'          => Auth::id(),
-            'comment'          => $validated['comment'],
+            'event_id' => $event->id,
+            'user_id' => Auth::id(),
+            'comment' => $validated['comment'],
             'is_admin_comment' => true,
         ]);
 
         return back()->with('success', 'Comment added successfully.');
     }
 
-    /**
-     * Delete a comment.
-     */
     public function deleteComment(EventComment $comment)
     {
-        if (Auth::user()->role !== 'admin' && $comment->user_id !== Auth::id()) {
+        if (! in_array(Auth::user()->role, ['admin', 'headmaster', 'office', 'register_officer'], true) && $comment->user_id !== Auth::id()) {
             abort(403);
         }
 
         $comment->delete();
 
         return back()->with('success', 'Comment deleted successfully.');
+    }
+
+    private function validateEvent(Request $request): array
+    {
+        return $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'start_datetime' => ['required', 'date'],
+            'end_datetime' => ['nullable', 'date', 'after_or_equal:start_datetime'],
+            'type' => ['required', 'in:holiday,exam,meeting,activity,ceremony,other'],
+            'visibility' => ['required', 'in:all,parents,teachers,students,specific_class'],
+            'class_id' => ['nullable', 'exists:classes,id'],
+            'academic_year_id' => ['nullable', 'exists:academic_years,id'],
+            'is_all_day' => ['nullable', 'boolean'],
+            'is_recurring' => ['nullable', 'boolean'],
+            'recurrence_pattern' => ['nullable', 'string', 'max:50'],
+        ]);
+    }
+
+    private function normaliseEventData(array $validated): array
+    {
+        if ($validated['visibility'] === 'specific_class' && empty($validated['class_id'])) {
+            throw ValidationException::withMessages([
+                'class_id' => 'Class is required when visibility is set to specific class.',
+            ]);
+        }
+
+        if ($validated['visibility'] !== 'specific_class') {
+            $validated['class_id'] = null;
+        }
+
+        if ($validated['type'] === Event::TYPE_HOLIDAY) {
+            $validated['is_all_day'] = true;
+            $validated['is_recurring'] = false;
+            $validated['recurrence_pattern'] = null;
+        }
+
+        return $validated;
+    }
+
+    private function routePrefix(): string
+    {
+        return match (true) {
+            request()->routeIs('headmaster.*') => 'headmaster',
+            request()->routeIs('office.*') => 'office',
+            request()->routeIs('register-officer.*') => 'register-officer',
+            default => 'admin',
+        };
     }
 }

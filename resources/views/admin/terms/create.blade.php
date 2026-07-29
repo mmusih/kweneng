@@ -12,6 +12,15 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+                    @if ($activeAcademicYear || $activeTerm)
+                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                            <div class="font-semibold">Current setup</div>
+                            <div class="text-sm mt-1">
+                                Active year: {{ $activeAcademicYear?->year_name ?? 'None' }} · Active term: {{ $activeTerm?->name ?? 'None' }}
+                            </div>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('admin.terms.store') }}">
                         @csrf
 
@@ -24,8 +33,8 @@
                                     <option value="">Select Academic Year</option>
                                     @foreach ($academicYears as $year)
                                         <option value="{{ $year->id }}"
-                                            {{ old('academic_year_id') == $year->id ? 'selected' : '' }}>
-                                            {{ $year->year_name }}
+                                            {{ old('academic_year_id', $activeAcademicYear?->id) == $year->id ? 'selected' : '' }}>
+                                            {{ $year->year_name }}{{ $year->active ? ' (Active)' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -38,6 +47,19 @@
                                     :value="old('name')" required autofocus />
                                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
                                 <p class="text-sm text-gray-500 mt-1">Example: Term 1, Semester 1, Quarter 1</p>
+                            </div>
+
+                            <div>
+                                <x-input-label for="status" :value="__('Term Status')" />
+                                <select id="status" name="status"
+                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                    required>
+                                    <option value="active" {{ old('status', $activeTerm ? 'finalized' : 'active') === 'active' ? 'selected' : '' }}>Active / Current Term</option>
+                                    <option value="finalized" {{ old('status', $activeTerm ? 'finalized' : 'active') === 'finalized' ? 'selected' : '' }}>Not Current Yet</option>
+                                    <option value="locked" {{ old('status') === 'locked' ? 'selected' : '' }}>Locked</option>
+                                </select>
+                                <p class="text-sm text-gray-500 mt-1">Only one term can be active. Making this active will finalize any other active term and remove its homework uploads. When adding a future term, leave it as Not Current Yet.</p>
+                                <x-input-error :messages="$errors->get('status')" class="mt-2" />
                             </div>
 
                             <div>

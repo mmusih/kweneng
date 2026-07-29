@@ -58,6 +58,9 @@
                                         <option value="{{ $year->id }}"
                                             {{ old('academic_year_id', $class->academic_year_id) == $year->id ? 'selected' : '' }}>
                                             {{ $year->year_name }}
+                                            @if ($year->active)
+                                                (Active)
+                                            @endif
                                         </option>
                                     @endforeach
                                 </select>
@@ -83,7 +86,7 @@
                                 </select>
                                 <x-input-error :messages="$errors->get('class_teacher_id')" class="mt-2" />
                                 <p class="text-sm text-gray-500 mt-1">
-                                    Only the assigned class teacher will manage attendance, punctuality, and behaviour
+                                    Only the assigned class teacher will manage attendance, behaviour, and term summary
                                     for this class.
                                 </p>
                             </div>
@@ -136,7 +139,7 @@
                                 <x-input-label for="student_search" :value="__('Search Students')" />
                                 <x-text-input id="student_search" class="block mt-1 w-full" type="text"
                                     name="student_search" :value="request('student_search')"
-                                    placeholder="Search by student name or admission number" />
+                                    placeholder="Search by student name, ID/passport number, or legacy reference" />
                             </div>
 
                             <div class="flex items-end gap-2">

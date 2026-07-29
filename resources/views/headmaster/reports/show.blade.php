@@ -1,21 +1,22 @@
 <x-app-layout>
+    @php($reportRoutePrefix = $reportRoutePrefix ?? (request()->routeIs('admin.*') ? 'admin' : (request()->routeIs('office.*') ? 'office' : 'headmaster')))
     <x-slot name="header">
         <div
-            class="mt-16 p-6 bg-gradient-to-r from-indigo-600 to-blue-700 rounded-lg shadow-lg flex items-center justify-between">
+            class="mt-16 p-6 kw-page-header rounded-2xl shadow-sm flex items-center justify-between">
             <div>
                 <h2 class="font-semibold text-2xl text-white leading-tight">
                     Student Report Preview
                 </h2>
-                <p class="text-blue-100 text-sm mt-1">
+                <p class="text-white/80 text-sm mt-1">
                     {{ $student->user->name }} · {{ $term->name }} · {{ $academicYear->year_name }}
                 </p>
             </div>
 
-            <a href="{{ route('headmaster.reports.index', ['class_id' => $student->current_class_id, 'term_id' => $term->id]) }}"
-                class="text-white hover:text-blue-100 text-sm font-medium">
+            <a href="{{ route($reportRoutePrefix . '.reports.index', ['class_id' => $student->current_class_id, 'term_id' => $term->id]) }}"
+                class="text-white hover:text-white/80 text-sm font-medium">
                 Back to Reports
             </a>
-            <a href="{{ route('headmaster.reports.pdf', ['student' => $student->id, 'term_id' => $term->id]) }}"
+            <a href="{{ route($reportRoutePrefix . '.reports.pdf', ['student' => $student->id, 'term_id' => $term->id]) }}"
                 class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-semibold">
                 Download PDF
             </a>
@@ -25,7 +26,7 @@
     <div class="py-10">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <div class="bg-white shadow-sm rounded-lg p-6">
+            <div class="bg-white kw-panel p-6">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <p class="text-sm text-gray-500">Student Name</p>
@@ -52,7 +53,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Midterm Standing</h3>
                     <div class="space-y-2 text-sm">
                         <p><span class="font-medium">Midterm Total:</span>
@@ -69,7 +70,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Endterm Standing</h3>
                     <div class="space-y-2 text-sm">
                         <p><span class="font-medium">Endterm Total:</span>
@@ -87,7 +88,7 @@
                 </div>
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg p-6">
+            <div class="bg-white kw-panel p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">Academic Performance</h3>
                 </div>
@@ -142,7 +143,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Attendance</h3>
                     <div class="space-y-2 text-sm">
                         <p><span class="font-medium">Rate:</span>
@@ -155,7 +156,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Punctuality</h3>
                     <div class="space-y-2 text-sm">
                         <p><span class="font-medium">On-Time Rate:</span>
@@ -168,7 +169,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Behaviour</h3>
                     <div class="space-y-2 text-sm">
                         <p><span class="font-medium">Total:</span> {{ $behaviourSummary['total'] }}</p>
@@ -179,7 +180,7 @@
                 </div>
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg p-6">
+            <div class="bg-white kw-panel p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Headmaster Comment</h3>
                 @if ($headmasterComment)
                     <p class="text-gray-800 leading-relaxed">{{ $headmasterComment->comment }}</p>
@@ -188,7 +189,7 @@
                 @endif
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg p-6">
+            <div class="bg-white kw-panel p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Behaviour Incidents</h3>
                 @if ($behaviourSummary['recent']->count())
                     <div class="space-y-3">

@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\GenerateLoginSlip;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\ClassModel;
 use App\Models\Mark;
 use App\Models\Student;
 use App\Models\StudentClassHistory;
 use App\Models\StudentSubject;
-use App\Models\ClassModel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +30,10 @@ class StudentController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', function ($userQuery) use ($search) {
                     $userQuery->where('name', 'like', "%{$search}%");
-                })->orWhere('admission_no', 'like', "%{$search}%");
+                })
+                    ->orWhere('admission_no', 'like', "%{$search}%")
+                    ->orWhere('identity_document_number', 'like', "%{$search}%")
+                    ->orWhere('nationality', 'like', "%{$search}%");
             });
         }
 
@@ -51,23 +54,14 @@ class StudentController extends Controller
     public function create()
     {
         $classes = ClassModel::all();
+        $identityDocumentTypes = Student::identityDocumentTypes();
 
-        return view('admin.students.create', compact('classes'));
+        return view('admin.students.create', compact('classes', 'identityDocumentTypes'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name'             => 'required|string|max:255',
-            'email'            => 'required|email|unique:users,email',
-            'admission_no'     => 'required|unique:students,admission_no',
-            'gender'           => 'required|in:male,female',
-            'date_of_birth'    => 'required|date',
-            'current_class_id' => 'nullable|exists:classes,id',
-            'photo'            => 'nullable|image|mimes:jpeg,png,webp|max:2048',
-            'results_access'   => 'nullable',
-            'fees_blocked'     => 'nullable',
-        ]);
+        $validated = $request->validate($this->validationRules($request));
 
         try {
             DB::beginTransaction();
@@ -90,29 +84,27 @@ class StudentController extends Controller
             }
 
             $student = Student::create([
-                'user_id'          => $user->id,
-                'admission_no'     => $validated['admission_no'],
-                'gender'           => $validated['gender'],
-                'date_of_birth'    => $validated['date_of_birth'],
-                'current_class_id' => $validated['current_class_id'] ?? null,
-                'photo'            => $photoPath,
-                'results_access'   => $request->has('results_access'),
-                'fees_blocked'     => $request->has('fees_blocked'),
+                'user_id'                        => $user->id,
+                'admission_no'                   => $validated['admission_no'] ?? $this->generateLegacyAdmissionNo($validated),
+                'gender'                         => $validated['gender'],
+                'date_of_birth'                  => $validated['date_of_birth'],
+                'nationality'                    => $validated['nationality'],
+                'identity_document_type'         => $validated['identity_document_type'],
+                'identity_document_number'       => $this->normalizeDocumentNumber($validated['identity_document_number']),
+                'current_class_id'               => $validated['current_class_id'] ?? null,
+                'photo'                          => $photoPath,
+                'emergency_contact_name'         => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_relationship' => $validated['emergency_contact_relationship'] ?? null,
+                'emergency_contact_phone'        => $validated['emergency_contact_phone'] ?? null,
+                'emergency_contact_alt_phone'    => $validated['emergency_contact_alt_phone'] ?? null,
+                'emergency_contact_address'      => $validated['emergency_contact_address'] ?? null,
+                'medical_notes'                  => $validated['medical_notes'] ?? null,
+                'results_access'                 => $request->has('results_access'),
+                'fees_blocked'                   => $request->has('fees_blocked'),
             ]);
 
             if (! empty($validated['current_class_id'])) {
-                $currentAcademicYear = AcademicYear::where('status', 'open')->first();
-
-                if ($currentAcademicYear) {
-                    StudentClassHistory::create([
-                        'student_id'       => $student->id,
-                        'class_id'         => $validated['current_class_id'],
-                        'academic_year_id' => $currentAcademicYear->id,
-                        'status'           => 'active',
-                        'created_at'       => now(),
-                        'updated_at'       => now(),
-                    ]);
-                }
+                $this->upsertCurrentClassHistory($student, (int) $validated['current_class_id']);
             }
 
             DB::commit();
@@ -141,6 +133,8 @@ class StudentController extends Controller
             'currentClass.academicYear',
             'classHistory.class',
             'classHistory.academicYear',
+            'parents.user',
+            'studentSubjects.subject',
         ]);
 
         return view('admin.students.show', compact('student'));
@@ -149,23 +143,14 @@ class StudentController extends Controller
     public function edit(Student $student)
     {
         $classes = ClassModel::all();
+        $identityDocumentTypes = Student::identityDocumentTypes();
 
-        return view('admin.students.edit', compact('student', 'classes'));
+        return view('admin.students.edit', compact('student', 'classes', 'identityDocumentTypes'));
     }
 
     public function update(Request $request, Student $student)
     {
-        $validated = $request->validate([
-            'name'             => 'required|string|max:255',
-            'email'            => ['required', 'email', Rule::unique('users', 'email')->ignore($student->user_id)],
-            'admission_no'     => ['required', Rule::unique('students', 'admission_no')->ignore($student->id)],
-            'gender'           => 'required|in:male,female',
-            'date_of_birth'    => 'required|date',
-            'current_class_id' => 'nullable|exists:classes,id',
-            'photo'            => 'nullable|image|mimes:jpeg,png,webp|max:2048',
-            'results_access'   => 'nullable',
-            'fees_blocked'     => 'nullable',
-        ]);
+        $validated = $request->validate($this->validationRules($request, $student));
 
         try {
             DB::beginTransaction();
@@ -175,59 +160,44 @@ class StudentController extends Controller
                 'email' => $validated['email'],
             ]);
 
+            $photoPath = $student->photo;
+
             if ($request->hasFile('photo')) {
                 if ($student->photo) {
                     Storage::disk('public')->delete($student->photo);
                 }
 
                 $photoPath = $request->file('photo')->store('students', 'public');
-                $validated['photo'] = $photoPath;
-            } else {
-                unset($validated['photo']);
             }
 
             $originalClassId = $student->current_class_id;
+            $admissionNo = $validated['admission_no'] ?? $student->admission_no;
 
-            $studentData = [
-                'admission_no'     => $validated['admission_no'],
-                'gender'           => $validated['gender'],
-                'date_of_birth'    => $validated['date_of_birth'],
-                'current_class_id' => $validated['current_class_id'] ?? null,
-                'results_access'   => $request->has('results_access'),
-                'fees_blocked'     => $request->has('fees_blocked'),
-            ];
-
-            if (isset($validated['photo'])) {
-                $studentData['photo'] = $validated['photo'];
+            if (! filled($admissionNo)) {
+                $admissionNo = $this->generateLegacyAdmissionNo($validated);
             }
 
-            $student->update($studentData);
+            $student->update([
+                'admission_no'                   => $admissionNo,
+                'gender'                         => $validated['gender'],
+                'date_of_birth'                  => $validated['date_of_birth'],
+                'nationality'                    => $validated['nationality'],
+                'identity_document_type'         => $validated['identity_document_type'],
+                'identity_document_number'       => $this->normalizeDocumentNumber($validated['identity_document_number']),
+                'current_class_id'               => $validated['current_class_id'] ?? null,
+                'photo'                          => $photoPath,
+                'emergency_contact_name'         => $validated['emergency_contact_name'] ?? null,
+                'emergency_contact_relationship' => $validated['emergency_contact_relationship'] ?? null,
+                'emergency_contact_phone'        => $validated['emergency_contact_phone'] ?? null,
+                'emergency_contact_alt_phone'    => $validated['emergency_contact_alt_phone'] ?? null,
+                'emergency_contact_address'      => $validated['emergency_contact_address'] ?? null,
+                'medical_notes'                  => $validated['medical_notes'] ?? null,
+                'results_access'                 => $request->has('results_access'),
+                'fees_blocked'                   => $request->has('fees_blocked'),
+            ]);
 
-            if (! empty($validated['current_class_id']) && $validated['current_class_id'] != $originalClassId) {
-                $currentAcademicYear = AcademicYear::where('status', 'open')->first();
-
-                if ($currentAcademicYear) {
-                    $existingEnrollment = StudentClassHistory::where('student_id', $student->id)
-                        ->where('academic_year_id', $currentAcademicYear->id)
-                        ->first();
-
-                    if ($existingEnrollment) {
-                        $existingEnrollment->update([
-                            'class_id'   => $validated['current_class_id'],
-                            'status'     => 'active',
-                            'updated_at' => now(),
-                        ]);
-                    } else {
-                        StudentClassHistory::create([
-                            'student_id'       => $student->id,
-                            'class_id'         => $validated['current_class_id'],
-                            'academic_year_id' => $currentAcademicYear->id,
-                            'status'           => 'active',
-                            'created_at'       => now(),
-                            'updated_at'       => now(),
-                        ]);
-                    }
-                }
+            if (! empty($validated['current_class_id']) && (int) $validated['current_class_id'] !== (int) $originalClassId) {
+                $this->upsertCurrentClassHistory($student, (int) $validated['current_class_id']);
             }
 
             DB::commit();
@@ -260,11 +230,6 @@ class StudentController extends Controller
 
     /**
      * Generate login slips for selected students.
-     *
-     * Uses GenerateLoginSlip::for() which:
-     *   - Resets the student password (memorable format)
-     *   - Generates a fresh 48-hour parent invite code
-     *   - Returns all slip data in one array
      */
     public function printLogins(Request $request)
     {
@@ -289,7 +254,6 @@ class StudentController extends Controller
                     continue;
                 }
 
-                // GenerateLoginSlip handles its own DB transaction per student
                 $slip = GenerateLoginSlip::for($student);
 
                 $logins[] = array_merge($slip, [
@@ -338,7 +302,7 @@ class StudentController extends Controller
 
         try {
             $studentIds = collect($validated['student_ids'])
-                ->map(fn($id) => (int) $id)
+                ->map(fn ($id) => (int) $id)
                 ->unique()
                 ->values();
 
@@ -367,6 +331,60 @@ class StudentController extends Controller
         }
     }
 
+    private function validationRules(Request $request, ?Student $student = null): array
+    {
+        $documentType = $request->input('identity_document_type');
+
+        return [
+            'name'                           => ['required', 'string', 'max:255'],
+            'email'                          => ['required', 'email', Rule::unique('users', 'email')->ignore($student?->user_id)],
+            'admission_no'                   => ['nullable', 'string', 'max:255', Rule::unique('students', 'admission_no')->ignore($student?->id)],
+            'gender'                         => ['required', Rule::in(['male', 'female'])],
+            'date_of_birth'                  => ['required', 'date'],
+            'nationality'                    => ['required', 'string', 'max:100'],
+            'identity_document_type'         => ['required', Rule::in(array_keys(Student::identityDocumentTypes()))],
+            'identity_document_number'       => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('students', 'identity_document_number')
+                    ->where(fn ($query) => $query->where('identity_document_type', $documentType))
+                    ->ignore($student?->id),
+            ],
+            'current_class_id'               => ['nullable', 'exists:classes,id'],
+            'photo'                          => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'emergency_contact_name'         => ['nullable', 'string', 'max:255'],
+            'emergency_contact_relationship' => ['nullable', 'string', 'max:100'],
+            'emergency_contact_phone'        => ['nullable', 'string', 'max:50'],
+            'emergency_contact_alt_phone'    => ['nullable', 'string', 'max:50'],
+            'emergency_contact_address'      => ['nullable', 'string', 'max:1000'],
+            'medical_notes'                  => ['nullable', 'string', 'max:2000'],
+            'results_access'                 => ['nullable'],
+            'fees_blocked'                   => ['nullable'],
+        ];
+    }
+
+    private function upsertCurrentClassHistory(Student $student, int $classId): void
+    {
+        $currentAcademicYear = AcademicYear::where('status', 'open')->first();
+
+        if (! $currentAcademicYear) {
+            return;
+        }
+
+        StudentClassHistory::updateOrCreate(
+            [
+                'student_id'       => $student->id,
+                'academic_year_id' => $currentAcademicYear->id,
+            ],
+            [
+                'class_id'   => $classId,
+                'status'     => 'active',
+                'updated_at' => now(),
+            ]
+        );
+    }
+
     private function deleteStudentSafely(Student $student): void
     {
         if ($student->photo) {
@@ -384,9 +402,31 @@ class StudentController extends Controller
         }
     }
 
+    private function generateLegacyAdmissionNo(array $validated): string
+    {
+        $type = strtoupper(str_replace('_', '', (string) ($validated['identity_document_type'] ?? 'DOC')));
+        $number = $this->normalizeDocumentNumber((string) ($validated['identity_document_number'] ?? Str::random(8)));
+        $base = 'ID-' . $type . '-' . preg_replace('/[^A-Za-z0-9]/', '', $number);
+        $base = Str::limit($base, 230, '');
+        $candidate = $base;
+        $counter = 1;
+
+        while (Student::where('admission_no', $candidate)->exists()) {
+            $candidate = $base . '-' . $counter;
+            $counter++;
+        }
+
+        return $candidate;
+    }
+
+    private function normalizeDocumentNumber(string $value): string
+    {
+        return strtoupper(trim(preg_replace('/\s+/', ' ', $value)));
+    }
+
     /**
      * Used by store() and resetPassword() only.
-     * printLogins() now delegates entirely to GenerateLoginSlip.
+     * printLogins() delegates entirely to GenerateLoginSlip.
      */
     private function generateTemporaryPassword(int $length = 10): string
     {

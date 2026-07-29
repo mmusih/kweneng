@@ -70,6 +70,21 @@ class User extends Authenticatable
         return $this->role === UserRoles::LIBRARIAN;
     }
 
+    public function isOffice(): bool
+    {
+        return $this->role === UserRoles::OFFICE;
+    }
+
+    public function isRegisterOfficer(): bool
+    {
+        return $this->role === UserRoles::REGISTER_OFFICER;
+    }
+
+    public function isInventory(): bool
+    {
+        return $this->role === UserRoles::INVENTORY;
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
@@ -98,5 +113,54 @@ class User extends Authenticatable
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+
+    public function departmentAssignments()
+    {
+        return $this->hasMany(DepartmentUser::class);
+    }
+
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'department_user')
+            ->withPivot(['id', 'academic_year_id', 'role_in_department'])
+            ->withTimestamps();
+    }
+
+    public function hodDepartments(?int $academicYearId = null)
+    {
+        return $this->departments()
+            ->wherePivot('role_in_department', DepartmentUser::ROLE_HOD)
+            ->when($academicYearId, fn ($query) => $query->wherePivot('academic_year_id', $academicYearId));
+    }
+
+    public function isDepartmentHod(?int $academicYearId = null): bool
+    {
+        return $this->departmentAssignments()
+            ->where('role_in_department', DepartmentUser::ROLE_HOD)
+            ->when($academicYearId, function ($query) use ($academicYearId) {
+                $query->where(function ($q) use ($academicYearId) {
+                    $q->where('academic_year_id', $academicYearId)
+                        ->orWhereNull('academic_year_id');
+                });
+            })
+            ->exists();
+    }
+
+    public function hodDepartmentIds(?int $academicYearId = null): array
+    {
+        return $this->departmentAssignments()
+            ->where('role_in_department', DepartmentUser::ROLE_HOD)
+            ->when($academicYearId, function ($query) use ($academicYearId) {
+                $query->where(function ($q) use ($academicYearId) {
+                    $q->where('academic_year_id', $academicYearId)
+                        ->orWhereNull('academic_year_id');
+                });
+            })
+            ->pluck('department_id')
+            ->unique()
+            ->values()
+            ->all();
     }
 }

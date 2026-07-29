@@ -1,0 +1,8 @@
+<x-app-layout>
+    <x-slot name="header"><div class="mt-16 p-5 kw-page-header rounded-lg flex justify-between"><h2 class="text-2xl font-semibold text-white">{{ $student->user->name }}</h2><a href="{{ route('office.students.index') }}" class="text-white">Back</a></div></x-slot>
+    <div class="py-8 kw-soft-section min-h-screen"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-5">
+        @if(session('success'))<div class="p-4 rounded bg-green-50 text-green-800 border">{{ session('success') }}</div>@endif
+        <div class="bg-white kw-panel p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"><div><span class="text-gray-500">Email:</span> {{ $student->user->email }}</div><div><span class="text-gray-500">Class:</span> {{ $student->currentClass->name ?? '-' }}</div><div><span class="text-gray-500">Gender:</span> {{ ucfirst($student->gender) }}</div><div><span class="text-gray-500">Date of birth:</span> {{ $student->date_of_birth?->format('d M Y') }}</div><div><span class="text-gray-500">Nationality:</span> {{ $student->nationality ?: '-' }}</div><div><span class="text-gray-500">Document:</span> {{ $student->identity_document_type }} {{ $student->identity_document_number }}</div><div><span class="text-gray-500">Emergency contact:</span> {{ $student->emergency_contact_name ?: '-' }}</div><div><span class="text-gray-500">Phone:</span> {{ $student->emergency_contact_phone ?: '-' }}</div><div class="md:col-span-2"><span class="text-gray-500">Medical notes:</span><div class="whitespace-pre-wrap mt-1">{{ $student->medical_notes ?: '-' }}</div></div></div>
+        <div class="text-right"><a href="{{ route('office.students.edit', $student) }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Edit Profile</a></div>
+    </div></div>
+</x-app-layout>

@@ -1,25 +1,26 @@
 <x-app-layout>
+    @php($announcementRoutePrefix = $announcementRoutePrefix ?? (request()->routeIs('office.*') ? 'office' : 'admin'))
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Announcement Details
+        <div class="mt-16 p-5 rounded-2xl kw-page-header flex justify-between items-center gap-4">
+            <h2 class="font-semibold text-xl text-white leading-tight">
+                Notice Details
             </h2>
             <div class="flex space-x-2">
-                <a href="{{ route('admin.announcements.edit', $announcement) }}"
-                    class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
+                <a href="{{ route($announcementRoutePrefix . '.announcements.edit', $announcement) }}"
+                    class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-slate-100">
                     Edit
                 </a>
-                <a href="{{ route('admin.announcements.index') }}"
-                    class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                    Back to Announcements
+                <a href="{{ route($announcementRoutePrefix . '.announcements.index') }}"
+                    class="inline-flex items-center px-4 py-2 bg-white/15 border border-white/25 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-white/25">
+                    Back to Notices
                 </a>
             </div>
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-12 kw-soft-section min-h-screen">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white kw-panel overflow-hidden">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <div class="mb-6">
                         <div class="flex items-start justify-between">
@@ -95,7 +96,7 @@
                     </div>
 
                     <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                        <form action="{{ route('admin.announcements.destroy', $announcement) }}" method="POST">
+                        <form action="{{ route($announcementRoutePrefix . '.announcements.destroy', $announcement) }}" method="POST">
                             @csrf
                             @method('DELETE')
                             <button type="submit"

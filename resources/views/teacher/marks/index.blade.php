@@ -24,7 +24,7 @@
                 <div class="p-6 text-gray-900">
                     <div class="mb-6">
                         <h3 class="text-2xl font-semibold">Marks Entry</h3>
-                        <p class="text-gray-600">Enter midterm and endterm marks for your students.</p>
+                        <p class="text-gray-600">Enter midterm and endterm marks for learners assigned to you.</p>
                     </div>
 
                     @if (session('success'))
@@ -40,6 +40,18 @@
                                     <li>{{ $error }}</li>
                                 @endforeach
                             </ul>
+                        </div>
+                    @endif
+
+                    @if ($activeAcademicYear && $activeTerm)
+                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                            <div class="font-semibold">Current marks context</div>
+                            <div class="text-sm mt-1">{{ $activeAcademicYear->year_name }} · {{ $activeTerm->name }}. The active term is selected automatically.</div>
+                        </div>
+                    @else
+                        <div class="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-900">
+                            <div class="font-semibold">Current year or term is missing</div>
+                            <div class="text-sm mt-1">Marks can be entered only after the administrator activates the current academic year and term.</div>
                         </div>
                     @endif
 
@@ -688,8 +700,8 @@
                         tbody.innerHTML = `
                         <tr>
                             <td colspan="4" class="px-6 py-8 text-center text-gray-500 bg-gray-50">
-                                <div class="text-sm font-medium">No students found</div>
-                                <div class="text-xs text-gray-400 mt-1">Please check the selected class, subject, and term.</div>
+                                <div class="text-sm font-medium">No assigned learners found</div>
+                                <div class="text-xs text-gray-400 mt-1">Please check the selected class, subject, term, and student-teacher subject assignments.</div>
                             </td>
                         </tr>
                     `;

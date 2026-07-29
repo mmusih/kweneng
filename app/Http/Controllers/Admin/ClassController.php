@@ -29,7 +29,10 @@ class ClassController extends Controller
 
     public function create()
     {
-        $academicYears = AcademicYear::orderByDesc('year_name')->get();
+        $activeAcademicYear = AcademicYear::current();
+        $academicYears = AcademicYear::orderByDesc('active')
+            ->orderByDesc('year_name')
+            ->get();
 
         $classTeachers = Teacher::with('user')
             ->whereHas('user', function ($query) {
@@ -40,7 +43,7 @@ class ClassController extends Controller
             ->sortBy(fn($teacher) => $teacher->user->name ?? '')
             ->values();
 
-        return view('admin.classes.create', compact('academicYears', 'classTeachers'));
+        return view('admin.classes.create', compact('academicYears', 'classTeachers', 'activeAcademicYear'));
     }
 
     public function store(Request $request)
@@ -48,10 +51,23 @@ class ClassController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:classes,name'],
             'level' => ['required', 'integer', 'min:1', 'max:12'],
-            'academic_year_id' => ['required', 'exists:academic_years,id'],
+            'academic_year_id' => ['nullable', 'exists:academic_years,id'],
             'class_teacher_id' => ['nullable', 'exists:teachers,id'],
             'class_list_file' => ['nullable', 'file', 'mimes:csv,txt'],
         ]);
+
+
+        if (! isset($validated['academic_year_id'])) {
+            $activeAcademicYear = AcademicYear::current();
+
+            if (! $activeAcademicYear) {
+                return back()
+                    ->withErrors(['academic_year_id' => 'Create or activate an academic year before creating a class.'])
+                    ->withInput();
+            }
+
+            $validated['academic_year_id'] = $activeAcademicYear->id;
+        }
 
         if (!empty($validated['class_teacher_id'])) {
             $teacherExists = Teacher::where('id', $validated['class_teacher_id'])
@@ -103,7 +119,10 @@ class ClassController extends Controller
 
     public function edit(Request $request, ClassModel $class)
     {
-        $academicYears = AcademicYear::orderByDesc('year_name')->get();
+        $activeAcademicYear = AcademicYear::current();
+        $academicYears = AcademicYear::orderByDesc('active')
+            ->orderByDesc('year_name')
+            ->get();
 
         $classTeachers = Teacher::with('user')
             ->whereHas('user', function ($query) {
@@ -121,6 +140,7 @@ class ClassController extends Controller
             ->when($studentSearch !== '', function ($query) use ($studentSearch) {
                 $query->where(function ($q) use ($studentSearch) {
                     $q->where('admission_no', 'like', '%' . $studentSearch . '%')
+                        ->orWhere('identity_document_number', 'like', '%' . $studentSearch . '%')
                         ->orWhereHas('user', function ($userQuery) use ($studentSearch) {
                             $userQuery->where('name', 'like', '%' . $studentSearch . '%');
                         });
@@ -144,7 +164,8 @@ class ClassController extends Controller
             'academicYears',
             'classTeachers',
             'students',
-            'studentSearch'
+            'studentSearch',
+            'activeAcademicYear'
         ));
     }
 
@@ -368,16 +389,40 @@ class ClassController extends Controller
             return Str::lower(trim((string) $value));
         }, $header);
 
-        $surnameIndex = array_search('surname', $normalizedHeader, true);
-        $nameIndex = array_search('name', $normalizedHeader, true);
-        $genderIndex = array_search('gender', $normalizedHeader, true);
-        $dobIndex = array_search('date_of_birth', $normalizedHeader, true);
-        $admissionNoIndex = array_search('admission_no', $normalizedHeader, true);
+        $columnIndex = function (array $aliases) use ($normalizedHeader) {
+            foreach ($aliases as $alias) {
+                $index = array_search($alias, $normalizedHeader, true);
+
+                if ($index !== false) {
+                    return $index;
+                }
+            }
+
+            return false;
+        };
+
+        $surnameIndex = $columnIndex(['surname', 'last_name', 'family_name']);
+        $nameIndex = $columnIndex(['name', 'first_name', 'given_name']);
+        $genderIndex = $columnIndex(['gender']);
+        $dobIndex = $columnIndex(['date_of_birth', 'dob', 'birth_date']);
+        $admissionNoIndex = $columnIndex(['admission_no', 'legacy_admission_no']);
+        $nationalityIndex = $columnIndex(['nationality']);
+        $documentTypeIndex = $columnIndex(['identity_document_type', 'document_type', 'id_type']);
+        $documentNumberIndex = $columnIndex(['identity_document_number', 'document_number', 'id_number', 'passport_number', 'birth_certificate_number']);
+        $birthCertificateIndex = $columnIndex(['birth_certificate_number']);
+        $idNumberIndex = $columnIndex(['id_number']);
+        $passportIndex = $columnIndex(['passport_number']);
+        $emergencyNameIndex = $columnIndex(['emergency_contact_name', 'emergency_name']);
+        $emergencyRelationshipIndex = $columnIndex(['emergency_contact_relationship', 'emergency_relationship']);
+        $emergencyPhoneIndex = $columnIndex(['emergency_contact_phone', 'emergency_phone']);
+        $emergencyAltPhoneIndex = $columnIndex(['emergency_contact_alt_phone', 'emergency_alt_phone']);
+        $emergencyAddressIndex = $columnIndex(['emergency_contact_address', 'emergency_address']);
+        $medicalNotesIndex = $columnIndex(['medical_notes', 'allergies', 'medical_allergies']);
 
         if ($surnameIndex === false || $nameIndex === false || $genderIndex === false || $dobIndex === false) {
             fclose($handle);
             throw new \RuntimeException(
-                'CSV must contain these columns: surname, name, gender, date_of_birth. admission_no is optional.'
+                'CSV must contain these columns: surname, name, gender, date_of_birth. Identity and emergency contact columns are optional and can be completed later by parents.'
             );
         }
 
@@ -395,6 +440,30 @@ class ClassController extends Controller
             $gender = Str::lower(trim((string) ($row[$genderIndex] ?? '')));
             $dateOfBirth = trim((string) ($row[$dobIndex] ?? ''));
             $admissionNo = $admissionNoIndex !== false ? trim((string) ($row[$admissionNoIndex] ?? '')) : '';
+            $nationality = $nationalityIndex !== false ? trim((string) ($row[$nationalityIndex] ?? '')) : null;
+            $identityDocumentType = $documentTypeIndex !== false ? $this->normalizeIdentityDocumentType((string) ($row[$documentTypeIndex] ?? '')) : null;
+            $identityDocumentNumber = $documentNumberIndex !== false ? $this->normalizeIdentityDocumentNumber((string) ($row[$documentNumberIndex] ?? '')) : null;
+
+            if (! filled($identityDocumentNumber)) {
+                foreach ([
+                    Student::DOCUMENT_BIRTH_CERTIFICATE => $birthCertificateIndex,
+                    Student::DOCUMENT_ID_NUMBER => $idNumberIndex,
+                    Student::DOCUMENT_PASSPORT => $passportIndex,
+                ] as $type => $index) {
+                    if ($index !== false && filled(trim((string) ($row[$index] ?? '')))) {
+                        $identityDocumentType = $type;
+                        $identityDocumentNumber = $this->normalizeIdentityDocumentNumber((string) ($row[$index] ?? ''));
+                        break;
+                    }
+                }
+            }
+
+            $emergencyContactName = $emergencyNameIndex !== false ? trim((string) ($row[$emergencyNameIndex] ?? '')) : null;
+            $emergencyContactRelationship = $emergencyRelationshipIndex !== false ? trim((string) ($row[$emergencyRelationshipIndex] ?? '')) : null;
+            $emergencyContactPhone = $emergencyPhoneIndex !== false ? trim((string) ($row[$emergencyPhoneIndex] ?? '')) : null;
+            $emergencyContactAltPhone = $emergencyAltPhoneIndex !== false ? trim((string) ($row[$emergencyAltPhoneIndex] ?? '')) : null;
+            $emergencyContactAddress = $emergencyAddressIndex !== false ? trim((string) ($row[$emergencyAddressIndex] ?? '')) : null;
+            $medicalNotes = $medicalNotesIndex !== false ? trim((string) ($row[$medicalNotesIndex] ?? '')) : null;
 
             if ($surname === '' || $name === '' || $gender === '' || $dateOfBirth === '') {
                 fclose($handle);
@@ -416,8 +485,25 @@ class ClassController extends Controller
             } else {
                 if (Student::where('admission_no', $admissionNo)->exists()) {
                     fclose($handle);
-                    throw new \RuntimeException("Row {$rowNumber}: admission number '{$admissionNo}' already exists.");
+                    throw new \RuntimeException("Row {$rowNumber}: legacy admission reference '{$admissionNo}' already exists.");
                 }
+            }
+
+            if (filled($identityDocumentType) xor filled($identityDocumentNumber)) {
+                fclose($handle);
+                throw new \RuntimeException("Row {$rowNumber}: provide both identity_document_type and identity_document_number, or leave both blank for parent update.");
+            }
+
+            if (filled($identityDocumentType) && ! array_key_exists($identityDocumentType, Student::identityDocumentTypes())) {
+                fclose($handle);
+                throw new \RuntimeException("Row {$rowNumber}: identity document type must be birth_certificate, id_number, or passport.");
+            }
+
+            if (filled($identityDocumentType) && Student::where('identity_document_type', $identityDocumentType)
+                ->where('identity_document_number', $identityDocumentNumber)
+                ->exists()) {
+                fclose($handle);
+                throw new \RuntimeException("Row {$rowNumber}: identity document number '{$identityDocumentNumber}' already exists.");
             }
 
             $fullName = trim($name . ' ' . $surname);
@@ -436,7 +522,16 @@ class ClassController extends Controller
                 'admission_no' => $admissionNo,
                 'gender' => $gender,
                 'date_of_birth' => $dateOfBirth,
+                'nationality' => $nationality ?: null,
+                'identity_document_type' => $identityDocumentType ?: null,
+                'identity_document_number' => $identityDocumentNumber ?: null,
                 'current_class_id' => $class->id,
+                'emergency_contact_name' => $emergencyContactName ?: null,
+                'emergency_contact_relationship' => $emergencyContactRelationship ?: null,
+                'emergency_contact_phone' => $emergencyContactPhone ?: null,
+                'emergency_contact_alt_phone' => $emergencyContactAltPhone ?: null,
+                'emergency_contact_address' => $emergencyContactAddress ?: null,
+                'medical_notes' => $medicalNotes ?: null,
                 'results_access' => true,
                 'fees_blocked' => false,
             ]);
@@ -487,6 +582,27 @@ class ClassController extends Controller
         }
 
         return $email;
+    }
+
+    protected function normalizeIdentityDocumentType(string $value): ?string
+    {
+        $value = Str::of($value)->lower()->replace([' ', '-'], '_')->toString();
+
+        return match ($value) {
+            'birth_certificate', 'birth_certificate_number', 'birth_cert', 'certificate' => Student::DOCUMENT_BIRTH_CERTIFICATE,
+            'id', 'id_no', 'id_number', 'identity', 'identity_number', 'national_id' => Student::DOCUMENT_ID_NUMBER,
+            'passport', 'passport_no', 'passport_number' => Student::DOCUMENT_PASSPORT,
+            '', null => null,
+            default => $value,
+        };
+    }
+
+    protected function normalizeIdentityDocumentNumber(string $value): ?string
+    {
+        $value = Str::upper(trim($value));
+        $value = preg_replace('/\s+/', '', $value);
+
+        return $value !== '' ? $value : null;
     }
 
     protected function generateAdmissionNumber(): string

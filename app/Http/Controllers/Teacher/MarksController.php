@@ -30,9 +30,11 @@ class MarksController extends Controller
     public function index()
     {
         $teacher = Auth::user()->teacher;
-        $classes = $this->marksService->getTeacherClassesForMarks($teacher);
+        $activeAcademicYear = AcademicYear::current();
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $classes = $this->marksService->getTeacherClassesForMarks($teacher, $activeAcademicYear?->id);
 
-        return view('teacher.marks.index', compact('classes'));
+        return view('teacher.marks.index', compact('classes', 'activeAcademicYear', 'activeTerm'));
     }
 
     public function showClassSubjects(Request $request)
@@ -62,16 +64,37 @@ class MarksController extends Controller
             'term_id' => 'required|exists:terms,id'
         ]);
 
+        $teacher = Auth::user()->teacher;
+
+        if (!$this->marksService->validateMarksEntry(
+            $teacher,
+            (int) $validated['class_id'],
+            (int) $validated['subject_id'],
+            (int) $validated['academic_year_id'],
+            (int) $validated['term_id']
+        )) {
+            return response()->json([
+                'message' => 'You do not have permission to view students for this class, subject, and term.',
+            ], 403);
+        }
+
         $students = $this->marksService->getStudentsForMarksEntry(
-            $validated['class_id'],
-            $validated['subject_id'],
-            $validated['academic_year_id']
+            (int) $validated['class_id'],
+            (int) $validated['subject_id'],
+            (int) $validated['academic_year_id'],
+            $teacher->id
         );
+
+        $authorizedStudentIds = collect($students)
+            ->map(fn ($row) => (int) ($row['student']->id ?? 0))
+            ->filter()
+            ->values();
 
         $existingMarks = Mark::where('class_id', $validated['class_id'])
             ->where('subject_id', $validated['subject_id'])
             ->where('academic_year_id', $validated['academic_year_id'])
             ->where('term_id', $validated['term_id'])
+            ->whereIn('student_id', $authorizedStudentIds)
             ->get()
             ->keyBy('student_id');
 
@@ -95,7 +118,7 @@ class MarksController extends Controller
             'subject_id' => 'required|exists:subjects,id',
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
-            'marks' => 'array',
+            'marks' => 'required|array|min:1',
             'marks.*' => 'array',
             'marks.*.midterm' => 'nullable|numeric|min:0|max:100',
             'marks.*.endterm' => 'nullable|numeric|min:0|max:100',
@@ -123,17 +146,32 @@ class MarksController extends Controller
             ]);
         }
 
+        $authorizedStudentIds = $this->marksService->getAuthorizedStudentIdsForMarks(
+            $teacher,
+            (int) $validated['class_id'],
+            (int) $validated['subject_id'],
+            (int) $validated['academic_year_id']
+        );
+
+        $submittedStudentIds = collect(array_keys($validated['marks']))
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        $unauthorizedStudentIds = $submittedStudentIds->diff($authorizedStudentIds);
+
+        if ($unauthorizedStudentIds->isNotEmpty()) {
+            return redirect()->back()->withErrors([
+                'marks' => 'Some submitted learners are not assigned to you for this subject. Please reload the page and try again.',
+            ]);
+        }
+
         $marksData = [];
 
         foreach ($validated['marks'] as $studentId => $scores) {
-            $studentExists = Student::where('id', $studentId)->exists();
-            if (!$studentExists) {
-                return redirect()->back()->withErrors([
-                    'marks' => "Invalid student ID: {$studentId}"
-                ]);
-            }
+            $studentId = (int) $studentId;
 
             $existingMark = Mark::where('student_id', $studentId)
+                ->where('class_id', $validated['class_id'])
                 ->where('subject_id', $validated['subject_id'])
                 ->where('academic_year_id', $validated['academic_year_id'])
                 ->where('term_id', $validated['term_id'])
@@ -248,7 +286,8 @@ class MarksController extends Controller
         $students = $this->marksService->getStudentsForMarksEntry(
             (int) $validated['class_id'],
             (int) $validated['subject_id'],
-            (int) $validated['academic_year_id']
+            (int) $validated['academic_year_id'],
+            $teacher->id
         );
 
         $studentMap = collect($students)->mapWithKeys(function ($studentData) {
@@ -340,6 +379,7 @@ class MarksController extends Controller
             }
 
             $existingMark = Mark::where('student_id', $student->id)
+                ->where('class_id', $validated['class_id'])
                 ->where('subject_id', $validated['subject_id'])
                 ->where('academic_year_id', $validated['academic_year_id'])
                 ->where('term_id', $validated['term_id'])
@@ -411,7 +451,15 @@ class MarksController extends Controller
     {
         $mark = Mark::findOrFail($id);
 
-        if ($mark->teacher_id !== Auth::user()->teacher->id) {
+        $teacher = Auth::user()->teacher;
+
+        if (! $this->marksService->studentIsAssignedToTeacherForMarks(
+            (int) $mark->student_id,
+            (int) $mark->class_id,
+            (int) $mark->subject_id,
+            (int) $mark->academic_year_id,
+            (int) $teacher->id
+        )) {
             abort(403);
         }
 
@@ -424,7 +472,15 @@ class MarksController extends Controller
     {
         $mark = Mark::findOrFail($id);
 
-        if ($mark->teacher_id !== Auth::user()->teacher->id) {
+        $teacher = Auth::user()->teacher;
+
+        if (! $this->marksService->studentIsAssignedToTeacherForMarks(
+            (int) $mark->student_id,
+            (int) $mark->class_id,
+            (int) $mark->subject_id,
+            (int) $mark->academic_year_id,
+            (int) $teacher->id
+        )) {
             abort(403);
         }
 
@@ -469,6 +525,7 @@ class MarksController extends Controller
         $updateData['grade'] = $average !== null
             ? $this->marksService->calculateGrade($average)
             : null;
+        $updateData['teacher_id'] = $teacher->id;
 
         $mark->update($updateData);
 
@@ -505,7 +562,7 @@ class MarksController extends Controller
         try {
             $terms = Term::where('academic_year_id', $academicYearId)
                 ->where('status', '!=', 'locked')
-                ->select('id', 'name', 'midterm_locked', 'endterm_locked')
+                ->select('id', 'name', 'status', 'midterm_locked', 'endterm_locked')
                 ->orderBy('name')
                 ->get();
 
@@ -562,33 +619,59 @@ class MarksController extends Controller
             abort(403, 'You are not assigned to teach any subjects in this class.');
         }
 
-        $subjectIds = $assignedSubjects->pluck('subject_id');
+        $subjectIds = $assignedSubjects->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values();
         $class      = \App\Models\ClassModel::with('academicYear')->findOrFail($validated['class_id']);
         $term       = \App\Models\Term::findOrFail($validated['term_id']);
 
+        $assignmentRows = \App\Models\StudentSubject::query()
+            ->where('teacher_id', $teacher->id)
+            ->where('class_id', $validated['class_id'])
+            ->where('academic_year_id', $term->academic_year_id)
+            ->whereIn('subject_id', $subjectIds)
+            ->whereHas('student.classHistory', function ($query) use ($validated, $term) {
+                $query->where('class_id', $validated['class_id'])
+                    ->where('academic_year_id', $term->academic_year_id)
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
+            ->get(['student_id', 'subject_id']);
+
+        $studentIds = $assignmentRows->pluck('student_id')->map(fn ($id) => (int) $id)->unique()->values();
+        $allowedSubjectIdsByStudent = $assignmentRows
+            ->groupBy('student_id')
+            ->map(fn ($rows) => $rows->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values());
+
         $marks = \App\Models\Mark::with(['student', 'subject'])
             ->where('class_id', $validated['class_id'])
+            ->where('academic_year_id', $term->academic_year_id)
             ->where('term_id', $validated['term_id'])
             ->whereIn('subject_id', $subjectIds)
-            ->get();
+            ->whereIn('student_id', $studentIds)
+            ->get()
+            ->filter(function ($mark) use ($allowedSubjectIdsByStudent) {
+                return $allowedSubjectIdsByStudent
+                    ->get($mark->student_id, collect())
+                    ->contains((int) $mark->subject_id);
+            });
 
         $results = $marks->groupBy('student_id')->map(fn($m) => $m->keyBy('subject_id'));
 
         $students = \App\Models\Student::with('user')
-            ->where('current_class_id', $validated['class_id'])
+            ->whereIn('students.id', $studentIds)
             ->join('users', 'users.id', '=', 'students.user_id')
             ->orderBy('users.name')
             ->select('students.*')
             ->get();
 
-        $subjects = $assignedSubjects->pluck('subject')->sortBy('name');
+        $subjects = $assignedSubjects->pluck('subject')->filter()->sortBy('name');
 
         return view('teacher.marks.print', compact(
             'class',
             'term',
             'students',
             'subjects',
-            'results'
+            'results',
+            'allowedSubjectIdsByStudent'
         ));
     }
 

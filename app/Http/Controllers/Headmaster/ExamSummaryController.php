@@ -33,7 +33,7 @@ class ExamSummaryController extends Controller
 
         $selectedAcademicYearId = $validated['academic_year_id'] ?? AcademicYear::where('active', true)->value('id');
         $selectedClassId = $validated['class_id'] ?? null;
-        $selectedTermId = $validated['term_id'] ?? null;
+        $selectedTermId = $validated['term_id'] ?? ($selectedAcademicYearId ? Term::current((int) $selectedAcademicYearId)?->id : Term::current()?->id);
         $selectedExamType = $validated['exam_type'] ?? ExamSummaryService::EXAM_MIDTERM;
 
         if ($selectedAcademicYearId) {
@@ -65,7 +65,42 @@ class ExamSummaryController extends Controller
             'selectedClassId',
             'selectedTermId',
             'selectedExamType'
-        ));
+        ))->with('summaryRoutePrefix', $this->routePrefix());
+    }
+
+
+    public function preview(Request $request)
+    {
+        $validated = $request->validate([
+            'academic_year_id' => ['required', 'exists:academic_years,id'],
+            'class_id' => ['required', 'exists:classes,id'],
+            'term_id' => ['required', 'exists:terms,id'],
+            'exam_type' => ['required', Rule::in(ExamSummaryService::examTypes())],
+        ]);
+
+        $summary = $this->examSummaryService->generate(
+            (int) $validated['class_id'],
+            (int) $validated['academic_year_id'],
+            (int) $validated['term_id'],
+            $validated['exam_type']
+        );
+
+        $term = Term::findOrFail($validated['term_id']);
+        $academicYear = AcademicYear::findOrFail($validated['academic_year_id']);
+
+        $pdf = Pdf::loadView('pdf.exam-summary', [
+            'summary' => $summary,
+            'term' => $term,
+            'academicYear' => $academicYear,
+            'schoolName' => 'Kweneng International Secondary School',
+            'logoPath' => public_path('images/logo.png'),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = str_replace(' ', '_', $summary['class']->name)
+            . '_' . $validated['exam_type']
+            . '_summary_sheet.pdf';
+
+        return $pdf->stream($filename);
     }
 
     public function pdf(Request $request)
@@ -100,5 +135,10 @@ class ExamSummaryController extends Controller
             . '_summary_sheet.pdf';
 
         return $pdf->download($filename);
+    }
+
+    private function routePrefix(): string
+    {
+        return 'headmaster';
     }
 }

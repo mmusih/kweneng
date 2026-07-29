@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\AnnouncementTarget;
 
 class Announcement extends Model
 {
@@ -23,18 +24,16 @@ class Announcement extends Model
         'author_role',
         'is_published',
         'publish_at',
+        'push_sent_at',
         'expires_at',
     ];
 
     protected $casts = [
         'publish_at'   => 'datetime',
+        'push_sent_at' => 'datetime',
         'expires_at'   => 'datetime',
         'is_published' => 'boolean',
     ];
-
-    // -------------------------------------------------------------------------
-    // Relationships
-    // -------------------------------------------------------------------------
 
     public function author()
     {
@@ -61,9 +60,22 @@ class Announcement extends Model
         return $this->belongsTo(Term::class);
     }
 
-    // -------------------------------------------------------------------------
-    // Scopes
-    // -------------------------------------------------------------------------
+    public function targets()
+    {
+        return $this->hasMany(AnnouncementTarget::class);
+    }
+
+    public function readers()
+    {
+        return $this->belongsToMany(
+            ParentModel::class,
+            'announcement_reads',
+            'announcement_id',
+            'parent_id'
+        )
+            ->withPivot(['read_at', 'acknowledged_at'])
+            ->withTimestamps();
+    }
 
     public function scopePublished($query)
     {
@@ -80,24 +92,15 @@ class Announcement extends Model
 
     public function scopeForParents($query)
     {
-        return $query->where(function ($q) {
-            $q->where('audience', 'all')
-                ->orWhere('audience', 'parents')
-                ->orWhere('audience', 'specific_class');
-        });
-    }
-
-    public function scopeForTeachers($query)
-    {
-        return $query->where(function ($q) {
-            $q->where('audience', 'all')
-                ->orWhere('audience', 'teachers');
-        });
-    }
-
-    public function scopeOfType($query, $type)
-    {
-        return $query->where('type', $type);
+        return $query->whereIn('audience', [
+            'all',
+            'parents',
+            'all_parents',
+            'form_level',
+            'class_group',
+            'specific_parent',
+            'specific_class',
+        ]);
     }
 
     public function scopeRecent($query, $limit = 10)
@@ -107,33 +110,152 @@ class Announcement extends Model
             ->limit($limit);
     }
 
-    // -------------------------------------------------------------------------
-    // Helper Methods
-    // -------------------------------------------------------------------------
+    public function scopeUnreadByParent($query, $parentId)
+    {
+        return $query->whereNotExists(function ($sub) use ($parentId) {
+            $sub->selectRaw(1)
+                ->from('announcement_reads')
+                ->whereColumn('announcement_reads.announcement_id', 'announcements.id')
+                ->where('announcement_reads.parent_id', $parentId)
+                ->whereNotNull('announcement_reads.read_at');
+        });
+    }
 
-    /**
-     * Check if an announcement is relevant to a specific parent.
-     * Handles audience targeting including specific_class matching
-     * against the parent's children's classes.
-     */
+    public function requiresAcknowledgement(): bool
+    {
+        return in_array($this->type, ['urgent'], true);
+    }
+
     public function isRelevantToParent($parent): bool
     {
-        // Broadcast audiences — always relevant
-        if (in_array($this->audience, ['all', 'parents'])) {
+        if (! $parent) {
+            return false;
+        }
+
+        if (in_array($this->audience, ['all', 'parents', 'all_parents'], true)) {
             return true;
         }
 
-        // Specific class — check if any of the parent's children are in that class
+        // Backward compatibility for old one-class announcements.
         if ($this->audience === 'specific_class' && $this->class_id) {
             $childClassIds = $parent->students()
                 ->pluck('current_class_id')
                 ->filter()
+                ->map(fn($id) => (int) $id)
                 ->toArray();
 
-            return in_array($this->class_id, $childClassIds);
+            return in_array((int) $this->class_id, $childClassIds, true);
+        }
+
+        $this->loadMissing('targets');
+
+        if ($this->audience === 'specific_parent') {
+            return $this->targets
+                ->where('target_type', 'parent')
+                ->pluck('target_id')
+                ->map(fn($id) => (int) $id)
+                ->contains((int) $parent->id);
+        }
+
+        if ($this->audience === 'class_group') {
+            $targetClassIds = $this->targets
+                ->where('target_type', 'class_group')
+                ->pluck('target_id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+
+            if (empty($targetClassIds)) {
+                return false;
+            }
+
+            $childClassIds = $parent->students()
+                ->pluck('current_class_id')
+                ->filter()
+                ->map(fn($id) => (int) $id)
+                ->all();
+
+            return count(array_intersect($targetClassIds, $childClassIds)) > 0;
+        }
+
+        if ($this->audience === 'form_level') {
+            $targetLevels = $this->targets
+                ->where('target_type', 'form_level')
+                ->pluck('target_value')
+                ->map(fn($v) => trim((string) $v))
+                ->filter()
+                ->values()
+                ->all();
+
+            if (empty($targetLevels)) {
+                return false;
+            }
+
+            $childLevels = $parent->students()
+                ->with('currentClass')
+                ->get()
+                ->pluck('currentClass.level')
+                ->map(fn($v) => trim((string) $v))
+                ->filter()
+                ->values()
+                ->all();
+
+            return count(array_intersect($targetLevels, $childLevels)) > 0;
         }
 
         return false;
+    }
+
+    public function markReadByParent($parent): void
+    {
+        if (! $parent) {
+            return;
+        }
+
+        $this->readers()->syncWithoutDetaching([
+            $parent->id => [
+                'read_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+    }
+
+    public function acknowledgeByParent($parent): void
+    {
+        if (! $parent) {
+            return;
+        }
+
+        $this->readers()->syncWithoutDetaching([
+            $parent->id => [
+                'read_at' => now(),
+                'acknowledged_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+    }
+
+    public function isReadByParent($parent): bool
+    {
+        if (! $parent) {
+            return false;
+        }
+
+        return $this->readers()
+            ->where('parent_id', $parent->id)
+            ->whereNotNull('announcement_reads.read_at')
+            ->exists();
+    }
+
+    public function isAcknowledgedByParent($parent): bool
+    {
+        if (! $parent) {
+            return false;
+        }
+
+        return $this->readers()
+            ->where('parent_id', $parent->id)
+            ->whereNotNull('announcement_reads.acknowledged_at')
+            ->exists();
     }
 
     public static function getTypeColor($type)
@@ -161,13 +283,15 @@ class Announcement extends Model
     public static function getAudienceLabel($audience)
     {
         return match ($audience) {
-            'all'              => 'Everyone',
-            'parents'          => 'Parents Only',
-            'teachers'         => 'Teachers Only',
-            'students'         => 'Students Only',
-            'specific_class'   => 'Specific Class',
-            'specific_subject' => 'Specific Subject',
-            default            => ucfirst($audience),
+            'all', 'all_parents', 'parents' => 'All Parents',
+            'form_level'                    => 'Form Level',
+            'class_group'                   => 'Class Group',
+            'specific_parent'               => 'Specific Parent',
+            'teachers'                      => 'Teachers Only',
+            'students'                      => 'Students Only',
+            'specific_class'                => 'Specific Class',
+            'specific_subject'              => 'Specific Subject',
+            default                         => ucwords(str_replace('_', ' ', (string) $audience)),
         };
     }
 }

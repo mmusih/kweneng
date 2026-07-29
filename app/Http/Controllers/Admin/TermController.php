@@ -24,52 +24,97 @@ class TermController extends Controller
 
     public function index()
     {
-        $terms = Term::with('academicYear')->latest()->paginate(15);
-        return view('admin.terms.index', compact('terms'));
+        $activeAcademicYear = AcademicYear::current();
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $terms = Term::with('academicYear')
+            ->orderByRaw("CASE WHEN status = 'active' THEN 0 ELSE 1 END")
+            ->latest('start_date')
+            ->paginate(15);
+
+        return view('admin.terms.index', compact('terms', 'activeAcademicYear', 'activeTerm'));
     }
 
     public function create()
     {
-        $academicYears = AcademicYear::all();
-        return view('admin.terms.create', compact('academicYears'));
+        $activeAcademicYear = AcademicYear::current();
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $academicYears = AcademicYear::where('status', '!=', AcademicYear::STATUS_CLOSED)
+            ->orderByDesc('active')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('admin.terms.create', compact('academicYears', 'activeAcademicYear', 'activeTerm'));
     }
 
     public function store(Request $request)
     {
+        $activeAcademicYear = AcademicYear::current();
+
         $validated = $request->validate([
-            'academic_year_id' => 'required|exists:academic_years,id',
+            'academic_year_id' => 'nullable|exists:academic_years,id',
             'name' => 'required|string|max:255',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
+            'status' => 'nullable|string|in:active,finalized,locked',
             'report_title' => 'nullable|string|max:255',
             'report_footer_note' => 'nullable|string',
             'report_office_note' => 'nullable|string',
             'report_extra_note' => 'nullable|string',
         ]);
 
-        $validated['status'] = 'active';
-        $validated['locked'] = false;
+        if (! isset($validated['academic_year_id'])) {
+            if (! $activeAcademicYear) {
+                return back()->withErrors([
+                    'academic_year_id' => 'Create or activate an academic year before creating a term.',
+                ])->withInput();
+            }
+
+            $validated['academic_year_id'] = $activeAcademicYear->id;
+        }
+
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $targetStatus = $validated['status'] ?? ($activeTerm ? Term::STATUS_FINALIZED : Term::STATUS_ACTIVE);
+        $validated['status'] = $targetStatus;
+        $validated['locked'] = $targetStatus === Term::STATUS_LOCKED;
         $validated['midterm_locked'] = false;
         $validated['endterm_locked'] = false;
 
         $term = Term::create($validated);
 
+        $activationResult = null;
+        if ($targetStatus === Term::STATUS_ACTIVE) {
+            $activationResult = $this->structureService->activateTerm($term->id);
+
+            if (! $activationResult['success']) {
+                $term->delete();
+
+                return back()->withErrors(['term' => $activationResult['message']])->withInput();
+            }
+        }
+
         $this->activityLogService->log(
             'term.created',
             "Term created: {$term->name}",
             $term,
-            ['term_id' => $term->id],
+            ['term_id' => $term->id, 'status' => $targetStatus],
             request()
         );
 
         return redirect()->route('admin.terms.index')
-            ->with('success', 'Term created successfully.');
+            ->with('success', $activationResult['message'] ?? 'Term created successfully.');
     }
 
     public function edit(Term $term)
     {
-        $academicYears = AcademicYear::all();
-        return view('admin.terms.edit', compact('term', 'academicYears'));
+        $activeAcademicYear = AcademicYear::current();
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $academicYears = AcademicYear::where('status', '!=', AcademicYear::STATUS_CLOSED)
+            ->orWhere('id', $term->academic_year_id)
+            ->orderByDesc('active')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('admin.terms.edit', compact('term', 'academicYears', 'activeAcademicYear', 'activeTerm'));
     }
 
     public function update(Request $request, Term $term)
@@ -86,27 +131,36 @@ class TermController extends Controller
             'report_extra_note' => 'nullable|string',
         ]);
 
-        $validated['locked'] = ($validated['status'] === 'locked');
-
-        if ($validated['status'] === 'active') {
-            Term::where('academic_year_id', $validated['academic_year_id'])
-                ->where('id', '!=', $term->id)
-                ->where('status', 'active')
-                ->update(['status' => 'locked', 'locked' => true]);
-        }
+        $targetStatus = $validated['status'];
+        unset($validated['status']);
 
         $term->update($validated);
+        $term->refresh();
+
+        $statusResult = ['success' => true, 'message' => 'Term updated successfully.'];
+
+        if ($targetStatus === Term::STATUS_ACTIVE) {
+            $statusResult = $this->structureService->activateTerm($term->id);
+        } elseif ($targetStatus === Term::STATUS_FINALIZED && ! $term->isFinalized()) {
+            $statusResult = $this->structureService->finalizeTerm($term->id);
+        } elseif ($targetStatus === Term::STATUS_LOCKED && ! $term->isLocked()) {
+            $statusResult = $this->structureService->lockTerm($term->id);
+        }
+
+        if (! $statusResult['success']) {
+            return back()->withErrors(['term' => $statusResult['message']])->withInput();
+        }
 
         $this->activityLogService->log(
             'term.updated',
             "Term updated: {$term->name}",
-            $term,
-            ['term_id' => $term->id],
+            $term->fresh(),
+            ['term_id' => $term->id, 'target_status' => $targetStatus],
             request()
         );
 
         return redirect()->route('admin.terms.index')
-            ->with('success', 'Term updated successfully.');
+            ->with('success', $statusResult['message']);
     }
 
     public function destroy(Term $term)

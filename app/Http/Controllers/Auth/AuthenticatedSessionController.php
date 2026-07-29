@@ -53,6 +53,9 @@ class AuthenticatedSessionController extends Controller
             UserRoles::PARENT          => redirect()->intended(route('parent.dashboard', false)),
             UserRoles::ACCOUNTS_OFFICER => redirect()->intended(route('accounts-officer.dashboard', false)),
             UserRoles::LIBRARIAN       => redirect()->intended(route('librarian.dashboard', false)),
+            UserRoles::OFFICE          => redirect()->intended(route('office.dashboard', false)),
+            UserRoles::REGISTER_OFFICER => redirect()->intended(route('register-officer.dashboard', false)),
+            UserRoles::INVENTORY       => redirect()->intended(route('inventory.dashboard', false)),
             default                    => redirect('/'),
         };
     }

@@ -110,7 +110,7 @@
                                     <div class="mt-4 flex flex-wrap gap-2">
                                         <span
                                             class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                                            Admission No: {{ $student->admission_no }}
+                                            {{ $student->identityDisplay() }}
                                         </span>
 
                                         <span
@@ -206,6 +206,58 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div class="mb-5 border-b border-gray-200 pb-3">
+                        <h4 class="text-lg font-semibold text-gray-800">Identity Information</h4>
+                        <p class="text-sm text-gray-500 mt-1">Nationality and official document details</p>
+                    </div>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Nationality</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->nationality ?: 'Not provided' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Document Type</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->identityDocumentLabel() }}</dd>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <dt class="text-gray-500">Document Number</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->identity_document_number ?: 'Not provided' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div class="mb-5 border-b border-gray-200 pb-3">
+                        <h4 class="text-lg font-semibold text-gray-800">Emergency Contact</h4>
+                        <p class="text-sm text-gray-500 mt-1">Contact details to use during emergencies</p>
+                    </div>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Name</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->emergency_contact_name ?: 'Not provided' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Relationship</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->emergency_contact_relationship ?: 'Not provided' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Primary Phone</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->emergency_contact_phone ?: 'Not provided' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Alternative Phone</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->emergency_contact_alt_phone ?: 'Not provided' }}</dd>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <dt class="text-gray-500">Medical Notes / Allergies</dt>
+                            <dd class="mt-1 font-semibold text-gray-900 whitespace-pre-line">{{ $student->medical_notes ?: 'None recorded' }}</dd>
+                        </div>
+                    </dl>
                 </div>
             </div>
 

@@ -34,4 +34,13 @@ class ParentModel extends Model
                     ->withPivot('relationship')
                     ->withTimestamps();
     }
+    public function absenceNotices()
+    {
+        return $this->hasMany(ParentAbsenceNotice::class, 'parent_id');
+    }
+
+    public function homeworkReads()
+    {
+        return $this->hasMany(HomeworkParentRead::class, 'parent_id');
+    }
 }

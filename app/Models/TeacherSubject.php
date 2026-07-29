@@ -50,4 +50,16 @@ class TeacherSubject extends Model
                    ->where('subject_id', $this->subject_id)
                    ->where('academic_year_id', $this->academic_year_id);
     }
+
+
+    public function schemes()
+    {
+        return $this->hasMany(Scheme::class, 'teacher_subject_id');
+    }
+
+    public function activeScheme()
+    {
+        return $this->hasOne(Scheme::class, 'teacher_subject_id')
+            ->whereIn('status', [Scheme::STATUS_APPROVED, Scheme::STATUS_ACTIVE]);
+    }
 }

@@ -23,13 +23,56 @@ class Attendance extends Model
         'attendance_date',
         'status',
         'remarks',
+        'parent_absence_notice_id',
+        'recorded_from_parent_notice',
     ];
 
     protected $casts = [
         'attendance_date' => 'date',
+        'recorded_from_parent_notice' => 'boolean',
     ];
 
     public static function statuses(): array
+    {
+        return [
+            self::STATUS_PRESENT,
+            self::STATUS_ABSENT,
+            self::STATUS_LATE,
+            self::STATUS_EXCUSED,
+        ];
+    }
+
+    public static function statusLabels(): array
+    {
+        return [
+            self::STATUS_PRESENT => 'Present',
+            self::STATUS_ABSENT => 'Absent',
+            self::STATUS_LATE => 'Late',
+            self::STATUS_EXCUSED => 'Excused',
+        ];
+    }
+
+    public static function statusCodes(): array
+    {
+        return [
+            self::STATUS_PRESENT => 'P',
+            self::STATUS_ABSENT => 'A',
+            self::STATUS_LATE => 'L',
+            self::STATUS_EXCUSED => 'E',
+        ];
+    }
+
+    public static function statusLabel(?string $status): string
+    {
+        return self::statusLabels()[$status] ?? 'Unmarked';
+    }
+
+    public static function statusCode(?string $status): string
+    {
+        return self::statusCodes()[$status] ?? '';
+    }
+
+    public static function attendanceCountStatuses(): array
     {
         return [
             self::STATUS_PRESENT,
@@ -62,5 +105,10 @@ class Attendance extends Model
     public function term()
     {
         return $this->belongsTo(Term::class);
+    }
+
+    public function parentAbsenceNotice()
+    {
+        return $this->belongsTo(ParentAbsenceNotice::class, 'parent_absence_notice_id');
     }
 }

@@ -12,6 +12,18 @@
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="p-6 text-gray-900">
+                    @if ($activeAcademicYear)
+                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                            <div class="font-semibold">Current academic year</div>
+                            <div class="text-sm mt-1">{{ $activeAcademicYear->year_name }} is selected automatically for new classes.</div>
+                        </div>
+                    @else
+                        <div class="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-900">
+                            <div class="font-semibold">No active academic year</div>
+                            <div class="text-sm mt-1">Activate the current academic year before creating operational classes.</div>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('admin.classes.store') }}" enctype="multipart/form-data">
                         @csrf
 
@@ -38,7 +50,7 @@
                                     <option value="">Select academic year</option>
                                     @foreach ($academicYears as $year)
                                         <option value="{{ $year->id }}"
-                                            {{ old('academic_year_id') == $year->id ? 'selected' : '' }}>
+                                            {{ (string) old('academic_year_id', $activeAcademicYear?->id) === (string) $year->id ? 'selected' : '' }}>
                                             {{ $year->year_name }}
                                             @if ($year->active)
                                                 (Active)
@@ -68,7 +80,7 @@
                                 </select>
                                 <x-input-error :messages="$errors->get('class_teacher_id')" class="mt-2" />
                                 <p class="text-sm text-gray-500 mt-1">
-                                    Only the assigned class teacher will manage attendance, punctuality, and behaviour
+                                    Only the assigned class teacher will manage attendance, behaviour, and term summary
                                     for this class.
                                 </p>
                             </div>
@@ -97,20 +109,22 @@
                                         <li><span class="font-medium">date_of_birth</span> (format: YYYY-MM-DD)</li>
                                     </ul>
 
-                                    <p class="font-medium text-gray-700 mt-4 mb-2">Optional CSV column</p>
+                                    <p class="font-medium text-gray-700 mt-4 mb-2">Optional CSV columns</p>
                                     <ul class="list-disc list-inside space-y-1">
-                                        <li><span class="font-medium">admission_no</span></li>
+                                        <li><span class="font-medium">nationality</span></li>
+                                        <li><span class="font-medium">identity_document_type</span> (birth_certificate, national_id, or passport)</li>
+                                        <li><span class="font-medium">identity_document_number</span></li>
+                                        <li><span class="font-medium">emergency_contact_name</span></li>
+                                        <li><span class="font-medium">emergency_contact_phone</span></li>
                                     </ul>
 
                                     <p class="font-medium text-gray-700 mt-4 mb-2">Example CSV format</p>
-                                    <pre class="whitespace-pre-wrap text-xs text-gray-600">surname,name,gender,date_of_birth,admission_no
-Sechele,Leatile,female,2010-05-12,ADM250001
-Doe,John,male,2011-08-03,ADM250002</pre>
+                                    <pre class="whitespace-pre-wrap text-xs text-gray-600">surname,name,gender,date_of_birth,nationality,identity_document_type,identity_document_number,emergency_contact_name,emergency_contact_phone
+Sechele,Leatile,female,2010-05-12,Botswana,birth_certificate,BC1234567,Mpho Sechele,71234567
+Doe,John,male,2011-08-03,Zimbabwe,passport,PN123456,Jane Doe,72345678</pre>
 
                                     <p class="mt-3 text-xs text-gray-500">
-                                        If <span class="font-medium">admission_no</span> is not provided, the system
-                                        will generate one automatically.
-                                        Default student accounts will be created and can be edited later.
+                                        Missing identity and emergency contact details can be completed later by admin or by linked parents from their dashboard.
                                     </p>
                                 </div>
                             </div>

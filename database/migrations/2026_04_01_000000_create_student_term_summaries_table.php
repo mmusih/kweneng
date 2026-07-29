@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('academic_year_id')->constrained()->cascadeOnDelete();
             $table->foreignId('term_id')->constrained()->cascadeOnDelete();
 
-            $table->string('attendance')->nullable();
+            $table->unsignedInteger('attendance_total_days')->nullable();
+            $table->unsignedInteger('attendance_days_present')->nullable();
             $table->string('punctuality')->nullable();
             $table->string('behaviour')->nullable();
             $table->text('remarks')->nullable();

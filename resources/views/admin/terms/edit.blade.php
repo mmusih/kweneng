@@ -39,6 +39,13 @@
                         </div>
                     @endif
 
+                    <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                        <div class="font-semibold">Current setup</div>
+                        <div class="text-sm mt-1">
+                            Active year: {{ $activeAcademicYear?->year_name ?? 'None' }} · Active term: {{ $activeTerm?->name ?? 'None' }}
+                        </div>
+                    </div>
+
                     <form method="POST" action="{{ route('admin.terms.update', $term) }}">
                         @csrf
                         @method('PUT')
@@ -53,7 +60,7 @@
                                     @foreach ($academicYears as $year)
                                         <option value="{{ $year->id }}"
                                             {{ old('academic_year_id', $term->academic_year_id) == $year->id ? 'selected' : '' }}>
-                                            {{ $year->year_name }}
+                                            {{ $year->year_name }}{{ $year->active ? ' (Active)' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -88,17 +95,18 @@
                                     required>
                                     <option value="active"
                                         {{ old('status', $term->status) == 'active' ? 'selected' : '' }}>
-                                        Active
+                                        Active / Current Term
                                     </option>
                                     <option value="finalized"
                                         {{ old('status', $term->status) == 'finalized' ? 'selected' : '' }}>
-                                        Finalized
+                                        Not Current Yet / Finalized
                                     </option>
                                     <option value="locked"
                                         {{ old('status', $term->status) == 'locked' ? 'selected' : '' }}>
                                         Locked
                                     </option>
                                 </select>
+                                <p class="text-sm text-gray-500 mt-1">Only one term can be active. Making this active will finalize any other active term and remove its homework uploads.</p>
                                 <x-input-error :messages="$errors->get('status')" class="mt-2" />
                             </div>
                         </div>

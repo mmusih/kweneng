@@ -2,12 +2,19 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Event extends Model
 {
     use HasFactory;
+
+    public const TYPE_HOLIDAY = 'holiday';
 
     protected $fillable = [
         'title',
@@ -32,7 +39,6 @@ class Event extends Model
         'is_recurring' => 'boolean',
     ];
 
-    // Relationships
     public function classModel()
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
@@ -53,13 +59,12 @@ class Event extends Model
         return $this->hasMany(EventComment::class, 'event_id');
     }
 
-    // Scopes
-    public function scopeUpcoming($query)
+    public function scopeUpcoming(Builder $query): Builder
     {
         return $query->where('start_datetime', '>=', now());
     }
 
-    public function scopeForParents($query)
+    public function scopeForParents(Builder $query): Builder
     {
         return $query->where(function ($q) {
             $q->where('visibility', 'all')
@@ -67,7 +72,7 @@ class Event extends Model
         });
     }
 
-    public function scopeForTeachers($query)
+    public function scopeForTeachers(Builder $query): Builder
     {
         return $query->where(function ($q) {
             $q->where('visibility', 'all')
@@ -75,17 +80,130 @@ class Event extends Model
         });
     }
 
-    public function scopeOfType($query, $type)
+    public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('type', $type);
     }
 
-    public function scopeVisibleTo($query, $visibility)
+    public function scopeVisibleTo(Builder $query, string $visibility): Builder
     {
         return $query->where('visibility', $visibility);
     }
 
-    // Helper Methods
+    public function scopeHoliday(Builder $query): Builder
+    {
+        return $query->where('type', self::TYPE_HOLIDAY);
+    }
+
+    public function scopeOverlappingDateRange(Builder $query, CarbonInterface $fromDate, CarbonInterface $toDate): Builder
+    {
+        return $query
+            ->whereDate('start_datetime', '<=', $toDate->toDateString())
+            ->where(function ($q) use ($fromDate) {
+                $q->where(function ($singleDay) use ($fromDate) {
+                    $singleDay->whereNull('end_datetime')
+                        ->whereDate('start_datetime', '>=', $fromDate->toDateString());
+                })->orWhereDate('end_datetime', '>=', $fromDate->toDateString());
+            });
+    }
+
+    public function scopeAffectsAttendance(Builder $query, ?int $classId = null, ?int $academicYearId = null): Builder
+    {
+        return $query
+            ->holiday()
+            ->when($academicYearId, function (Builder $q) use ($academicYearId) {
+                $q->where(function ($yearQuery) use ($academicYearId) {
+                    $yearQuery->whereNull('academic_year_id')
+                        ->orWhere('academic_year_id', $academicYearId);
+                });
+            })
+            ->when($classId, function (Builder $q) use ($classId) {
+                $q->where(function ($classQuery) use ($classId) {
+                    $classQuery->where('visibility', '!=', 'specific_class')
+                        ->orWhere(function ($specificClassQuery) use ($classId) {
+                            $specificClassQuery->where('visibility', 'specific_class')
+                                ->where('class_id', $classId);
+                        });
+                });
+            }, function (Builder $q) {
+                $q->where('visibility', '!=', 'specific_class');
+            });
+    }
+
+    /**
+     * Returns a collection keyed by Y-m-d. Each item contains a title and the events on that date.
+     */
+    public static function attendanceHolidayDatesBetween(
+        CarbonInterface|string $fromDate,
+        CarbonInterface|string $toDate,
+        ?int $classId = null,
+        ?int $academicYearId = null
+    ): Collection {
+        $from = $fromDate instanceof CarbonInterface
+            ? Carbon::parse($fromDate->toDateString())->startOfDay()
+            : Carbon::parse($fromDate)->startOfDay();
+
+        $to = $toDate instanceof CarbonInterface
+            ? Carbon::parse($toDate->toDateString())->startOfDay()
+            : Carbon::parse($toDate)->startOfDay();
+
+        if ($to->lt($from)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $events = static::query()
+            ->affectsAttendance($classId, $academicYearId)
+            ->overlappingDateRange($from, $to)
+            ->orderBy('start_datetime')
+            ->orderBy('title')
+            ->get();
+
+        $dates = collect();
+
+        foreach ($events as $event) {
+            $eventStart = $event->start_datetime->copy()->startOfDay();
+            $eventEnd = ($event->end_datetime ?: $event->start_datetime)->copy()->startOfDay();
+
+            if ($eventEnd->lt($eventStart)) {
+                $eventEnd = $eventStart->copy();
+            }
+
+            $rangeStart = $eventStart->gt($from) ? $eventStart : $from;
+            $rangeEnd = $eventEnd->lt($to) ? $eventEnd : $to;
+
+            foreach (CarbonPeriod::create($rangeStart, $rangeEnd) as $date) {
+                $key = $date->toDateString();
+                $current = $dates->get($key, [
+                    'date' => $key,
+                    'title' => '',
+                    'titles' => [],
+                    'events' => collect(),
+                ]);
+
+                $current['titles'][$event->id] = $event->title;
+                $current['events']->push($event);
+                $current['title'] = implode(', ', array_values($current['titles']));
+
+                $dates->put($key, $current);
+            }
+        }
+
+        return $dates->sortKeys();
+    }
+
+    public static function attendanceHolidayForDate(
+        CarbonInterface|string $date,
+        ?int $classId = null,
+        ?int $academicYearId = null
+    ): ?array {
+        $day = $date instanceof CarbonInterface
+            ? Carbon::parse($date->toDateString())->startOfDay()
+            : Carbon::parse($date)->startOfDay();
+
+        return static::attendanceHolidayDatesBetween($day, $day, $classId, $academicYearId)
+            ->get($day->toDateString());
+    }
+
     public static function getTypeColor($type)
     {
         return match ($type) {
@@ -137,7 +255,6 @@ class Event extends Model
         };
     }
 
-    // Check if event is currently happening
     public function isHappening()
     {
         $now = now();
@@ -147,13 +264,11 @@ class Event extends Model
         return $now->isSameDay($this->start_datetime) || $now >= $this->start_datetime;
     }
 
-    // Check if event is in the future
     public function isUpcoming()
     {
         return $this->start_datetime > now();
     }
 
-    // Check if event has passed
     public function isPast()
     {
         if ($this->end_datetime) {
@@ -162,7 +277,6 @@ class Event extends Model
         return $this->start_datetime < now();
     }
 
-    // Get event duration in days
     public function getDurationInDays()
     {
         if ($this->end_datetime) {
@@ -171,7 +285,6 @@ class Event extends Model
         return 1;
     }
 
-    // Check if event is relevant to a specific class
     public function isRelevantToClass($classId)
     {
         if ($this->visibility === 'all' || $this->visibility === 'parents') {
@@ -185,7 +298,6 @@ class Event extends Model
         return false;
     }
 
-    // Check if event is relevant to a specific user role
     public function isRelevantToRole($role)
     {
         if ($this->visibility === 'all') {

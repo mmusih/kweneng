@@ -28,14 +28,19 @@ class MarksController extends Controller
 
     public function index(Request $request)
     {
+        $activeAcademicYear = AcademicYear::current();
+        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
+        $selectedAcademicYearId = $request->input('academic_year_id', $activeAcademicYear?->id);
+        $selectedTermId = $request->input('term_id', $activeTerm?->id);
+
         $query = Mark::with(['student.user', 'subject', 'class', 'teacher.user', 'academicYear', 'term']);
 
-        if ($request->filled('academic_year_id')) {
-            $query->where('academic_year_id', $request->academic_year_id);
+        if ($selectedAcademicYearId) {
+            $query->where('academic_year_id', $selectedAcademicYearId);
         }
 
-        if ($request->filled('term_id')) {
-            $query->where('term_id', $request->term_id);
+        if ($selectedTermId) {
+            $query->where('term_id', $selectedTermId);
         }
 
         if ($request->filled('class_id')) {
@@ -69,7 +74,11 @@ class MarksController extends Controller
             'classes',
             'subjects',
             'teachers',
-            'marksImportPreview'
+            'marksImportPreview',
+            'activeAcademicYear',
+            'activeTerm',
+            'selectedAcademicYearId',
+            'selectedTermId'
         ));
     }
 
@@ -485,6 +494,20 @@ class MarksController extends Controller
                 ->values()
                 ->all();
 
+            $invalidStudentIds = $this->invalidStudentIdsForClassYear(
+                $selectedStudentIds,
+                (int) $validated['class_id'],
+                (int) $validated['academic_year_id']
+            );
+
+            if (!empty($invalidStudentIds)) {
+                return redirect()->back()
+                    ->withErrors([
+                        'student_ids' => 'One or more selected learners are not active in the selected class and academic year.',
+                    ])
+                    ->withInput();
+            }
+
             $this->saveStudentTeacherAssignments(
                 $validated['academic_year_id'],
                 $validated['class_id'],
@@ -674,6 +697,19 @@ class MarksController extends Controller
             }
 
             $studentIds = collect($validated['student_ids'])->map(fn($id) => (int) $id)->values()->all();
+
+            $invalidStudentIds = $this->invalidStudentIdsForClassYear(
+                $studentIds,
+                (int) $validated['class_id'],
+                (int) $validated['academic_year_id']
+            );
+
+            if (!empty($invalidStudentIds)) {
+                return redirect()->back()
+                    ->withErrors([
+                        'student_ids' => 'One or more imported learners are not active in the selected class and academic year.',
+                    ]);
+            }
 
             $this->saveStudentTeacherAssignments(
                 $validated['academic_year_id'],
@@ -947,6 +983,30 @@ class MarksController extends Controller
         }
     }
 
+    private function invalidStudentIdsForClassYear(array $studentIds, int $classId, int $academicYearId): array
+    {
+        $studentIds = collect($studentIds)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($studentIds->isEmpty()) {
+            return [];
+        }
+
+        $activeStudentIds = Student::whereIn('id', $studentIds)
+            ->whereHas('classHistory', function ($query) use ($classId, $academicYearId) {
+                $query->where('class_id', $classId)
+                    ->where('academic_year_id', $academicYearId)
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+
+        return $studentIds->diff($activeStudentIds)->values()->all();
+    }
+
     private function saveStudentTeacherAssignments(
         int $academicYearId,
         int $classId,
@@ -971,7 +1031,10 @@ class MarksController extends Controller
                 ->where('academic_year_id', $academicYearId)
                 ->where('subject_id', $subjectId)
                 ->whereIn('student_id', $studentIds)
-                ->where('teacher_id', '!=', $teacherId)
+                ->where(function ($query) use ($teacherId) {
+                    $query->whereNull('teacher_id')
+                        ->orWhere('teacher_id', '!=', $teacherId);
+                })
                 ->delete();
 
             $rows = [];

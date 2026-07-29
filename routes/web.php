@@ -25,6 +25,9 @@ Route::get('/term-dates', [PageController::class, 'termDates'])->name('term-date
 Route::get('/policies', [PageController::class, 'policies'])->name('policies');
 Route::get('/success-stories', [PageController::class, 'successStories'])->name('success-stories');
 
+// Public app download page
+Route::view('/parent-app', 'parent-app')->name('parent-app');
+
 // Alumni interest registration
 Route::post('/alumni/register-interest', [AlumniInterestController::class, 'store'])->name('alumni.register-interest');
 
@@ -62,4 +65,20 @@ if (file_exists(__DIR__ . '/headmaster.php')) {
 // Include librarian routes
 if (file_exists(__DIR__ . '/librarian.php')) {
     require __DIR__ . '/librarian.php';
+}
+
+
+// Include office routes
+if (file_exists(__DIR__ . '/office.php')) {
+    require __DIR__ . '/office.php';
+}
+
+// Include register officer routes
+if (file_exists(__DIR__ . '/register_officer.php')) {
+    require __DIR__ . '/register_officer.php';
+}
+
+// Include inventory routes
+if (file_exists(__DIR__ . '/inventory.php')) {
+    require __DIR__ . '/inventory.php';
 }

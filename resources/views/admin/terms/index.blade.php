@@ -22,6 +22,15 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+                    @if ($activeAcademicYear || $activeTerm)
+                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
+                            <div class="font-semibold">Current academic context</div>
+                            <div class="text-sm mt-1">
+                                Active year: {{ $activeAcademicYear?->year_name ?? 'None' }} · Active term: {{ $activeTerm?->name ?? 'None' }}
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="flex justify-between items-center mb-6">
                         <div>
                             <h3 class="text-xl font-semibold">Manage Terms</h3>
@@ -217,7 +226,7 @@
                                                         @csrf
                                                         <button type="submit"
                                                             class="text-purple-600 hover:text-purple-900"
-                                                            onclick="return confirm('Finalize this term?')">
+                                                            onclick="return confirm('Finalize this term? Homework photos/files uploaded for this term will be deleted from storage, but homework records and submission tracking will remain.')">
                                                             Finalize
                                                         </button>
                                                     </form>
@@ -226,7 +235,7 @@
                                                         method="POST" class="inline">
                                                         @csrf
                                                         <button type="submit" class="text-gray-600 hover:text-gray-900"
-                                                            onclick="return confirm('Lock this term fully? This cannot be undone easily.')">
+                                                            onclick="return confirm('Lock this term fully? Any remaining homework photos/files for this term will be deleted from storage.')">
                                                             Lock Term
                                                         </button>
                                                     </form>

@@ -128,6 +128,33 @@ class BookController extends Controller
         ]);
     }
 
+
+    public function destroy(Request $request, Book $book)
+    {
+        // Block deletion while any copy is currently issued or overdue.
+        $blockingCopies = $book->copies()
+            ->whereHas('activeBorrowing')
+            ->count();
+
+        if ($blockingCopies > 0) {
+            $suffix = $blockingCopies === 1 ? 'copy is' : 'copies are';
+            return redirect()
+                ->route('librarian.books.index')
+                ->withErrors([
+                    'book' => 'Cannot delete "' . $book->title . '" while ' . $blockingCopies
+                        . ' ' . $suffix . ' currently on loan. Please process returns first.',
+                ]);
+        }
+
+        $title = $book->title;
+        $book->delete();
+
+        return redirect()
+            ->route('librarian.books.index')
+            ->with('success', 'Book "' . $title . '" and its copies were deleted successfully.');
+    }
+
+
     public function importPreview(Request $request)
     {
         $request->validate([
@@ -495,3 +522,4 @@ class BookController extends Controller
         return preg_replace('/[^0-9Xx]/', '', $isbn) ?? '';
     }
 }
+

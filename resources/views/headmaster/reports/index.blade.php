@@ -1,18 +1,19 @@
 <x-app-layout>
+    @php($reportRoutePrefix = $reportRoutePrefix ?? (request()->routeIs('admin.*') ? 'admin' : (request()->routeIs('office.*') ? 'office' : 'headmaster')))
     <x-slot name="header">
-        <div class="mt-16 p-6 bg-gradient-to-r from-indigo-600 to-blue-700 rounded-lg shadow-lg">
+        <div class="mt-16 p-6 kw-page-header rounded-2xl shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="font-semibold text-2xl text-white leading-tight">
                         Report Cards
                     </h2>
-                    <p class="text-blue-100 text-sm mt-1">
+                    <p class="text-white/80 text-sm mt-1">
                         Generate and preview student term reports
                     </p>
                 </div>
 
-                <a href="{{ route('headmaster.dashboard') }}"
-                    class="text-white hover:text-blue-100 text-sm font-medium flex items-center">
+                <a href="{{ route($reportRoutePrefix === 'headmaster' ? 'headmaster.dashboard' : ($reportRoutePrefix === 'office' ? 'office.dashboard' : 'admin.dashboard')) }}"
+                    class="text-white hover:text-white/80 text-sm font-medium flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -31,8 +32,8 @@
                     No active academic year found.
                 </div>
             @else
-                <div class="bg-white shadow-sm rounded-lg p-6">
-                    <form method="GET" action="{{ route('headmaster.reports.index') }}">
+                <div class="bg-white kw-panel p-6">
+                    <form method="GET" action="{{ route($reportRoutePrefix . '.reports.index') }}">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label for="class_id" class="block text-sm font-medium text-gray-700">Class</label>
@@ -75,14 +76,14 @@
                 </div>
 
                 @if ($selectedClassId && $selectedTermId)
-                    <div class="bg-white shadow-sm rounded-lg p-6">
+                    <div class="bg-white kw-panel p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-900">
                                 Students
                             </h3>
 
                             @if ($students->count())
-                                <a href="{{ route('headmaster.reports.bulk-pdf', ['class_id' => $selectedClassId, 'term_id' => $selectedTermId]) }}"
+                                <a href="{{ route($reportRoutePrefix . '.reports.bulk-pdf', ['class_id' => $selectedClassId, 'term_id' => $selectedTermId]) }}"
                                     class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700">
                                     Download Class PDF
                                 </a>
@@ -145,7 +146,7 @@
                                                     {{ $student->endterm_position ?? 'N/A' }}
                                                 </td>
                                                 <td class="px-4 py-3 text-sm">
-                                                    <a href="{{ route('headmaster.reports.show', ['student' => $student->id, 'term_id' => $selectedTermId]) }}"
+                                                    <a href="{{ route($reportRoutePrefix . '.reports.show', ['student' => $student->id, 'term_id' => $selectedTermId]) }}"
                                                         class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700">
                                                         View Report
                                                     </a>

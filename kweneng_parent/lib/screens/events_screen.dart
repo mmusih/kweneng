@@ -43,8 +43,8 @@ class _EventsScreenState extends ConsumerState<EventsScreen>
           unselectedLabelColor: Colors.white60,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Calendar'),
             Tab(text: 'List'),
+            Tab(text: 'Calendar'),
           ],
         ),
       ),
@@ -78,6 +78,37 @@ class _EventsScreenState extends ConsumerState<EventsScreen>
           return TabBarView(
             controller: _tabs,
             children: [
+              // ── List tab ──────────────────────────────────
+              RefreshIndicator(
+                onRefresh: () async => ref.invalidate(eventsProvider),
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (data.upcoming.isNotEmpty) ...[
+                      const _ListHeader(title: 'Upcoming'),
+                      ...data.upcoming.map((e) => _EventListTile(event: e)),
+                    ],
+                    if (data.past.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const _ListHeader(title: 'Past Events', muted: true),
+                      ...data.past.map(
+                        (e) => _EventListTile(event: e, muted: true),
+                      ),
+                    ],
+                    if (data.upcoming.isEmpty && data.past.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text(
+                            'No events found.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
               // ── Calendar tab ──────────────────────────────
               RefreshIndicator(
                 onRefresh: () async => ref.invalidate(eventsProvider),
@@ -104,7 +135,7 @@ class _EventsScreenState extends ConsumerState<EventsScreen>
                         },
                         calendarStyle: CalendarStyle(
                           todayDecoration: BoxDecoration(
-                            color: AppTheme.primaryLight.withOpacity(0.4),
+                            color: AppTheme.primaryLight.withValues(alpha: 0.4),
                             shape: BoxShape.circle,
                           ),
                           selectedDecoration: const BoxDecoration(
@@ -165,37 +196,6 @@ class _EventsScreenState extends ConsumerState<EventsScreen>
                       ],
                     ],
                   ),
-                ),
-              ),
-
-              // ── List tab ──────────────────────────────────
-              RefreshIndicator(
-                onRefresh: () async => ref.invalidate(eventsProvider),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (data.upcoming.isNotEmpty) ...[
-                      const _ListHeader(title: 'Upcoming'),
-                      ...data.upcoming.map((e) => _EventListTile(event: e)),
-                    ],
-                    if (data.past.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const _ListHeader(title: 'Past Events', muted: true),
-                      ...data.past.map(
-                        (e) => _EventListTile(event: e, muted: true),
-                      ),
-                    ],
-                    if (data.upcoming.isEmpty && data.past.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: Text(
-                            'No events found.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                  ],
                 ),
               ),
             ],

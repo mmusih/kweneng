@@ -33,7 +33,8 @@ class ReportCardController extends Controller
         $students = collect();
 
         $selectedClassId = $request->input('class_id');
-        $selectedTermId = $request->input('term_id');
+        $selectedTermId = $request->input('term_id')
+            ?: ($activeAcademicYear ? Term::current((int) $activeAcademicYear->id)?->id : Term::current()?->id);
 
         if ($activeAcademicYear) {
             $classes = ClassModel::where('academic_year_id', $activeAcademicYear->id)
@@ -88,14 +89,14 @@ class ReportCardController extends Controller
             'students',
             'selectedClassId',
             'selectedTermId'
-        ));
+        ))->with('reportRoutePrefix', $this->routePrefix());
     }
 
     public function show(Request $request, Student $student)
     {
         $data = $this->buildReportData($student, (int) $request->input('term_id'));
 
-        return view('headmaster.reports.show', $data);
+        return view('headmaster.reports.show', $data)->with('reportRoutePrefix', $this->routePrefix());
     }
 
     public function pdf(Request $request, Student $student)
@@ -142,6 +143,14 @@ class ReportCardController extends Controller
         $filename = str_replace(' ', '_', $class->name) . '_' . str_replace(' ', '_', $term->name) . '_report_cards.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Public wrapper for buildReportData to allow external access.
+     */
+    public function buildReportDataPublic(Student $student, int $termId): array
+    {
+        return $this->buildReportData($student, $termId);
     }
 
     protected function buildReportData(Student $student, int $termId): array
@@ -357,5 +366,11 @@ class ReportCardController extends Controller
         }
 
         return 'Must remain focused';
+    }
+
+
+    private function routePrefix(): string
+    {
+        return request()->routeIs('office.*') ? 'office' : 'admin';
     }
 }

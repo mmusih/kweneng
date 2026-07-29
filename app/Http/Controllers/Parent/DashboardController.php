@@ -8,10 +8,12 @@ use App\Models\Attendance;
 use App\Models\BehaviourRecord;
 use App\Models\LibraryBorrowing;
 use App\Models\Mark;
+use App\Models\ParentMessage;
 use App\Models\Punctuality;
 use App\Models\Term;
 use App\Models\Announcement;
 use App\Models\Event;
+use App\Models\HomeworkMark;
 use App\Services\StudentPerformanceService;
 use Illuminate\Support\Facades\Auth;
 
@@ -41,6 +43,10 @@ class DashboardController extends Controller
                 'announcements' => collect(),
                 'upcomingEvents' => collect(),
                 'importantAnnouncements' => collect(),
+                'unreadMessageCount' => 0,
+                'unreadHomeworkCount' => 0,
+                'recentHomeworkRecords' => collect(),
+                'incompleteProfileChildren' => collect(),
                 'stats' => [
                     'totalChildren' => 0,
                     'accessibleChildren' => 0,
@@ -48,6 +54,7 @@ class DashboardController extends Controller
                     'childrenWithMarks' => 0,
                     'borrowedBooks' => 0,
                     'overdueBooks' => 0,
+                    'unreadHomework' => 0,
                 ],
                 'marksOverview' => [],
                 'childrenLibrarySummary' => [],
@@ -93,18 +100,20 @@ class DashboardController extends Controller
             $data['stats']['accessibleChildren'] = $accessibleChildren->count();
             $data['stats']['blockedChildren'] = $blockedChildren->count();
 
-            // Fetch announcements for parents
+            // Fetch announcements for parents — excluding ones this parent has already dismissed
             $data['announcements'] = Announcement::published()
                 ->forParents()
+                ->unreadByParent($parent->id)
                 ->recent(5)
                 ->get()
                 ->filter(function ($announcement) use ($parent) {
                     return $announcement->isRelevantToParent($parent);
                 });
 
-            // Fetch urgent/high priority announcements
+            // Fetch urgent/high priority announcements — also excluding dismissed ones
             $data['importantAnnouncements'] = Announcement::published()
                 ->forParents()
+                ->unreadByParent($parent->id)
                 ->whereIn('type', ['urgent', 'event'])
                 ->recent(3)
                 ->get()
@@ -121,6 +130,19 @@ class DashboardController extends Controller
                 ->orderBy('start_datetime')
                 ->limit(5)
                 ->get();
+
+            // Unread admin replies count
+            $data['unreadMessageCount'] = ParentMessage::where('parent_id', $parent->id)
+                ->where('is_read_by_parent', false)
+                ->count();
+
+            $studentIds = $children->pluck('id')->map(fn ($id) => (int) $id)->values();
+            $data['unreadHomeworkCount'] = $this->unreadHomeworkCount($parent->id, $studentIds);
+            $data['recentHomeworkRecords'] = $this->recentHomeworkRecords($studentIds);
+            $data['incompleteProfileChildren'] = $children
+                ->filter(fn ($child) => ! $child->isProfileComplete())
+                ->values();
+            $data['stats']['unreadHomework'] = $data['unreadHomeworkCount'];
 
             $marksOverview = [];
             $childrenLibrarySummary = [];
@@ -253,6 +275,10 @@ class DashboardController extends Controller
             'announcements' => $dashboardData['announcements'] ?? collect(),
             'upcomingEvents' => $dashboardData['upcomingEvents'] ?? collect(),
             'importantAnnouncements' => $dashboardData['importantAnnouncements'] ?? collect(),
+            'unreadMessageCount' => $dashboardData['unreadMessageCount'] ?? 0,
+            'unreadHomeworkCount' => $dashboardData['unreadHomeworkCount'] ?? 0,
+            'recentHomeworkRecords' => $dashboardData['recentHomeworkRecords'] ?? collect(),
+            'incompleteProfileChildren' => $dashboardData['incompleteProfileChildren'] ?? collect(),
             'stats' => $dashboardData['stats'] ?? [
                 'totalChildren' => 0,
                 'accessibleChildren' => 0,
@@ -260,10 +286,53 @@ class DashboardController extends Controller
                 'childrenWithMarks' => 0,
                 'borrowedBooks' => 0,
                 'overdueBooks' => 0,
+                'unreadHomework' => 0,
             ],
             'marksOverview' => $dashboardData['marksOverview'] ?? [],
             'childrenLibrarySummary' => $dashboardData['childrenLibrarySummary'] ?? [],
         ]);
+    }
+
+
+    private function unreadHomeworkCount(int $parentId, $studentIds): int
+    {
+        $studentIds = collect($studentIds)->filter()->values();
+
+        if ($studentIds->isEmpty()) {
+            return 0;
+        }
+
+        return HomeworkMark::query()
+            ->whereIn('student_id', $studentIds)
+            ->whereHas('homework')
+            ->whereNotExists(function ($query) use ($parentId) {
+                $query->selectRaw('1')
+                    ->from('homework_parent_reads')
+                    ->where('homework_parent_reads.parent_id', $parentId)
+                    ->whereColumn('homework_parent_reads.student_id', 'homework_marks.student_id')
+                    ->whereColumn('homework_parent_reads.homework_id', 'homework_marks.homework_id');
+            })
+            ->count();
+    }
+
+    private function recentHomeworkRecords($studentIds)
+    {
+        $studentIds = collect($studentIds)->filter()->values();
+
+        if ($studentIds->isEmpty()) {
+            return collect();
+        }
+
+        return HomeworkMark::with(['student.user', 'homework.subject', 'homework.teacher.user'])
+            ->whereIn('student_id', $studentIds)
+            ->whereHas('homework')
+            ->get()
+            ->sortByDesc(function (HomeworkMark $record) {
+                $date = optional($record->homework?->assigned_date)->format('Y-m-d') ?? '0000-00-00';
+                return $date . '-' . str_pad((string) ($record->homework_id ?? 0), 12, '0', STR_PAD_LEFT);
+            })
+            ->take(3)
+            ->values();
     }
 
     protected function behaviourLabel($behaviourRecords): string

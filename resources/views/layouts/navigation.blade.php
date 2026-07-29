@@ -1,4 +1,5 @@
 <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 ease-in-out">
+
     @php
         $isHomePage = request()->routeIs('home');
     @endphp
@@ -11,10 +12,21 @@
                 'headmaster' => 'headmaster.dashboard',
                 'librarian' => 'librarian.dashboard',
                 'accounts_officer' => 'accounts-officer.dashboard',
+                'office' => 'office.dashboard',
+                'register_officer' => 'register-officer.dashboard',
+                'inventory' => 'inventory.dashboard',
                 'student' => 'student.dashboard',
                 'parent' => 'parent.dashboard',
                 default => null,
             };
+
+            $officeMessageRoute = Auth::user()->role === 'office'
+                ? 'office.messages.index'
+                : (Auth::user()->role === 'admin' ? 'admin.messages.index' : null);
+
+            $officeUnreadMessages = $officeMessageRoute && Route::has($officeMessageRoute)
+                ? \App\Models\ParentMessage::where('is_read_by_admin', false)->count()
+                : 0;
         @endphp
     @endauth
 
@@ -88,6 +100,11 @@
                             Admissions
                         </a>
 
+                        <a href="{{ url('/parent-app') }}"
+                            class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->is('parent-app') ? 'border-[#2baffc] text-white' : 'border-transparent text-slate-100 hover:text-white hover:border-slate-200' }} text-sm font-medium">
+                            Parent App
+                        </a>
+
                         <a href="{{ route('faq') }}"
                             class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->routeIs('faq') ? 'border-[#2baffc] text-white' : 'border-transparent text-slate-100 hover:text-white hover:border-slate-200' }} text-sm font-medium">
                             FAQ
@@ -131,6 +148,16 @@
                                     <a href="{{ route($dashboardRoute) }}"
                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">
                                         Dashboard
+                                    </a>
+                                @endif
+
+                                @if ($officeMessageRoute && Route::has($officeMessageRoute))
+                                    <a href="{{ route($officeMessageRoute) }}"
+                                        class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">
+                                        <span>Messages</span>
+                                        @if ($officeUnreadMessages > 0)
+                                            <span class="ml-3 inline-flex min-w-6 justify-center rounded-full bg-rose-600 px-2 py-0.5 text-xs font-bold text-white">{{ $officeUnreadMessages }}</span>
+                                        @endif
                                     </a>
                                 @endif
 
@@ -207,6 +234,11 @@
                 Admissions
             </a>
 
+            <a href="{{ url('/parent-app') }}"
+                class="block pl-4 pr-4 py-3 text-base font-medium {{ request()->is('parent-app') ? 'text-white bg-slate-700 border-l-4 border-[#2baffc]' : 'text-slate-100 hover:text-white hover:bg-slate-700' }}">
+                Parent App
+            </a>
+
             <a href="{{ route('faq') }}"
                 class="block pl-4 pr-4 py-3 text-base font-medium {{ request()->routeIs('faq') ? 'text-white bg-slate-700 border-l-4 border-[#2baffc]' : 'text-slate-100 hover:text-white hover:bg-slate-700' }}">
                 FAQ
@@ -244,6 +276,16 @@
                         <a href="{{ route($dashboardRoute) }}"
                             class="block w-full text-left px-4 py-3 text-base text-slate-100 hover:text-white hover:bg-slate-700">
                             Dashboard
+                        </a>
+                    @endif
+
+                    @if ($officeMessageRoute && Route::has($officeMessageRoute))
+                        <a href="{{ route($officeMessageRoute) }}"
+                            class="flex items-center justify-between w-full px-4 py-3 text-base text-slate-100 hover:text-white hover:bg-slate-700">
+                            <span>Messages</span>
+                            @if ($officeUnreadMessages > 0)
+                                <span class="ml-3 inline-flex min-w-6 justify-center rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">{{ $officeUnreadMessages }}</span>
+                            @endif
                         </a>
                     @endif
 

@@ -9,3 +9,215 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Kweneng professional view helpers
+   Kept in app.css so dashboard/view styling does not modify the navbar. */
+:root {
+    --kw-muted-indigo: #4A4E69;
+    --kw-desaturated-olive: #6B705C;
+    --kw-dusty-mauve: #7F6B6B;
+    --kw-deep-slate: #2C3E50;
+    --kw-army-green: #4A5D23;
+    --kw-cold-brown: #5D4E46;
+    --kw-dark-slate: #2F4F4F;
+    --kw-admin-indigo: #6366f1;
+    --kw-admin-blue: #0ea5e9;
+    --kw-admin-cyan: #06b6d4;
+    --kw-admin-teal: #14b8a6;
+    --kw-admin-emerald: #10b981;
+    --kw-admin-amber: #f59e0b;
+    --kw-admin-rose: #f43f5e;
+    --kw-admin-violet: #8b5cf6;
+}
+
+.kw-page-header {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .08) !important;
+}
+
+.kw-page-header h1,
+.kw-page-header h2,
+.kw-page-header h3 {
+    color: #fff !important;
+}
+
+.kw-page-header p,
+.kw-page-header .text-blue-100,
+.kw-page-header .text-orange-100,
+.kw-page-header .text-emerald-100,
+.kw-page-header .text-violet-100,
+.kw-page-header .text-indigo-100,
+.kw-page-header .text-slate-200,
+.kw-page-header .text-slate-300,
+.kw-page-header .text-slate-400,
+.kw-page-header .text-white\/80 {
+    color: #94a3b8 !important;
+}
+
+.kw-soft-section {
+    background-color: #f8fafc !important;
+}
+
+.kw-panel {
+    background-color: #fff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+}
+
+.kw-tile {
+    background-color: #fff !important;
+    color: #334155 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left-width: 4px !important;
+    border-radius: .75rem !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+a.kw-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, .08) !important;
+}
+
+.kw-tile h1,
+.kw-tile h2,
+.kw-tile h3,
+.kw-tile h4,
+.kw-tile .text-gray-900,
+.kw-tile .text-slate-900,
+.kw-tile .text-slate-800,
+.kw-tile .text-indigo-600,
+.kw-tile .text-blue-600,
+.kw-tile .text-cyan-600,
+.kw-tile .text-orange-600,
+.kw-tile .text-emerald-600,
+.kw-tile .text-rose-600,
+.kw-tile .text-violet-600,
+.kw-tile .text-green-600,
+.kw-tile .text-yellow-600 {
+    color: #1e293b !important;
+}
+
+.kw-tile p,
+.kw-tile .text-gray-500,
+.kw-tile .text-slate-500,
+.kw-tile .text-gray-600 {
+    color: #64748b !important;
+}
+
+.kw-tile svg {
+    color: #64748b !important;
+}
+
+.kw-tile .bg-blue-100,
+.kw-tile .bg-cyan-100,
+.kw-tile .bg-orange-100,
+.kw-tile .bg-indigo-100,
+.kw-tile .bg-emerald-100,
+.kw-tile .bg-rose-100,
+.kw-tile .bg-violet-100,
+.kw-tile .bg-green-100,
+.kw-tile .bg-amber-100,
+.kw-tile .bg-white\/15 {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
+}
+
+.kw-tile-indigo { border-left-color: var(--kw-muted-indigo) !important; }
+.kw-tile-olive { border-left-color: var(--kw-desaturated-olive) !important; }
+.kw-tile-mauve { border-left-color: var(--kw-dusty-mauve) !important; }
+.kw-tile-slate { border-left-color: var(--kw-deep-slate) !important; }
+.kw-tile-army { border-left-color: var(--kw-army-green) !important; }
+.kw-tile-brown { border-left-color: var(--kw-cold-brown) !important; }
+.kw-tile-darkslate { border-left-color: var(--kw-dark-slate) !important; }
+
+.kw-admin-dashboard {
+    background-color: #f6f8fb !important;
+}
+
+.kw-admin-header {
+    box-shadow: none !important;
+}
+
+.kw-admin-dashboard .kw-panel,
+.kw-admin-dashboard .kw-tile,
+.kw-admin-dashboard .kw-mini-card {
+    position: relative;
+}
+
+.kw-admin-dashboard .kw-panel {
+    background-color: var(--kw-panel-wash, #fff) !important;
+    border-color: var(--kw-panel-border, #dbe3ef) !important;
+    box-shadow: none !important;
+}
+
+.kw-admin-stat {
+    min-height: 132px;
+    background-color: var(--kw-stat-bg, #fff) !important;
+    border-color: var(--kw-stat-border, #e2e8f0) !important;
+    box-shadow: none !important;
+}
+
+.kw-admin-stat-indigo { --kw-stat-bg: #f4f5ff; --kw-stat-border: #dfe3ff; }
+.kw-admin-stat-teal { --kw-stat-bg: #f0fdfa; --kw-stat-border: #cceee8; }
+.kw-admin-stat-blue { --kw-stat-bg: #f0f7ff; --kw-stat-border: #d3e7fb; }
+.kw-admin-stat-emerald { --kw-stat-bg: #f1fbf5; --kw-stat-border: #cfeedd; }
+.kw-admin-stat-amber { --kw-stat-bg: #fff8e8; --kw-stat-border: #f3dfaa; }
+
+.kw-panel-indigo { --kw-panel-wash: #f4f5ff; --kw-panel-border: #dfe3ff; }
+.kw-panel-blue { --kw-panel-wash: #f0f7ff; --kw-panel-border: #d3e7fb; }
+.kw-panel-cyan { --kw-panel-wash: #effcff; --kw-panel-border: #cdeff5; }
+.kw-panel-emerald { --kw-panel-wash: #f1fbf5; --kw-panel-border: #cfeedd; }
+.kw-panel-amber { --kw-panel-wash: #fff8e8; --kw-panel-border: #f3dfaa; }
+.kw-panel-rose { --kw-panel-wash: #fff5f6; --kw-panel-border: #f4d4da; }
+.kw-panel-violet { --kw-panel-wash: #f8f5ff; --kw-panel-border: #e3dcfb; }
+
+.kw-admin-dashboard .kw-tile {
+    background-color: var(--kw-tile-wash, #fff) !important;
+    border-color: var(--kw-tile-border, #e2e8f0) !important;
+    border-left-width: 1px !important;
+    box-shadow: none !important;
+}
+
+.kw-admin-dashboard a.kw-tile:hover {
+    background-color: var(--kw-tile-hover, #fff) !important;
+    border-color: var(--kw-tile-hover-border, #cbd5e1) !important;
+    box-shadow: none !important;
+    transform: none;
+}
+
+.kw-admin-dashboard .kw-tile-indigo { --kw-tile-wash: #f4f5ff; --kw-tile-border: #dfe3ff; --kw-tile-hover: #eef0ff; --kw-tile-hover-border: #c9d0ff; }
+.kw-admin-dashboard .kw-tile-olive { --kw-tile-wash: #f5f8f1; --kw-tile-border: #dfe8d4; --kw-tile-hover: #eff5e8; --kw-tile-hover-border: #cfddc0; }
+.kw-admin-dashboard .kw-tile-mauve { --kw-tile-wash: #fbf5f6; --kw-tile-border: #eadadd; --kw-tile-hover: #f7eef0; --kw-tile-hover-border: #dfc6cb; }
+.kw-admin-dashboard .kw-tile-slate { --kw-tile-wash: #f5f7fa; --kw-tile-border: #dbe3ef; --kw-tile-hover: #eef3f8; --kw-tile-hover-border: #cbd7e6; }
+.kw-admin-dashboard .kw-tile-army { --kw-tile-wash: #f4f8ec; --kw-tile-border: #dde8c8; --kw-tile-hover: #edf4df; --kw-tile-hover-border: #ceddb2; }
+.kw-admin-dashboard .kw-tile-brown { --kw-tile-wash: #faf6f1; --kw-tile-border: #eadfce; --kw-tile-hover: #f6efe6; --kw-tile-hover-border: #ddceb9; }
+.kw-admin-dashboard .kw-tile-darkslate { --kw-tile-wash: #f0f7f7; --kw-tile-border: #cfe2e2; --kw-tile-hover: #e8f2f2; --kw-tile-hover-border: #bdd5d5; }
+
+.kw-mini-card {
+    border: 1px solid var(--kw-mini-border, #e2e8f0) !important;
+    border-radius: .75rem !important;
+    background-color: var(--kw-mini-bg, #fff) !important;
+    box-shadow: none !important;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+a.kw-mini-card:hover {
+    background-color: var(--kw-mini-hover, #fff) !important;
+    border-color: var(--kw-mini-hover-border, #cbd5e1) !important;
+    box-shadow: none !important;
+    transform: none;
+}
+
+.kw-mini-card-indigo { --kw-mini-bg: #f4f5ff; --kw-mini-border: #dfe3ff; --kw-mini-hover: #eef0ff; --kw-mini-hover-border: #c9d0ff; }
+.kw-mini-card-blue { --kw-mini-bg: #f0f7ff; --kw-mini-border: #d3e7fb; --kw-mini-hover: #e8f2ff; --kw-mini-hover-border: #bddaf4; }
+.kw-mini-card-violet { --kw-mini-bg: #f8f5ff; --kw-mini-border: #e3dcfb; --kw-mini-hover: #f1ecff; --kw-mini-hover-border: #d4c8f4; }
+.kw-mini-card-cyan { --kw-mini-bg: #effcff; --kw-mini-border: #cdeff5; --kw-mini-hover: #e7f8fb; --kw-mini-hover-border: #b8e3eb; }
+.kw-mini-card-emerald { --kw-mini-bg: #f1fbf5; --kw-mini-border: #cfeedd; --kw-mini-hover: #e9f7ef; --kw-mini-hover-border: #b8e2cb; }
+.kw-mini-card-amber { --kw-mini-bg: #fff8e8; --kw-mini-border: #f3dfaa; --kw-mini-hover: #fff3d7; --kw-mini-hover-border: #e8d092; }
+.kw-mini-card-rose { --kw-mini-bg: #fff5f6; --kw-mini-border: #f4d4da; --kw-mini-hover: #ffedf0; --kw-mini-hover-border: #e8c0c8; }
+.kw-mini-card-slate { --kw-mini-bg: #f5f7fa; --kw-mini-border: #dbe3ef; --kw-mini-hover: #eef3f8; --kw-mini-hover-border: #cbd7e6; }

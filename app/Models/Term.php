@@ -36,6 +36,22 @@ class Term extends Model
         'endterm_locked' => 'boolean',
     ];
 
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public static function current(?int $academicYearId = null): ?self
+    {
+        return static::query()
+            ->when($academicYearId, fn ($query) => $query->where('academic_year_id', $academicYearId))
+            ->where('status', self::STATUS_ACTIVE)
+            ->latest('start_date')
+            ->latest('id')
+            ->first();
+    }
+
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);

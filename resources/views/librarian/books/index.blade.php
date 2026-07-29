@@ -40,6 +40,12 @@
                 </div>
             @endif
 
+            @if ($errors->has('book'))
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-lg">
+                    {{ $errors->first('book') }}
+                </div>
+            @endif
+
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <form method="GET" action="{{ route('librarian.books.index') }}"
                     class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -108,10 +114,22 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('librarian.books.edit', $book) }}"
-                                            class="text-emerald-600 hover:text-emerald-800 font-medium">
-                                            Open
-                                        </a>
+                                        <div class="inline-flex items-center gap-3">
+                                            <a href="{{ route('librarian.books.edit', $book) }}"
+                                                class="text-emerald-600 hover:text-emerald-800 font-medium">
+                                                Open
+                                            </a>
+
+                                            <form method="POST" action="{{ route('librarian.books.destroy', $book) }}"
+                                                onsubmit="return confirm('Delete this book and all of its copies? This cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="text-rose-600 hover:text-rose-800 font-medium">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -132,3 +150,5 @@
         </div>
     </div>
 </x-app-layout>
+
+

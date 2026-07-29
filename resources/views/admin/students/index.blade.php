@@ -94,9 +94,9 @@
                         <form method="GET" action="{{ route('admin.students.index') }}"
                             class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <x-input-label for="search" :value="__('Search by Name or Admission No')" />
+                                <x-input-label for="search" :value="__('Search by Name or ID / Passport / Birth Certificate')" />
                                 <x-text-input id="search" class="block mt-1 w-full rounded-xl" type="text"
-                                    name="search" :value="request('search')" placeholder="Name or Admission No" />
+                                    name="search" :value="request('search')" placeholder="Name, ID, passport, birth certificate, or nationality" />
                             </div>
 
                             <div>
@@ -139,6 +139,7 @@
                             <input type="hidden" name="search" value="{{ request('search') }}">
                             <input type="hidden" name="class_id" value="{{ request('class_id') }}">
                             <input type="hidden" name="page" value="{{ request('page', 1) }}">
+                            <input type="hidden" name="selection_scope" id="selection_scope" value="selected">
 
                             <div
                                 class="mb-4 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 md:flex-row md:items-center md:justify-between">
@@ -146,8 +147,8 @@
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" id="select-all"
                                             class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                        <span class="ml-2 text-sm font-medium text-gray-700">Select all on this
-                                            page</span>
+                                        <span class="ml-2 text-sm font-medium text-gray-700">Select visible
+                                            students</span>
                                     </label>
 
                                     <span
@@ -157,23 +158,24 @@
                                 </div>
 
                                 <div class="flex flex-wrap gap-2">
-                                    <button type="submit"
-    formaction="{{ route('admin.students.print-logins') }}"
-    formmethod="POST"
-    onclick="return confirmPrintLogins();"
-    class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700">
-    Print Login Slips
-</button>
+                                    <button type="submit" formaction="{{ route('admin.students.slips.bulk') }}"
+                                        formmethod="POST" onclick="return confirmPrintLogins('selected');"
+                                        class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700">
+                                        Print Login Slips
+                                    </button>
 
-<button type="submit"
-    formaction="{{ route('admin.students.bulk-delete') }}"
-    formmethod="POST"
-    name="_method"
-    value="DELETE"
-    onclick="return confirmBulkDelete();"
-    class="inline-flex items-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-700">
-    Delete Selected
-</button>
+                                    <button type="submit" formaction="{{ route('admin.students.slips.bulk') }}"
+                                        formmethod="POST" onclick="return confirmPrintLogins('filtered');"
+                                        class="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-emerald-700">
+                                        Print All Matching Filter
+                                    </button>
+
+                                    <button type="submit" formaction="{{ route('admin.students.bulk-delete') }}"
+                                        formmethod="POST" name="_method" value="DELETE"
+                                        onclick="return confirmBulkDelete();"
+                                        class="inline-flex items-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-700">
+                                        Delete Selected
+                                    </button>
                                 </div>
                             </div>
 
@@ -191,7 +193,7 @@
                                                 Student</th>
                                             <th
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Admission No</th>
+                                                Identity Document</th>
                                             <th
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Class</th>
@@ -261,7 +263,7 @@
                                                 </td>
 
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {{ $student->admission_no }}
+                                                    {{ $student->identityDisplay() }}
                                                 </td>
 
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -444,7 +446,26 @@
             return confirm(`Are you sure you want to delete ${checked} selected student(s)?`);
         }
 
-        function confirmPrintLogins() {
+        function confirmPrintLogins(scope) {
+            const selectionScope = document.getElementById('selection_scope');
+            if (selectionScope) selectionScope.value = scope;
+
+            if (scope === 'filtered') {
+                const total = {{ (int) $students->total() }};
+                const classFilter = @json(request('class_id'));
+                const searchFilter = @json(request('search'));
+                const filterText = classFilter || searchFilter ?
+                    'all students matching the current filter' :
+                    'the whole school';
+
+                if (total === 0) {
+                    alert('No students found for the current filter.');
+                    return false;
+                }
+
+                return confirm(`Generate parent codes and print slips for ${filterText} (${total} student(s))?`);
+            }
+
             const checked = selectedStudentsCount();
 
             if (checked === 0) {
@@ -452,7 +473,7 @@
                 return false;
             }
 
-            return confirm(`Generate new temporary passwords and print login slips for ${checked} selected student(s)? Existing passwords for those students will be reset.`);
+            return confirm(`Generate parent codes and print slips for ${checked} selected student(s)?`);
         }
     </script>
 </x-app-layout>

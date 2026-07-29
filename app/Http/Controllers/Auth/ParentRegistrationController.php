@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\ParentModel;
+use App\Models\ParentStudent;
+use App\Models\Student;
 use App\Models\StudentParentCode;
 use App\Models\User;
 use App\Support\UserRoles;
@@ -27,84 +29,164 @@ class ParentRegistrationController extends Controller
 
     /**
      * Handle the parent registration form submission.
-     *
-     * Flow:
-     *  1. Validate all fields including the invite code.
-     *  2. Resolve the invite code → student.
-     *  3. Create User (role=parent, must_change_password=true) + ParentModel.
-     *  4. Link the parent to the student via parent_student pivot.
-     *  5. Mark the code as used.
-     *  6. Log in the new parent and redirect to force-change-password.
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
-            'phone'        => ['required', 'string', 'max:30'],
-            'address'      => ['required', 'string', 'max:500'],
-            'invite_code'  => ['required', 'string', 'size:10'],
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:30'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'invite_code' => ['required', 'string', 'max:30'],
             'relationship' => ['required', 'string', 'in:father,mother,guardian,other'],
-            'password'     => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', Password::min(8)],
         ], [
-            'invite_code.size'  => 'The parent code must be exactly 10 characters.',
-            'email.unique'      => 'An account with this email already exists.',
             'invite_code.required' => 'Please enter the parent code from your child\'s login slip.',
         ]);
 
-        // Resolve and validate the invite code
-        $codeRecord = StudentParentCode::valid()
-            ->where('code', strtoupper(trim($request->invite_code)))
-            ->with('student.user')
-            ->first();
+        $code = $this->normaliseCode($validated['invite_code']);
 
-        if (! $codeRecord) {
+        if (strlen($code) !== 10) {
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
-                ->withErrors([
-                    'invite_code' => 'This code is invalid or has expired. Please ask the school to reprint the login slip.',
-                ]);
+                ->withErrors(['invite_code' => 'The parent code must be exactly 10 characters.']);
         }
 
-        $student = $codeRecord->student;
+        $email = strtolower(trim($validated['email']));
 
-        // Wrap everything in a transaction — either all succeeds or nothing is saved
-        $parent = DB::transaction(function () use ($request, $codeRecord, $student) {
-            // 1. Create the User record
+        $result = DB::transaction(function () use ($request, $validated, $code, $email) {
+            $codeRecord = StudentParentCode::where('code', $code)
+                ->with(['student.user', 'student.currentClass'])
+                ->lockForUpdate()
+                ->first();
+
+            if (! $codeRecord || ! $codeRecord->student) {
+                return [null, null, 'This code is invalid or has expired. Please ask the school to reprint the login slip.'];
+            }
+
+            /** @var Student $student */
+            $student = $codeRecord->student;
+            $existingUser = User::where('email', $email)->lockForUpdate()->first();
+
+            if ($existingUser && $existingUser->role !== UserRoles::PARENT) {
+                return [null, null, 'This email is already used by another account. Please contact the school.'];
+            }
+
+            if (! $codeRecord->isValid()) {
+                if ($existingUser && $existingUser->parent && $this->isParentLinkedToStudent($existingUser->parent, $student)) {
+                    if (! Hash::check((string) $request->input('password'), $existingUser->password)) {
+                        return [null, null, 'This parent account is already active. Enter the same password again or sign in.'];
+                    }
+
+                    $this->updateParentRelationship(
+                        $existingUser->parent,
+                        $student,
+                        $validated['phone'],
+                        $validated['relationship'],
+                        $validated['address'] ?? ''
+                    );
+
+                    if (! $codeRecord->used) {
+                        $codeRecord->markUsed();
+                    }
+
+                    return [$existingUser->fresh(), $student->fresh(['user']), 'Welcome back! Your parent account is already active.'];
+                }
+
+                return [null, null, 'This code is invalid, has expired, or has already been used. Please contact the school.'];
+            }
+
+            if ($existingUser) {
+                if ($existingUser->parent && $this->isParentLinkedToStudent($existingUser->parent, $student)) {
+                    if (! Hash::check((string) $request->input('password'), $existingUser->password)) {
+                        return [null, null, 'This parent account is already active. Enter the same password again or sign in.'];
+                    }
+
+                    $this->updateParentRelationship(
+                        $existingUser->parent,
+                        $student,
+                        $validated['phone'],
+                        $validated['relationship'],
+                        $validated['address'] ?? ''
+                    );
+                    $codeRecord->markUsed();
+
+                    return [$existingUser->fresh(), $student->fresh(['user']), 'Welcome back! Your parent account is already active.'];
+                }
+
+                return [null, null, 'An account with this email already exists. Please sign in or contact the school to link another child.'];
+            }
+
             $user = User::create([
-                'name'                 => $request->name,
-                'email'                => $request->email,
-                'password'             => Hash::make($request->password),
-                'role'                 => UserRoles::PARENT,
-                'status'               => 'active',
-                'must_change_password' => false, // parent chose their own password
+                'name' => $validated['name'],
+                'email' => $email,
+                'password' => Hash::make((string) $request->input('password')),
+                'role' => UserRoles::PARENT,
+                'status' => 'active',
+                'must_change_password' => false,
             ]);
 
-            // 2. Create the ParentModel profile
             $parent = ParentModel::create([
                 'user_id' => $user->id,
-                'phone'   => $request->phone,
-                'address' => $request->address,
+                'phone' => $validated['phone'],
+                'address' => $validated['address'] ?? '',
             ]);
 
-            // 3. Link parent ↔ student
-            $parent->students()->attach($student->id, [
-                'relationship' => $request->relationship,
+            $parent->students()->syncWithoutDetaching([
+                $student->id => ['relationship' => $validated['relationship']],
             ]);
 
-            // 4. Consume the invite code
             $codeRecord->markUsed();
 
-            return $parent;
+            return [$user->fresh(), $student->fresh(['user']), 'Welcome! Your account has been created and linked to ' . ($student->user->name ?? 'your child') . '.'];
         });
 
-        // Log in the new parent immediately
-        Auth::login($parent->user);
+        [$user, $student, $message] = $result;
 
+        if (! $user) {
+            return back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['invite_code' => $message]);
+        }
+
+        Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()
             ->route('parent.dashboard')
-            ->with('success', 'Welcome! Your account has been created and linked to ' . $student->user->name . '.');
+            ->with('success', $message);
+    }
+
+    private function updateParentRelationship(
+        ParentModel $parent,
+        Student $student,
+        string $phone,
+        string $relationship,
+        string $address
+    ): void {
+        $parent->update([
+            'phone' => $phone,
+            'address' => $address !== '' ? $address : ($parent->address ?? ''),
+        ]);
+
+        $parent->students()->syncWithoutDetaching([
+            $student->id => ['relationship' => $relationship],
+        ]);
+
+        ParentStudent::where('parent_id', $parent->id)
+            ->where('student_id', $student->id)
+            ->update(['relationship' => $relationship]);
+    }
+
+    private function isParentLinkedToStudent(ParentModel $parent, Student $student): bool
+    {
+        return ParentStudent::where('parent_id', $parent->id)
+            ->where('student_id', $student->id)
+            ->exists();
+    }
+
+    private function normaliseCode(?string $code): string
+    {
+        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $code) ?? '');
     }
 }

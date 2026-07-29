@@ -17,6 +17,7 @@ Route::post('/books/import/preview', [BookController::class, 'importPreview'])->
 Route::post('/books/import/apply', [BookController::class, 'importApply'])->name('books.import.apply');
     Route::get('/books/{book}/edit', [BookController::class, 'edit'])->name('books.edit');
     Route::put('/books/{book}', [BookController::class, 'update'])->name('books.update');
+    Route::delete('/books/{book}', [BookController::class, 'destroy'])->name('books.destroy');
     Route::post('/books/{book}/copies', [BookController::class, 'storeCopy'])->name('books.copies.store');
 
     // ISBN lookup
@@ -39,3 +40,4 @@ Route::post('/books/import/apply', [BookController::class, 'importApply'])->name
     Route::get('/borrowings/lookup-book-copy', [BorrowingController::class, 'lookupBookCopy'])
         ->name('borrowings.lookup-book-copy');
 });
+

@@ -6,10 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AccountsOfficer;
 use App\Models\Alumni;
+use App\Models\AlumniInterest;
+use App\Models\Announcement;
+use App\Models\Attendance;
+use App\Models\ClassSubject;
 use App\Models\ClassModel;
+use App\Models\Department;
+use App\Models\DepartmentUser;
+use App\Models\Event;
+use App\Models\InventoryItem;
 use App\Models\Mark;
+use App\Models\ParentAbsenceNotice;
+use App\Models\ParentMessage;
 use App\Models\ParentModel;
+use App\Models\Requisition;
+use App\Models\SchoolDocument;
+use App\Models\Scheme;
 use App\Models\Student;
+use App\Models\StudentSubject;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
@@ -32,6 +46,11 @@ class DashboardController extends Controller
             'totalAlumni' => Alumni::count(),
         ];
 
+        // ── new: messaging + documents quick stats ────────────────────────
+        $unreadMessageCount = ParentMessage::where('is_read_by_admin', false)->count();
+        $activeDocumentCount = SchoolDocument::where('is_active', true)->count();
+        // ─────────────────────────────────────────────────────────────────
+
         $classes = ClassModel::with('students')->get();
 
         $activeAcademicYear = AcademicYear::where('active', true)->first();
@@ -47,6 +66,103 @@ class DashboardController extends Controller
             'atRiskStudentsCount' => 0,
             'averageMarksCompletion' => null,
         ];
+
+        $pendingInterests = AlumniInterest::where('processed', false)->count();
+        $recentInterests = AlumniInterest::where('processed', false)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $subjectOverview = [
+            'studentSubjectCount' => StudentSubject::count(),
+            'totalSubjects' => Subject::count(),
+            'activeSubjects' => Subject::where('is_active', true)->count(),
+            'coreSubjects' => Subject::where('is_core', true)->count(),
+            'classAssignments' => ClassSubject::count(),
+        ];
+
+        $communicationsOverview = [
+            'totalEvents' => Event::count(),
+            'upcomingEvents' => Event::where('start_datetime', '>=', now())->count(),
+            'totalAnnouncements' => Announcement::count(),
+            'recentAnnouncements' => Announcement::where('created_at', '>=', now()->subDays(7))->count(),
+            'pendingAbsenceNotices' => ParentAbsenceNotice::where('status', 'pending')->count(),
+            'recentAbsenceNotices' => ParentAbsenceNotice::where('created_at', '>=', now()->subDays(7))->count(),
+        ];
+
+        $inventoryOverview = [
+            'attentionCount' => InventoryItem::where(function ($query) {
+                $query->whereIn('condition_status', [
+                    InventoryItem::CONDITION_DAMAGED,
+                    InventoryItem::CONDITION_NEEDS_REPAIR,
+                    InventoryItem::CONDITION_BROKEN,
+                ])
+                    ->orWhere('procurement_status', InventoryItem::PROCUREMENT_NEEDS_BUYING)
+                    ->orWhereColumn('quantity_on_hand', '<=', 'minimum_quantity');
+            })->count(),
+            'newRequisitionCount' => Requisition::where('status', Requisition::STATUS_SUBMITTED)->count(),
+            'openRequisitionCount' => Requisition::whereNotIn('status', [
+                Requisition::STATUS_FULFILLED,
+                Requisition::STATUS_CANCELLED,
+                Requisition::STATUS_REJECTED,
+            ])->count(),
+        ];
+
+        $departmentOverview = [
+            'totalDepartments' => Department::count(),
+            'hodAssignments' => DepartmentUser::where('role_in_department', DepartmentUser::ROLE_HOD)->count(),
+        ];
+
+        $schemeQuery = Scheme::query();
+
+        if ($activeAcademicYear) {
+            $schemeQuery->where('academic_year_id', $activeAcademicYear->id);
+        }
+
+        $schemes = $schemeQuery
+            ->with(['items.subtopics', 'logs'])
+            ->latest()
+            ->limit(250)
+            ->get();
+
+        $schemeOverview = [
+            'total' => $schemes->count(),
+            'submitted' => $schemes->where('status', Scheme::STATUS_SUBMITTED)->count(),
+            'approved' => $schemes->whereIn('status', [Scheme::STATUS_APPROVED, Scheme::STATUS_ACTIVE])->count(),
+            'changesRequested' => $schemes->where('status', Scheme::STATUS_CHANGES_REQUESTED)->count(),
+            'behind' => $schemes->filter(fn (Scheme $scheme) => in_array($scheme->pacingStatus(), ['behind', 'critical'], true))->count(),
+            'averageCompletion' => $schemes->count()
+                ? round($schemes->avg(fn (Scheme $scheme) => $scheme->completionPct()), 1)
+                : 0,
+        ];
+
+        $todayRegisterMissingCount = 0;
+        if ($activeAcademicYear) {
+            $todayDate = now()->toDateString();
+            $holidayToday = Event::attendanceHolidayForDate($todayDate, null, $activeAcademicYear->id);
+
+            if (! $holidayToday) {
+                $classTeacherClassesForRegister = ClassModel::withCount('students')
+                    ->where('academic_year_id', $activeAcademicYear->id)
+                    ->whereNotNull('class_teacher_id')
+                    ->get();
+
+                foreach ($classTeacherClassesForRegister as $registerClass) {
+                    if ($registerClass->students_count < 1) {
+                        continue;
+                    }
+
+                    $recordedCount = Attendance::where('class_id', $registerClass->id)
+                        ->whereDate('attendance_date', $todayDate)
+                        ->distinct('student_id')
+                        ->count('student_id');
+
+                    if ($recordedCount < $registerClass->students_count) {
+                        $todayRegisterMissingCount++;
+                    }
+                }
+            }
+        }
 
         if ($activeAcademicYear) {
             $currentTerm = Term::where('academic_year_id', $activeAcademicYear->id)
@@ -65,8 +181,8 @@ class DashboardController extends Controller
             $schoolOverview['totalMarks'] = $marks->count();
 
             $schoolOverview['schoolAverage'] = $marks
-                ->map(fn ($mark) => $mark->average)
-                ->filter(fn ($value) => $value !== null)
+                ->map(fn($mark) => $mark->average)
+                ->filter(fn($value) => $value !== null)
                 ->avg();
 
             $classPerformance = ClassModel::query()
@@ -92,7 +208,7 @@ class DashboardController extends Controller
                 ->groupBy('classes.id', 'classes.name')
                 ->orderByDesc('average_score')
                 ->get()
-                ->filter(fn ($row) => $row->average_score !== null)
+                ->filter(fn($row) => $row->average_score !== null)
                 ->values();
 
             $schoolOverview['bestClass'] = $classPerformance->first();
@@ -120,7 +236,7 @@ class DashboardController extends Controller
                 ->groupBy('subjects.id', 'subjects.name')
                 ->orderByDesc('average_score')
                 ->get()
-                ->filter(fn ($row) => $row->average_score !== null)
+                ->filter(fn($row) => $row->average_score !== null)
                 ->values();
 
             $schoolOverview['topSubject'] = $subjectPerformance->first();
@@ -145,7 +261,7 @@ class DashboardController extends Controller
                 ->get();
 
             $schoolOverview['atRiskStudentsCount'] = $studentAverages
-                ->filter(fn ($student) => $student->average_score !== null && $student->average_score < 40)
+                ->filter(fn($student) => $student->average_score !== null && $student->average_score < 40)
                 ->count();
 
             $completionRows = ClassModel::query()
@@ -172,7 +288,7 @@ class DashboardController extends Controller
                         ? round(($actualMarks / $expectedMarks) * 100, 1)
                         : null;
                 })
-                ->filter(fn ($value) => $value !== null)
+                ->filter(fn($value) => $value !== null)
                 ->values();
 
             $schoolOverview['averageMarksCompletion'] = $completionRows->count()
@@ -185,7 +301,17 @@ class DashboardController extends Controller
             'classes',
             'activeAcademicYear',
             'currentTerm',
-            'schoolOverview'
+            'schoolOverview',
+            'unreadMessageCount',   // ← new
+            'activeDocumentCount',  // ← new
+            'communicationsOverview',
+            'departmentOverview',
+            'inventoryOverview',
+            'pendingInterests',
+            'recentInterests',
+            'schemeOverview',
+            'subjectOverview',
+            'todayRegisterMissingCount',
         ));
     }
 }

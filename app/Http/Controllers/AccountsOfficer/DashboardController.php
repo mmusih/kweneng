@@ -19,7 +19,7 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $query = Student::with(['user', 'currentClass'])
+        $query = Student::with(['user', 'currentClass', 'latestFeeBalance'])
             ->orderBy('admission_no');
 
         if ($request->filled('search')) {

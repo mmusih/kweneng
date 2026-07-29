@@ -28,6 +28,7 @@ class GenerateLoginSlip
      * @return array{
      *   student_name: string,
      *   admission_no: string,
+     *   identity_display: string,
      *   student_email: string,
      *   student_password: string,
      *   parent_code: string,
@@ -54,7 +55,7 @@ class GenerateLoginSlip
                 ->delete();
 
             $code      = self::generateParentCode();
-            $expiresAt = Carbon::now()->addHours(48);
+            $expiresAt = Carbon::now()->addDays(7);
 
             StudentParentCode::create([
                 'student_id' => $student->id,
@@ -65,6 +66,8 @@ class GenerateLoginSlip
             return [
                 'student_name'           => $user->name,
                 'admission_no'           => $student->admission_no,
+                'identity_display'      => $student->identityDisplay(),
+                'class_name'             => $student->currentClass->name ?? null,
                 'student_email'          => $user->email,
                 'student_password'       => $plainPassword,
                 'parent_code'            => $code,
@@ -84,8 +87,22 @@ class GenerateLoginSlip
     private static function generatePassword(): string
     {
         $words = [
-            'River','Cloud','Storm','Eagle','Flame','Stone','Ocean','Light',
-            'Swift','Brave','Cedar','Frost','Maple','Amber','Coral','Delta',
+            'River',
+            'Cloud',
+            'Storm',
+            'Eagle',
+            'Flame',
+            'Stone',
+            'Ocean',
+            'Light',
+            'Swift',
+            'Brave',
+            'Cedar',
+            'Frost',
+            'Maple',
+            'Amber',
+            'Coral',
+            'Delta',
         ];
 
         return $words[array_rand($words)]

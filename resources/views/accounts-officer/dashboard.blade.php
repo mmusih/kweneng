@@ -39,148 +39,78 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">Results Access Control</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Block or unblock student results access based on fee status.
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="border rounded-lg p-5 bg-gray-50">
-                            <p class="text-sm text-gray-500">Total Students</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-2">{{ $stats['totalStudents'] }}</p>
-                        </div>
-
-                        <div class="border rounded-lg p-5 bg-red-50">
-                            <p class="text-sm text-gray-500">Blocked Students</p>
-                            <p class="text-2xl font-bold text-red-600 mt-2">{{ $stats['blockedStudents'] }}</p>
-                        </div>
-
-                        <div class="border rounded-lg p-5 bg-green-50">
-                            <p class="text-sm text-gray-500">Unblocked Students</p>
-                            <p class="text-2xl font-bold text-green-600 mt-2">{{ $stats['unblockedStudents'] }}</p>
-                        </div>
-                    </div>
-
-                    <form method="GET" action="{{ route('accounts-officer.dashboard') }}"
-                        class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
-                            <input type="text" name="search" value="{{ request('search') }}"
-                                placeholder="Search by student name"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <h3 class="text-xl font-semibold text-gray-800">Fees Management</h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Import closing balances, review fee imports, and manage student result access.
+                            </p>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
-                            <select name="class_id" class="w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="">All Classes</option>
-                                @foreach ($classes as $class)
-                                    <option value="{{ $class->id }}"
-                                        {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                                        {{ $class->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <a href="{{ route('accounts-officer.fees.index') }}"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700">
+                                View Fees
+                            </a>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" class="w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="">All</option>
-                                <option value="blocked" {{ request('status') === 'blocked' ? 'selected' : '' }}>Blocked
-                                </option>
-                                <option value="unblocked" {{ request('status') === 'unblocked' ? 'selected' : '' }}>
-                                    Unblocked</option>
-                            </select>
-                        </div>
-
-                        <div class="flex items-end gap-3">
-                            <button type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700">
-                                Filter
-                            </button>
-
-                            <a href="{{ route('accounts-officer.dashboard') }}"
-                                class="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-300">
-                                Reset
+                            <a href="{{ route('accounts-officer.fees.import') }}"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
+                                Import Excel
                             </a>
                         </div>
-                    </form>
+                    </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left">Student</th>
-                                    <th class="px-4 py-2 text-left">Admission No</th>
-                                    <th class="px-4 py-2 text-left">Class</th>
-                                    <th class="px-4 py-2 text-left">Status</th>
-                                    <th class="px-4 py-2 text-left">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                @forelse($students as $student)
-                                    <tr>
-                                        <td class="px-4 py-2 font-medium text-gray-900">
-                                            {{ $student->user->name ?? 'Unknown Student' }}
-                                        </td>
-                                        <td class="px-4 py-2 text-gray-700">
-                                            {{ $student->admission_no ?? 'N/A' }}
-                                        </td>
-                                        <td class="px-4 py-2 text-gray-700">
-                                            {{ $student->currentClass->name ?? 'N/A' }}
-                                        </td>
-                                        <td class="px-4 py-2">
-                                            @if ($student->fees_blocked)
-                                                <span
-                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                                    Blocked
-                                                </span>
-                                            @else
-                                                <span
-                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Unblocked
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="px-4 py-2">
-                                            @if ($student->fees_blocked)
-                                                <form
-                                                    action="{{ route('accounts-officer.students.unblock', $student) }}"
-                                                    method="POST" class="inline">
-                                                    @csrf
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-1.5 rounded-md bg-green-600 text-white text-xs font-semibold hover:bg-green-700">
-                                                        Unblock
-                                                    </button>
-                                                </form>
-                                            @else
-                                                <form action="{{ route('accounts-officer.students.block', $student) }}"
-                                                    method="POST" class="inline">
-                                                    @csrf
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-1.5 rounded-md bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
-                                                        Block
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="px-4 py-6 text-center text-gray-500">
-                                            No students found.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <a href="{{ route('accounts-officer.fees.index') }}"
+                            class="block rounded-lg border border-emerald-100 bg-emerald-50 p-5 hover:bg-emerald-100 transition">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-emerald-700 font-medium">Fee Balances</p>
+                                    <p class="text-xs text-emerald-600 mt-1">View imported closing balances</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </a>
 
-                        <div class="mt-4">
-                            {{ $students->links() }}
-                        </div>
+                        <a href="{{ route('accounts-officer.fees.import') }}"
+                            class="block rounded-lg border border-indigo-100 bg-indigo-50 p-5 hover:bg-indigo-100 transition">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-indigo-700 font-medium">Import Excel</p>
+                                    <p class="text-xs text-indigo-600 mt-1">Upload term fee closing balances</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('accounts-officer.students.index') }}"
+                            class="block rounded-lg border border-red-100 bg-red-50 p-5 hover:bg-red-100 transition">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-red-700 font-medium">Results Access</p>
+                                    <p class="text-xs text-red-600 mt-1">Block or unblock student results</p>
+                                </div>
+                                <div
+                                    class="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 11c.943 0 1.809.326 2.492.871M17 16v-1a5 5 0 00-8.528-3.536M7 16v-1a5 5 0 011.464-3.536M4 4l16 16" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>

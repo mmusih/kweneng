@@ -25,14 +25,14 @@ class Teacher extends Model
 
     public function subjects()
     {
-        return $this->belongsToMany(Subject::class, 'teacher_subject', 'teacher_id', 'subject_id')
+        return $this->belongsToMany(Subject::class, 'teacher_subjects', 'teacher_id', 'subject_id')
             ->withPivot(['class_id', 'academic_year_id', 'is_primary'])
             ->withTimestamps();
     }
 
     public function classes()
     {
-        return $this->belongsToMany(ClassModel::class, 'teacher_subject', 'teacher_id', 'class_id')
+        return $this->belongsToMany(ClassModel::class, 'teacher_subjects', 'teacher_id', 'class_id')
             ->withPivot(['subject_id', 'academic_year_id', 'is_primary'])
             ->withTimestamps();
     }
@@ -48,5 +48,11 @@ class Teacher extends Model
     public function libraryBorrowings()
     {
         return $this->hasMany(LibraryBorrowing::class);
+    }
+
+
+    public function schemes()
+    {
+        return $this->hasManyThrough(Scheme::class, TeacherSubject::class, 'teacher_id', 'teacher_subject_id');
     }
 }

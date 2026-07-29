@@ -15,10 +15,6 @@ class ParentMarksController extends Controller
         protected StudentPerformanceService $studentPerformanceService
     ) {}
 
-    /**
-     * GET /api/parent/marks
-     * All children's marks for the current term.
-     */
     public function index(Request $request)
     {
         $parent = $request->user()->parent;
@@ -48,6 +44,7 @@ class ParentMarksController extends Controller
                     'name'         => $child->user->name ?? 'Unknown',
                     'admission_no' => $child->admission_no,
                     'class'        => $child->currentClass->name ?? null,
+                    'photo'        => $child->photo ? asset('storage/' . $child->photo) : null,
                     'is_blocked'   => true,
                     'terms'        => [],
                 ];
@@ -55,8 +52,8 @@ class ParentMarksController extends Controller
 
             $terms = $currentAcademicYear
                 ? Term::where('academic_year_id', $currentAcademicYear->id)
-                    ->orderBy('start_date')
-                    ->get()
+                ->orderBy('start_date')
+                ->get()
                 : collect();
 
             $termsData = $terms->map(function ($term) use ($child, $currentAcademicYear) {
@@ -67,28 +64,35 @@ class ParentMarksController extends Controller
                     ->get();
 
                 $performance = $this->studentPerformanceService->getStudentTermPerformance(
-                    $child, $currentAcademicYear->id, $term->id
+                    $child,
+                    $currentAcademicYear->id,
+                    $term->id
                 );
 
+                $midtermAverage = $marks->pluck('midterm_score')->filter()->avg();
+                $endtermAverage = $marks->pluck('endterm_score')->filter()->avg();
+
                 return [
-                    'term_id'   => $term->id,
-                    'term_name' => $term->name,
-                    'subjects'  => $marks->map(fn($m) => [
-                        'subject'         => $m->subject->name ?? 'Unknown',
-                        'midterm_score'   => $m->midterm_score,
-                        'endterm_score'   => $m->endterm_score,
-                        'midterm_grade'   => $m->midterm_grade ?? null,
-                        'endterm_grade'   => $m->endterm_grade ?? null,
+                    'term_id'     => $term->id,
+                    'term_name'   => $term->name,
+                    'term_status' => $term->status,
+
+                    'subjects' => $marks->map(fn($m) => [
+                        'subject'       => $m->subject->name ?? 'Unknown',
+                        'midterm_score' => $m->midterm_score,
+                        'endterm_score' => $m->endterm_score,
+                        'midterm_grade' => $m->midterm_grade ?? $m->grade ?? null,
+                        'endterm_grade' => $m->endterm_grade ?? $m->grade ?? null,
                     ])->values(),
-                    'midterm_average'  => $marks->pluck('midterm_score')->filter()->avg()
-                        ? round($marks->pluck('midterm_score')->filter()->avg(), 1) : null,
-                    'endterm_average'  => $marks->pluck('endterm_score')->filter()->avg()
-                        ? round($marks->pluck('endterm_score')->filter()->avg(), 1) : null,
+
+                    'midterm_average'  => $midtermAverage ? round($midtermAverage, 1) : null,
+                    'endterm_average'  => $endtermAverage ? round($endtermAverage, 1) : null,
                     'midterm_position' => $performance['midterm_position'] ?? null,
                     'endterm_position' => $performance['endterm_position'] ?? null,
                     'trend'            => ($performance['trend'] ?? 'N/A') !== 'N/A' ? $performance['trend'] : null,
+                    'performance_label' => $performance['performance_label'] ?? null,
                 ];
-            });
+            })->values();
 
             return [
                 'id'           => $child->id,
@@ -99,10 +103,10 @@ class ParentMarksController extends Controller
                 'is_blocked'   => false,
                 'terms'        => $termsData,
             ];
-        });
+        })->values();
 
         return response()->json([
-            'academic_year'  => $currentAcademicYear ? [
+            'academic_year' => $currentAcademicYear ? [
                 'id'        => $currentAcademicYear->id,
                 'year_name' => $currentAcademicYear->year_name,
             ] : null,
@@ -111,10 +115,6 @@ class ParentMarksController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/parent/marks/{student}/{academicYearId}/{termId}
-     * One child's marks for a specific term.
-     */
     public function show(Request $request, $studentId, $academicYearId, $termId)
     {
         $parent = $request->user()->parent;
@@ -123,7 +123,6 @@ class ParentMarksController extends Controller
             return response()->json(['message' => 'Parent profile not found.'], 404);
         }
 
-        // Ensure the student belongs to this parent
         $child = $parent->students()->with(['user', 'currentClass'])->find($studentId);
 
         if (!$child) {
@@ -131,7 +130,9 @@ class ParentMarksController extends Controller
         }
 
         if ((bool) $child->fees_blocked) {
-            return response()->json(['message' => 'Results access is restricted due to an outstanding balance.'], 403);
+            return response()->json([
+                'message' => 'Results access is restricted due to an outstanding balance.',
+            ], 403);
         }
 
         $marks = Mark::where('student_id', $child->id)
@@ -141,8 +142,13 @@ class ParentMarksController extends Controller
             ->get();
 
         $performance = $this->studentPerformanceService->getStudentTermPerformance(
-            $child, $academicYearId, $termId
+            $child,
+            $academicYearId,
+            $termId
         );
+
+        $midtermAverage = $marks->pluck('midterm_score')->filter()->avg();
+        $endtermAverage = $marks->pluck('endterm_score')->filter()->avg();
 
         return response()->json([
             'student' => [
@@ -151,21 +157,21 @@ class ParentMarksController extends Controller
                 'admission_no' => $child->admission_no,
                 'class'        => $child->currentClass->name ?? null,
             ],
+
             'subjects' => $marks->map(fn($m) => [
                 'subject'       => $m->subject->name ?? 'Unknown',
                 'midterm_score' => $m->midterm_score,
                 'endterm_score' => $m->endterm_score,
-                'midterm_grade' => $m->midterm_grade ?? null,
-                'endterm_grade' => $m->endterm_grade ?? null,
+                'midterm_grade' => $m->midterm_grade ?? $m->grade ?? null,
+                'endterm_grade' => $m->endterm_grade ?? $m->grade ?? null,
             ])->values(),
+
             'summary' => [
-                'midterm_average'  => $marks->pluck('midterm_score')->filter()->avg()
-                    ? round($marks->pluck('midterm_score')->filter()->avg(), 1) : null,
-                'endterm_average'  => $marks->pluck('endterm_score')->filter()->avg()
-                    ? round($marks->pluck('endterm_score')->filter()->avg(), 1) : null,
-                'midterm_position' => $performance['midterm_position'] ?? null,
-                'endterm_position' => $performance['endterm_position'] ?? null,
-                'trend'            => ($performance['trend'] ?? 'N/A') !== 'N/A' ? $performance['trend'] : null,
+                'midterm_average'   => $midtermAverage ? round($midtermAverage, 1) : null,
+                'endterm_average'   => $endtermAverage ? round($endtermAverage, 1) : null,
+                'midterm_position'  => $performance['midterm_position'] ?? null,
+                'endterm_position'  => $performance['endterm_position'] ?? null,
+                'trend'             => ($performance['trend'] ?? 'N/A') !== 'N/A' ? $performance['trend'] : null,
                 'performance_label' => $performance['performance_label'] ?? null,
             ],
         ]);

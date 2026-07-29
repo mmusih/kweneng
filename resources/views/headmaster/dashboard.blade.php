@@ -151,7 +151,7 @@
                 <div class="p-6">
                     <div class="mb-6 border-b border-gray-200 pb-3">
                         <h3 class="text-xl font-semibold text-gray-800">School Operations</h3>
-                        <p class="text-sm text-gray-500 mt-1">Attendance, punctuality, behaviour, and workflow
+                        <p class="text-sm text-gray-500 mt-1">Attendance, behaviour, calendar holidays, and workflow
                             indicators.</p>
                     </div>
 
@@ -226,7 +226,7 @@
                         <p class="text-sm text-gray-500 mt-1">Fast access to review, reporting, and oversight tools.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                         <a href="{{ route('headmaster.comments.index') }}"
                             class="border rounded-lg p-5 hover:shadow-md transition hover:border-indigo-300">
                             <h4 class="font-semibold text-gray-900">Headmaster Comments</h4>
@@ -251,11 +251,22 @@
                             <p class="text-sm text-gray-500 mt-1">Track marks entry, completeness, and updates.</p>
                         </a>
 
+                        <a href="{{ route('headmaster.events.calendar') }}"
+                            class="border rounded-lg p-5 hover:shadow-md transition hover:border-amber-300">
+                            <h4 class="font-semibold text-gray-900">Calendar & Holidays</h4>
+                            <p class="text-sm text-gray-500 mt-1">Mark holidays so attendance registers show holiday days automatically.</p>
+                        </a>
+
                         <a href="{{ route('teacher.dashboard') }}"
                             class="border rounded-lg p-5 hover:shadow-md transition hover:border-purple-300">
                             <h4 class="font-semibold text-gray-900">Teacher Dashboard</h4>
-                            <p class="text-sm text-gray-500 mt-1">Access marks, attendance, punctuality, behaviour, and
-                                teaching tools.</p>
+                            <p class="text-sm text-gray-500 mt-1">Access marks, attendance, behaviour, and teaching tools.</p>
+                        </a>
+
+                        <a href="{{ route('teacher.hod.schemes.dashboard') }}"
+                            class="border rounded-lg p-5 hover:shadow-md transition hover:border-emerald-300">
+                            <h4 class="font-semibold text-gray-900">Schemes Oversight</h4>
+                            <p class="text-sm text-gray-500 mt-1">Review school-wide scheme progress, pacing, and submissions.</p>
                         </a>
                     </div>
                 </div>

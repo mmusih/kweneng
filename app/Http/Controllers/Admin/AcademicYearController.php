@@ -35,19 +35,17 @@ class AcademicYearController extends Controller
             'active' => 'boolean',
         ]);
 
-        // Auto-deactivate other academic years if this one is being activated
-        if (!empty($validated['active']) && $validated['active']) {
-            AcademicYear::where('active', true)->update(['active' => false]);
-        }
+        $validated['active'] = (bool) ($validated['active'] ?? false);
 
-        // Set initial status based on active flag
-        $status = 'open'; // Default to open for new academic years
-        if (empty($validated['active']) || !$validated['active']) {
-            $status = 'closed';
+        if ($validated['active']) {
+            AcademicYear::where('active', true)->update([
+                'active' => false,
+                'status' => AcademicYear::STATUS_CLOSED,
+            ]);
         }
 
         $academicYear = AcademicYear::create(array_merge($validated, [
-            'status' => $status
+            'status' => $validated['active'] ? AcademicYear::STATUS_OPEN : AcademicYear::STATUS_CLOSED,
         ]));
 
         return redirect()->route('admin.academic-years.index')
@@ -77,14 +75,21 @@ class AcademicYearController extends Controller
             'status' => 'string|in:open,closed,locked' // Add status validation
         ]);
 
-        // Auto-deactivate other academic years if this one is being activated
-        if (!empty($validated['active']) && $validated['active']) {
+        $validated['active'] = (bool) ($validated['active'] ?? false);
+
+        if ($validated['active']) {
             AcademicYear::where('active', true)
-                       ->where('id', '!=', $academicYear->id)
-                       ->update(['active' => false]);
+                ->where('id', '!=', $academicYear->id)
+                ->update([
+                    'active' => false,
+                    'status' => AcademicYear::STATUS_CLOSED,
+                ]);
+
+            $validated['status'] = AcademicYear::STATUS_OPEN;
+        } elseif ($academicYear->active) {
+            $validated['status'] = AcademicYear::STATUS_CLOSED;
         }
 
-        // Update the academic year
         $academicYear->update($validated);
 
         return redirect()->route('admin.academic-years.index')

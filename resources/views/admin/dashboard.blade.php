@@ -1,25 +1,56 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-4 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h2 class="font-semibold text-2xl text-white leading-tight">
-                        Admin Dashboard
-                    </h2>
-                    <p class="text-slate-200 text-sm mt-1">
-                        School operations, user management, academics, and oversight
-                    </p>
+        <!-- Main header block: lively warm gradient using base colors -->
+        <div class="mt-16 p-6 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] shadow-md">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                <div class="flex items-start gap-4">
+                    <!-- Dashboard icon -->
+                    <div class="p-3 bg-white/10 rounded-xl text-[#D3D9D4] shrink-0">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l-3 3m3-3l3 3" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-[#D3D9D4]/85">Administration</p>
+                        <h2 class="font-semibold text-2xl text-white leading-tight mt-1">Admin Dashboard</h2>
+                        <p class="text-[#D3D9D4]/90 text-sm mt-1">
+                            School operations, academic oversight, communication, and support workflows.
+                        </p>
+                    </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('admin.users.index') }}"
-                        class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md text-sm font-semibold hover:bg-slate-100">
-                        User Management
-                    </a>
-
+                <div class="flex flex-wrap gap-2">
                     <a href="{{ route('admin.students.create') }}"
-                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700">
+                        class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-[#212A31] hover:bg-[#D3D9D4] transition duration-200 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
                         Add Student
+                    </a>
+                    <a href="{{ route('admin.departments.index') }}"
+                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 21h19.5m-18-10.5h16.5M2.25 7.5h19.5M4.5 21v-12m15 12v-12" />
+                        </svg>
+                        Departments / HODs
+                    </a>
+                    <a href="{{ route('admin.reports.index') }}"
+                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                        Reports
+                    </a>
+                    <a href="{{ route('inventory.dashboard') }}"
+                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                        </svg>
+                        Inventory
                     </a>
                 </div>
             </div>
@@ -27,34 +58,8 @@
     </x-slot>
 
     @php
-        $currentYear = \App\Models\AcademicYear::where('active', true)->first();
-
-        $currentTerm = \App\Models\Term::whereHas('academicYear', function ($q) {
-            $q->where('active', true);
-        })
-            ->where('status', 'active')
-            ->first();
-
+        $currentYear = $activeAcademicYear ?? null;
         $canPromote = $currentYear && $currentYear->isClosed();
-
-        $pendingInterests = \App\Models\AlumniInterest::where('processed', false)->count();
-
-        $recentInterests = \App\Models\AlumniInterest::where('processed', false)
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        $studentSubjectCount = \App\Models\StudentSubject::count();
-        $totalSubjects = \App\Models\Subject::count();
-        $activeSubjects = \App\Models\Subject::where('is_active', true)->count();
-        $coreSubjects = \App\Models\Subject::where('is_core', true)->count();
-        $classAssignments = \App\Models\ClassSubject::count();
-
-        // Events and Announcements counts
-        $totalEvents = \App\Models\Event::count();
-        $upcomingEvents = \App\Models\Event::where('start_datetime', '>=', now())->count();
-        $totalAnnouncements = \App\Models\Announcement::count();
-        $recentAnnouncements = \App\Models\Announcement::where('created_at', '>=', now()->subDays(7))->count();
 
         $schoolAverage = $schoolOverview['schoolAverage'] ?? null;
         $bestClass = $schoolOverview['bestClass'] ?? null;
@@ -64,864 +69,822 @@
         $averageMarksCompletion = $schoolOverview['averageMarksCompletion'] ?? null;
         $atRiskStudentsCount = $schoolOverview['atRiskStudentsCount'] ?? 0;
         $totalMarks = $schoolOverview['totalMarks'] ?? 0;
+
+        $attentionItems = collect([
+            [
+                'active' => !$currentYear,
+                'tone' => 'amber',
+                'title' => 'No active academic year',
+                'body' => 'Activate an academic year so academic operations can proceed normally.',
+                'route' => route('admin.academic-years.index'),
+                'action' => 'Open academic years',
+            ],
+            [
+                'active' => $currentYear && !$currentTerm,
+                'tone' => 'amber',
+                'title' => 'No active term',
+                'body' => 'An academic year is active, but no term is currently active.',
+                'route' => route('admin.terms.index'),
+                'action' => 'Open terms',
+            ],
+            [
+                'active' => ($pendingInterests ?? 0) > 0,
+                'tone' => 'rose',
+                'title' => 'Alumni interest requests waiting',
+                'body' => ($pendingInterests ?? 0) . ' request(s) need review.',
+                'route' => route('admin.alumni.interests'),
+                'action' => 'Review requests',
+            ],
+            [
+                'active' => $averageMarksCompletion !== null && $averageMarksCompletion < 80,
+                'tone' => 'indigo',
+                'title' => 'Marks completion below target',
+                'body' => 'Current average completion is ' . number_format($averageMarksCompletion ?? 0, 1) . '%.',
+                'route' => route('admin.marks.index'),
+                'action' => 'Open marks',
+            ],
+            [
+                'active' => ($todayRegisterMissingCount ?? 0) > 0,
+                'tone' => 'amber',
+                'title' => 'Registers need attention today',
+                'body' => ($todayRegisterMissingCount ?? 0) . ' class register(s) appear incomplete.',
+                'route' => route('register-officer.dashboard'),
+                'action' => 'Check registers',
+            ],
+            [
+                'active' => ($schemeOverview['submitted'] ?? 0) > 0,
+                'tone' => 'emerald',
+                'title' => 'Schemes awaiting HOD review',
+                'body' => ($schemeOverview['submitted'] ?? 0) . ' submitted scheme(s) are ready for review.',
+                'route' => route('admin.schemes.index'),
+                'action' => 'Open scheme review',
+            ],
+            [
+                'active' => ($schemeOverview['behind'] ?? 0) > 0,
+                'tone' => 'rose',
+                'title' => 'Scheme pacing risk',
+                'body' => ($schemeOverview['behind'] ?? 0) . ' scheme(s) are behind or critical.',
+                'route' => route('admin.schemes.index'),
+                'action' => 'Review coverage',
+            ],
+            [
+                'active' => ($stats['totalLibrarians'] ?? 0) === 0,
+                'tone' => 'emerald',
+                'title' => 'No librarian accounts',
+                'body' => 'Create at least one librarian account for library operations.',
+                'route' => route('admin.librarians.create'),
+                'action' => 'Create librarian',
+            ],
+        ])
+            ->where('active')
+            ->values();
+
+        // High contrast tones for visibility and warmth
+        $toneClasses = [
+            'amber' => 'border-amber-200 bg-amber-50 text-amber-900',
+            'emerald' => 'border-emerald-200 bg-emerald-50 text-emerald-950',
+            'indigo' => 'border-indigo-200 bg-indigo-50 text-indigo-900',
+            'rose' => 'border-rose-200 bg-rose-50 text-rose-950',
+            'slate' => 'border-[#D3D9D4] bg-[#D3D9D4]/10 text-[#2E3944]',
+        ];
+
+        // Action card structure containing metadata and custom icons
+        $actionCards = [
+            [
+                'title' => 'User Management',
+                'body' => 'Accounts, roles, activation, and password resets',
+                'meta' => ($stats['totalUsers'] ?? 0) . ' users',
+                'route' => route('admin.users.index'),
+                'bg' => 'bg-sky-50 border-sky-100 hover:border-sky-300',
+                'icon_color' => 'bg-sky-500/10 text-sky-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A2.25 2.25 0 0112.75 21.5h-1.5a2.25 2.25 0 01-2.25-2.263V19.13m4.75-9.75a3 3 0 11-6 0 3 3 0 016 0zM12.75 21.5v-.293c0-1.163-.523-2.243-1.408-2.978a9.014 9.014 0 00-6.155-2.423M12.75 21.5H11.25m1.5 0h-1.5M11.25 21.5H9" /></svg>',
+            ],
+            [
+                'title' => 'Students',
+                'body' => 'Enrollment records, classes, and login slips',
+                'meta' => ($stats['totalStudents'] ?? 0) . ' students',
+                'route' => route('admin.students.index'),
+                'bg' => 'bg-teal-50 border-teal-100 hover:border-teal-300',
+                'icon_color' => 'bg-teal-500/10 text-teal-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.62 48.62 0 0112 20.9c2.785 0 5.44-.233 8.025-.68a60.431 60.431 0 00-.49-6.348L12 14l-7.74-3.853zm0 0a30.17 30.17 0 012.484-4.386M12 4.25c2.974 0 5.88.22 8.725.644M12 4.25A48.566 48.566 0 003.275 4.894M12 4.25v13.5m8.725-12.856a48.554 48.554 0 01.375 7.425m-18.1 0a48.554 48.554 0 01.375-7.425M12 17.75c-2.974 0-5.88.22-8.725.644M12 17.75c2.974 0 5.88.22 8.725.644m-12 1.375h12" /></svg>',
+            ],
+            [
+                'title' => 'Academic Staff',
+                'body' => 'Teachers, headmasters, and assignments',
+                'meta' => ($stats['totalTeachers'] ?? 0) . ' teachers',
+                'route' => route('admin.teachers.index'),
+                'bg' => 'bg-indigo-50 border-indigo-100 hover:border-indigo-300',
+                'icon_color' => 'bg-indigo-500/10 text-indigo-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94-3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>',
+            ],
+            [
+                'title' => 'Departments / HODs',
+                'body' => 'Department membership and HOD responsibility',
+                'meta' => ($departmentOverview['totalDepartments'] ?? 0) . ' depts',
+                'route' => route('admin.departments.index'),
+                'bg' => 'bg-amber-50 border-amber-100 hover:border-amber-300',
+                'icon_color' => 'bg-amber-500/10 text-amber-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.203 0-4.361.147-6.478.432V21m12.956-11.25V5.25a2.25 2.25 0 00-2.25-2.25h-9a2.25 2.25 0 00-2.25 2.25v4.5" /></svg>',
+            ],
+            [
+                'title' => 'Timetable',
+                'body' => 'Cycles, periods, rooms, groups, and lesson scheduling',
+                'meta' => 'School-wide planning',
+                'route' => route('admin.timetable.index'),
+                'bg' => 'bg-cyan-50 border-cyan-100 hover:border-cyan-300',
+                'icon_color' => 'bg-cyan-500/10 text-cyan-700',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5m-15 12h13.5A1.5 1.5 0 0020.25 19.5V6.75a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5V19.5a1.5 1.5 0 001.5 1.5zM7.5 13.5h3v3h-3v-3z" /></svg>',
+            ],
+            [
+                'title' => 'Classes',
+                'body' => 'Class setup, levels, teachers, and rosters',
+                'meta' => ($stats['totalClasses'] ?? 0) . ' classes',
+                'route' => route('admin.classes.index'),
+                'bg' => 'bg-violet-50 border-violet-100 hover:border-violet-300',
+                'icon_color' => 'bg-violet-500/10 text-violet-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.375M9 18h3.375m7.5-13.5v15c0 .621-.504 1.125-1.125 1.125H3.375c-.621 0-1.125-.504-1.125-1.125v-15c0-.621.504-1.125 1.125-1.125h17.25c.621 0 1.125.504 1.125 1.125zM9 8.25h.008v.008H9V8.25zm.008 2.25H9v.008h.008V10.5zm0 2.25H9v.008h.008v-.008zm0 2.25H9v.008h.008V15z" /></svg>',
+            ],
+            [
+                'title' => 'Subjects',
+                'body' => 'Subject setup and class/teacher links',
+                'meta' => ($subjectOverview['activeSubjects'] ?? 0) . ' active',
+                'route' => route('admin.subjects.index'),
+                'bg' => 'bg-rose-50 border-rose-100 hover:border-rose-300',
+                'icon_color' => 'bg-rose-500/10 text-rose-600',
+                'icon' =>
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>',
+            ],
+        ];
+
+        $operationsCards = [
+            [
+                'title' => 'Office',
+                'body' => 'Profiles, messages, reports, and notices',
+                'meta' => ($communicationsOverview['pendingAbsenceNotices'] ?? 0) . ' absence notices',
+                'route' => route('office.dashboard'),
+                'bg' => 'bg-sky-50 hover:bg-sky-100/60 border-sky-100',
+                'tag_color' => 'bg-sky-100 text-sky-800',
+            ],
+            [
+                'title' => 'Register Monitor',
+                'body' => 'Daily register completion and exports',
+                'meta' => ($todayRegisterMissingCount ?? 0) . ' incomplete today',
+                'route' => route('register-officer.dashboard'),
+                'bg' => 'bg-amber-50 hover:bg-amber-100/60 border-amber-100',
+                'tag_color' => 'bg-amber-100 text-amber-800',
+            ],
+            [
+                'title' => 'Inventory',
+                'body' => 'Items, stock levels, repairs, and procurement',
+                'meta' => ($inventoryOverview['attentionCount'] ?? 0) . ' need attention',
+                'route' => route('inventory.dashboard'),
+                'bg' => 'bg-teal-50 hover:bg-teal-100/60 border-teal-100',
+                'tag_color' => 'bg-teal-100 text-teal-800',
+            ],
+            [
+                'title' => 'Requisitions',
+                'body' => 'Teacher requests and fulfillment workflow',
+                'meta' =>
+                    ($inventoryOverview['newRequisitionCount'] ?? 0) .
+                    ' new, ' .
+                    ($inventoryOverview['openRequisitionCount'] ?? 0) .
+                    ' open',
+                'route' => route('inventory.requisitions.index'),
+                'bg' => 'bg-violet-50 hover:bg-violet-100/60 border-violet-100',
+                'tag_color' => 'bg-violet-100 text-violet-800',
+            ],
+        ];
     @endphp
 
-    <div class="py-6">
+    <div class="py-8 bg-[#D3D9D4]/15 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
-            {{-- QUICK STATUS --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div class="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-                    <p class="text-sm text-gray-500">Academic Year</p>
-                    <h3 class="text-2xl font-bold text-gray-900 mt-2">
-                        {{ $currentYear?->year_name ?? 'N/A' }}
-                    </h3>
-                    <p class="text-sm mt-2">
-                        @if ($currentYear)
-                            <span
-                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                                @switch($currentYear->status)
-                                    @case('open')
-                                        bg-green-100 text-green-800
-                                        @break
-                                    @case('locked')
-                                        bg-yellow-100 text-yellow-800
-                                        @break
-                                    @case('closed')
-                                        bg-red-100 text-red-800
-                                        @break
-                                    @default
-                                        bg-gray-100 text-gray-800
-                                @endswitch">
-                                {{ ucfirst($currentYear->status) }}
+            <!-- 1. Stats Grid: Warm and colorful markers -->
+            <section>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-5 flex items-center gap-4">
+                        <div class="p-3 bg-indigo-50 text-[#124E66] rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-[#748D92]">Academic Year</p>
+                            <h3 class="mt-1 text-2xl font-bold text-[#212A31]">{{ $currentYear?->year_name ?? 'N/A' }}
+                            </h3>
+                            <p class="text-xs font-semibold text-indigo-600 mt-0.5">
+                                {{ $currentYear ? ucfirst($currentYear->status) : 'No active academic year' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-5 flex items-center gap-4">
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-[#748D92]">Current Term</p>
+                            <h3 class="mt-1 text-2xl font-bold text-[#212A31]">{{ $currentTerm?->name ?? 'N/A' }}</h3>
+                            <p class="text-xs font-semibold text-amber-600 mt-0.5">
+                                {{ $currentTerm ? ucfirst($currentTerm->status) : 'No active term' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-5 flex items-center gap-4">
+                        <div class="p-3 bg-teal-50 text-teal-600 rounded-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-[#748D92]">School Average</p>
+                            <h3 class="mt-1 text-2xl font-bold text-[#212A31]">
+                                {{ $schoolAverage !== null ? number_format($schoolAverage, 2) . '%' : 'N/A' }}</h3>
+                            <p class="text-xs font-semibold text-teal-600 mt-0.5">{{ $totalMarks }} mark
+                                record{{ $totalMarks === 1 ? '' : 's' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-5 flex items-center gap-4">
+                        <div
+                            class="p-3 rounded-xl {{ $canPromote ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600' }}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.64 8.38m6.14 3.4a48.98 48.98 0 00-5.82-.48M9.63 8.38a9 9 0 015.82.48M9.63 8.38L4.05 13.96a2.4 2.4 0 00-.7 1.7v4.74a1.2 1.2 0 001.2 1.2h4.74c.64 0 1.25-.25 1.7-.7l5.58-5.58M9.63 8.38a14.98 14.98 0 01-6.16 12.12" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-[#748D92]">Promotion</p>
+                            <h3
+                                class="mt-1 text-2xl font-bold {{ $canPromote ? 'text-emerald-700' : 'text-rose-700' }}">
+                                {{ $canPromote ? 'Ready' : 'Not Ready' }}
+                            </h3>
+                            <p
+                                class="text-xs font-semibold mt-0.5 {{ $canPromote ? 'text-emerald-600' : 'text-rose-600' }}">
+                                {{ $canPromote ? 'Current year is closed' : 'Close the year first' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Attention Queue & Schemes of Work: Visually inviting details -->
+            <section class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6">
+                <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="p-2 bg-amber-50 rounded-lg text-amber-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                                </svg>
                             </span>
-                        @else
-                            <span class="text-gray-500">No active academic year</span>
-                        @endif
-                    </p>
-                </div>
-
-                <div class="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-                    <p class="text-sm text-gray-500">Current Term</p>
-                    <h3 class="text-2xl font-bold text-gray-900 mt-2">
-                        {{ $currentTerm?->name ?? 'N/A' }}
-                    </h3>
-                    <p class="text-sm mt-2">
-                        @if ($currentTerm)
-                            <span
-                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                                @switch($currentTerm->status)
-                                    @case('active')
-                                        bg-blue-100 text-blue-800
-                                        @break
-                                    @case('finalized')
-                                        bg-purple-100 text-purple-800
-                                        @break
-                                    @case('locked')
-                                        bg-gray-100 text-gray-800
-                                        @break
-                                    @default
-                                        bg-gray-100 text-gray-800
-                                @endswitch">
-                                {{ ucfirst($currentTerm->status) }}
-                            </span>
-                        @else
-                            <span class="text-gray-500">No active term</span>
-                        @endif
-                    </p>
-                </div>
-
-                <div class="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-                    <p class="text-sm text-gray-500">School Average</p>
-                    <h3 class="text-2xl font-bold text-indigo-600 mt-2">
-                        {{ $schoolAverage !== null ? number_format($schoolAverage, 2) . '%' : 'N/A' }}
-                    </h3>
-                    <p class="text-sm mt-2 text-gray-500">
-                        From {{ $totalMarks }} mark records
-                    </p>
-                </div>
-
-                <div class="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-                    <p class="text-sm text-gray-500">Promotion Status</p>
-                    <h3 class="text-2xl font-bold mt-2 {{ $canPromote ? 'text-green-600' : 'text-yellow-600' }}">
-                        {{ $canPromote ? 'Ready' : 'Not Ready' }}
-                    </h3>
-                    <p class="text-sm mt-2 text-gray-500">
-                        {{ $canPromote ? 'Current year is closed' : 'Current year not closed' }}
-                    </p>
-                </div>
-            </div>
-
-            {{-- EVENTS & ANNOUNCEMENTS --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">Events & Announcements</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Manage school events, calendar, and important announcements
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <a href="{{ route('admin.events.index') }}"
-                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-bold text-gray-900">{{ $totalEvents }}</p>
-                                    <p class="text-sm text-gray-600">Total Events</p>
-                                </div>
-                            </div>
-                            <div class="mt-3 text-sm text-gray-500">
-                                {{ $upcomingEvents }} upcoming
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.events.calendar') }}"
-                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-lg font-semibold text-gray-900">Calendar</p>
-                                    <p class="text-sm text-gray-600">View events</p>
-                                </div>
-                            </div>
-                            <div class="mt-3 text-sm text-gray-500">
-                                Visual schedule
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.events.create') }}"
-                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-lg font-semibold text-gray-900">New Event</p>
-                                    <p class="text-sm text-gray-600">Create event</p>
-                                </div>
-                            </div>
-                            <div class="mt-3 text-sm text-gray-500">
-                                Add to calendar
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.announcements.index') }}"
-                            class="border rounded-lg p-5 hover:bg-gray-50 transition-colors">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-2xl font-bold text-gray-900">{{ $totalAnnouncements }}</p>
-                                    <p class="text-sm text-gray-600">Announcements</p>
-                                </div>
-                            </div>
-                            <div class="mt-3 text-sm text-gray-500">
-                                {{ $recentAnnouncements }} this week
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- PEOPLE & USER MANAGEMENT --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">People & User Management</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Manage user accounts, staff, students, parents, and institutional roles
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                        <a href="{{ route('admin.users.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-slate-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-slate-100 text-slate-700 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">User Management</h4>
-                                    <p class="text-sm text-gray-500">
-                                        Admins, headmasters, librarians, accounts officers
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.students.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-blue-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Students</h4>
-                                    <p class="text-sm text-gray-500">{{ $stats['totalStudents'] }} enrolled</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.parents.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-yellow-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-3-3H10a3 3 0 00-3 3v2m8-13a3 3 0 110 6 3 3 0 010-6zM6 7a3 3 0 110 6 3 3 0 010-6z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Parents</h4>
-                                    <p class="text-sm text-gray-500">{{ $stats['totalParents'] }} registered</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.teachers.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-purple-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c1.747 0 3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Academic Staff</h4>
-                                    <p class="text-sm text-gray-500">
-                                        {{ $stats['totalTeachers'] }} teachers, {{ $stats['totalHeadmasters'] ?? 0 }}
-                                        headmasters
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-
-                        @if (Route::has('admin.librarians.index'))
-                            <a href="{{ route('admin.librarians.index') }}"
-                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-emerald-300 hover:-translate-y-1">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 6.253v13m0-13l-8-3v13l8 3 8-3v-13l-8 3z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-lg font-semibold">Librarians</h4>
-                                        <p class="text-sm text-gray-500">{{ $stats['totalLibrarians'] ?? 0 }} active
-                                        </p>
-                                    </div>
-                                </div>
-                            </a>
-                        @endif
-
-                        @if (Route::has('admin.accounts-officers.index'))
-                            <a href="{{ route('admin.accounts-officers.index') }}"
-                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-red-300 hover:-translate-y-1">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 8c-1.657 0-3 1.343-3 3v1H8a2 2 0 00-2 2v2h12v-2a2 2 0 00-2-2h-1v-1c0-1.657-1.343-3-3-3z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-lg font-semibold">Accounts Officers</h4>
-                                        <p class="text-sm text-gray-500">{{ $stats['totalAccountsOfficers'] ?? 0 }}
-                                            active records</p>
-                                    </div>
-                                </div>
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            {{-- ACADEMIC OPERATIONS --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">Academic Operations</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Years, terms, classes, subject setup, promotions, marks, summaries, and reports
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                        <a href="{{ route('admin.academic-years.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-sky-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-sky-100 text-sky-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Academic Years</h4>
-                                    <p class="text-sm text-gray-500">Open, lock, and close years</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.terms.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-indigo-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Terms</h4>
-                                    <p class="text-sm text-gray-500">Create, activate, finalize, and lock terms</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.classes.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-green-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Classes</h4>
-                                    <p class="text-sm text-gray-500">{{ $stats['totalClasses'] }} total classes</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.subjects.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-blue-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c1.747 0 3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Subjects</h4>
-                                    <p class="text-sm text-gray-500">{{ $activeSubjects }} active subjects</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.subjects.manage-classes') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-teal-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-teal-100 text-teal-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Class Subject Assignments</h4>
-                                    <p class="text-sm text-gray-500">{{ $classAssignments }} class assignments</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.subjects.manage-teachers') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-cyan-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-cyan-100 text-cyan-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Teacher Subject Assignments</h4>
-                                    <p class="text-sm text-gray-500">Manage who teaches which class and subject</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.student-subjects.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-teal-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-teal-100 text-teal-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18c1.747 0 3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5c-1.746 0-3.332.477-4.5 1.253" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Student Subject Assignments</h4>
-                                    <p class="text-sm text-gray-500">{{ $studentSubjectCount }} active records</p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.promotions.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-green-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Promotions</h4>
-                                    <p class="text-sm text-gray-500">
-                                        {{ $canPromote ? 'Ready to promote students' : 'Promotion tools and history' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-
-                        <a href="{{ route('admin.marks.index') }}"
-                            class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-indigo-300 hover:-translate-y-1">
-                            <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="text-lg font-semibold">Marks</h4>
-                                    <p class="text-sm text-gray-500">
-                                        {{ $averageMarksCompletion !== null ? number_format($averageMarksCompletion, 1) . '% completion' : 'No data yet' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-
-                        @if (Route::has('admin.exam-summaries.index'))
-                            <a href="{{ route('admin.exam-summaries.index') }}"
-                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-red-300 hover:-translate-y-1">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-lg font-semibold">Exam Summaries</h4>
-                                        <p class="text-sm text-gray-500">Midterm and endterm summary sheets</p>
-                                    </div>
-                                </div>
-                            </a>
-                        @endif
-
-                        @if (Route::has('admin.reports.index'))
-                            <a href="{{ route('admin.reports.index') }}"
-                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-rose-300 hover:-translate-y-1">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-rose-100 text-rose-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-lg font-semibold">Reports</h4>
-                                        <p class="text-sm text-gray-500">Generate and download report cards</p>
-                                    </div>
-                                </div>
-                            </a>
-                        @endif
-
-                        @if (Route::has('admin.activity-logs.index'))
-                            <a href="{{ route('admin.activity-logs.index') }}"
-                                class="bg-white p-5 rounded-lg shadow-sm hover:shadow-md border border-gray-200 transition-all duration-200 hover:border-slate-300 hover:-translate-y-1">
-                                <div class="flex items-center">
-                                    <div class="p-3 rounded-full bg-slate-100 text-slate-600 mr-4">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-lg font-semibold">Activity Logs</h4>
-                                        <p class="text-sm text-gray-500">Login, logout, locks, and major actions</p>
-                                    </div>
-                                </div>
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            {{-- PERFORMANCE OVERVIEW --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">Performance Overview</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Snapshot of class and subject performance across the school
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <div class="border rounded-lg p-5 bg-gray-50">
-                            <p class="text-sm text-gray-500">Best Class</p>
-                            <p class="text-lg font-bold text-green-600 mt-2">
-                                {{ $bestClass?->name ?? 'N/A' }}
-                            </p>
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ $bestClass && $bestClass->average_score !== null ? number_format($bestClass->average_score, 2) . '%' : 'No data' }}
-                            </p>
-                        </div>
-
-                        <div class="border rounded-lg p-5 bg-gray-50">
-                            <p class="text-sm text-gray-500">Weakest Class</p>
-                            <p class="text-lg font-bold text-red-600 mt-2">
-                                {{ $weakestClass?->name ?? 'N/A' }}
-                            </p>
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ $weakestClass && $weakestClass->average_score !== null ? number_format($weakestClass->average_score, 2) . '%' : 'No data' }}
-                            </p>
-                        </div>
-
-                        <div class="border rounded-lg p-5 bg-gray-50">
-                            <p class="text-sm text-gray-500">Top Subject</p>
-                            <p class="text-lg font-bold text-blue-600 mt-2">
-                                {{ $topSubject?->name ?? 'N/A' }}
-                            </p>
-                            <p class="text-sm text-gray-500 mt-1">
-                                {{ $topSubject && $topSubject->average_score !== null ? number_format($topSubject->average_score, 2) . '%' : 'No data' }}
-                            </p>
-                        </div>
-
-                        <div class="border rounded-lg p-5 bg-gray-50">
-                            <p class="text-sm text-gray-500">At-Risk Students</p>
-                            <p class="text-2xl font-bold text-yellow-600 mt-2">
-                                {{ $atRiskStudentsCount }}
-                            </p>
-                            <p class="text-sm text-gray-500 mt-1">Average below 40%</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- SUBJECT OVERVIEW --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200">
-                        Subject Overview
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                        <div
-                            class="border rounded-lg p-5 text-center bg-gradient-to-br from-indigo-50 to-white shadow-sm">
-                            <div class="text-3xl font-bold text-indigo-600 mb-2">{{ $totalSubjects }}</div>
-                            <div class="text-sm text-gray-600 font-medium">Total Subjects</div>
-                        </div>
-
-                        <div
-                            class="border rounded-lg p-5 text-center bg-gradient-to-br from-green-50 to-white shadow-sm">
-                            <div class="text-3xl font-bold text-green-600 mb-2">{{ $activeSubjects }}</div>
-                            <div class="text-sm text-gray-600 font-medium">Active Subjects</div>
-                        </div>
-
-                        <div
-                            class="border rounded-lg p-5 text-center bg-gradient-to-br from-blue-50 to-white shadow-sm">
-                            <div class="text-3xl font-bold text-blue-600 mb-2">{{ $coreSubjects }}</div>
-                            <div class="text-sm text-gray-600 font-medium">Core Subjects</div>
-                        </div>
-
-                        <div
-                            class="border rounded-lg p-5 text-center bg-gradient-to-br from-purple-50 to-white shadow-sm">
-                            <div class="text-3xl font-bold text-purple-600 mb-2">{{ $classAssignments }}</div>
-                            <div class="text-sm text-gray-600 font-medium">Class Assignments</div>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-3 justify-center pt-4 border-t border-gray-200">
-                        <a href="{{ route('admin.subjects.index') }}"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Manage Subjects
-                        </a>
-
-                        <a href="{{ route('admin.subjects.manage-classes') }}"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Assign Subjects to Classes
-                        </a>
-
-                        <a href="{{ route('admin.subjects.manage-teachers') }}"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Assign Teachers to Subjects
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- ALERTS & PENDING ITEMS --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="mb-6 border-b border-gray-200 pb-3">
-                        <h3 class="text-xl font-semibold text-gray-800">Alerts & Pending Items</h3>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Items that need administrative attention
-                        </p>
-                    </div>
-
-                    <div class="space-y-4">
-                        @if (!$currentYear)
-                            <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="font-semibold text-yellow-800">No Active Academic Year</h4>
-                                        <p class="text-sm text-yellow-700 mt-1">
-                                            Activate an academic year so academic operations can proceed normally.
-                                        </p>
-                                    </div>
-                                    <a href="{{ route('admin.academic-years.index') }}"
-                                        class="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-semibold hover:bg-yellow-700">
-                                        Open Academic Years
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if (!$currentTerm && $currentYear)
-                            <div class="border border-orange-200 bg-orange-50 rounded-lg p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="font-semibold text-orange-800">No Active Term</h4>
-                                        <p class="text-sm text-orange-700 mt-1">
-                                            An academic year is active, but no active term is currently set.
-                                        </p>
-                                    </div>
-                                    <a href="{{ route('admin.terms.index') }}"
-                                        class="px-4 py-2 bg-orange-600 text-white rounded-md text-sm font-semibold hover:bg-orange-700">
-                                        Open Terms
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if ($pendingInterests > 0)
-                            <div class="border border-red-200 bg-red-50 rounded-lg p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="font-semibold text-red-800">Pending Alumni Interest Requests</h4>
-                                        <p class="text-sm text-red-700 mt-1">
-                                            {{ $pendingInterests }} alumni interest
-                                            {{ $pendingInterests === 1 ? 'request is' : 'requests are' }} waiting to be
-                                            reviewed.
-                                        </p>
-                                    </div>
-                                    <a href="{{ route('admin.alumni.interests') }}"
-                                        class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-semibold hover:bg-red-700">
-                                        Review Requests
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if ($averageMarksCompletion !== null && $averageMarksCompletion < 80)
-                            <div class="border border-indigo-200 bg-indigo-50 rounded-lg p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="font-semibold text-indigo-800">Marks Completion Below Target</h4>
-                                        <p class="text-sm text-indigo-700 mt-1">
-                                            Current average marks completion is
-                                            {{ number_format($averageMarksCompletion, 1) }}%.
-                                            Review marks entry progress.
-                                        </p>
-                                    </div>
-                                    <a href="{{ route('admin.marks.index') }}"
-                                        class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-semibold hover:bg-indigo-700">
-                                        Open Marks
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if (($stats['totalLibrarians'] ?? 0) === 0)
-                            <div class="border border-emerald-200 bg-emerald-50 rounded-lg p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <h4 class="font-semibold text-emerald-800">No Librarian Accounts</h4>
-                                        <p class="text-sm text-emerald-700 mt-1">
-                                            Create at least one librarian account to prepare for the library module.
-                                        </p>
-                                    </div>
-                                    <a href="{{ route('admin.librarians.create') }}"
-                                        class="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-semibold hover:bg-emerald-700">
-                                        Create Librarian
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if (
-                            $currentYear &&
-                                $currentTerm &&
-                                $pendingInterests === 0 &&
-                                ($averageMarksCompletion === null || $averageMarksCompletion >= 80) &&
-                                ($stats['totalLibrarians'] ?? 0) > 0)
-                            <div class="border border-green-200 bg-green-50 rounded-lg p-4">
-                                <h4 class="font-semibold text-green-800">No Critical Alerts</h4>
-                                <p class="text-sm text-green-700 mt-1">
-                                    The main administrative areas currently look healthy.
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#212A31]">Attention Queue</h3>
+                                <p class="text-sm text-[#748D92]">Tasks requiring immediate administrative oversight.
                                 </p>
                             </div>
-                        @endif
+                        </div>
+                        <span
+                            class="inline-flex w-fit rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-bold ring-1 ring-amber-200">
+                            {{ $attentionItems->count() }} action required
+                        </span>
+                    </div>
+
+                    <div class="mt-5 space-y-3">
+                        @forelse ($attentionItems as $item)
+                            <div
+                                class="rounded-lg border-l-4 p-4 shadow-sm {{ $toneClasses[$item['tone']] ?? $toneClasses['slate'] }}">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <!-- Dynamic warning indicators -->
+                                        @if ($item['tone'] === 'rose' || $item['tone'] === 'amber')
+                                            <span class="mt-0.5 shrink-0 text-rose-500">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        @else
+                                            <span class="mt-0.5 shrink-0 text-[#124E66]">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd"
+                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </span>
+                                        @endif
+                                        <div>
+                                            <h4 class="font-bold">{{ $item['title'] }}</h4>
+                                            <p class="text-sm opacity-90 mt-0.5">{{ $item['body'] }}</p>
+                                        </div>
+                                    </div>
+                                    <a href="{{ $item['route'] }}"
+                                        class="inline-flex shrink-0 items-center justify-center rounded-md bg-white px-3 py-1.5 text-sm font-bold text-[#2E3944] ring-1 ring-[#748D92]/30 hover:bg-[#D3D9D4]/20 hover:text-[#124E66] transition duration-200 shadow-sm">
+                                        {{ $item['action'] }}
+                                    </a>
+                                </div>
+                            </div>
+                        @empty
+                            <div
+                                class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 flex items-start gap-3">
+                                <span class="text-emerald-600">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <h4 class="font-bold">No critical alerts</h4>
+                                    <p class="text-sm mt-0.5">The main administrative areas currently look healthy.</p>
+                                </div>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
-            </div>
 
-            {{-- RECENT ALUMNI INTERESTS --}}
-            @if ($recentInterests->count() > 0)
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-xl font-semibold text-gray-800">Recent Alumni Interests</h3>
-                            <a href="{{ route('admin.alumni.interests') }}"
-                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
-                                View All
-                            </a>
+                <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-[#212A31]">Schemes of Work</h3>
+                    <p class="text-sm text-[#748D92] mt-1">Coverage and review status for the active academic year.</p>
+
+                    <div class="mt-5 space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="font-medium text-[#2E3944]">Average completion</span>
+                                <span
+                                    class="font-bold text-teal-600">{{ $schemeOverview['averageCompletion'] ?? 0 }}%</span>
+                            </div>
+                            <div class="mt-2 h-2.5 rounded-full bg-[#D3D9D4]/50 overflow-hidden">
+                                <div class="h-2.5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
+                                    style="width: {{ min($schemeOverview['averageCompletion'] ?? 0, 100) }}%"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Name</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Email</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Graduation Year</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Submitted</th>
-                                        <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach ($recentInterests as $interest)
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {{ $interest->full_name }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $interest->email }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $interest->graduation_year }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $interest->created_at->diffForHumans() }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <form action="{{ route('admin.alumni.process-interest', $interest) }}"
-                                                    method="POST" class="inline">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit"
-                                                        class="text-indigo-600 hover:text-indigo-900">
-                                                        Mark Processed
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-sky-50 border border-sky-100 rounded-lg p-3">
+                                <p class="text-xs font-semibold text-sky-700">Total</p>
+                                <p class="text-xl font-bold text-sky-900">{{ $schemeOverview['total'] ?? 0 }}</p>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                                <p class="text-xs font-semibold text-emerald-700">Approved</p>
+                                <p class="text-xl font-bold text-emerald-900">{{ $schemeOverview['approved'] ?? 0 }}
+                                </p>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+                                <p class="text-xs font-semibold text-amber-700">Submitted</p>
+                                <p class="text-xl font-bold text-amber-900">{{ $schemeOverview['submitted'] ?? 0 }}
+                                </p>
+                            </div>
+                            <div class="bg-rose-50 border border-rose-100 rounded-lg p-3">
+                                <p class="text-xs font-semibold text-rose-700">Behind</p>
+                                <p class="text-xl font-bold text-rose-900">{{ $schemeOverview['behind'] ?? 0 }}</p>
+                            </div>
                         </div>
+
+                        <a href="{{ route('admin.schemes.index') }}"
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#124E66] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2E3944] transition duration-200 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h3.75M9 15h3.375M9 18h3.375m7.5-13.5v15c0 .621-.504 1.125-1.125 1.125H3.375c-.621 0-1.125-.504-1.125-1.125v-15c0-.621.504-1.125 1.125-1.125h17.25c.621 0 1.125.504 1.125 1.125zM9 8.25h.008v.008H9V8.25zm.008 2.25H9v.008h.008V10.5zm0 2.25H9v.008h.008v-.008zm0 2.25H9v.008h.008V15z" />
+                            </svg>
+                            Open HOD scheme review
+                        </a>
                     </div>
                 </div>
-            @endif
+            </section>
 
-            {{-- CLASSES OVERVIEW --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 border-b border-gray-200">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800">Classes Overview</h3>
-                        <a href="{{ route('admin.classes.create') }}"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
-                            Add New Class
+            <!-- 3. People & Academic Setup: Colored and iconified card index -->
+            <section>
+                <div class="flex items-end justify-between gap-4 mb-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#212A31]">People & Academic Setup</h3>
+                        <p class="text-sm text-[#748D92]">Core records and structural assignments.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    @foreach ($actionCards as $card)
+                        <a href="{{ $card['route'] }}"
+                            class="rounded-xl border transition-all duration-200 p-5 shadow-sm block bg-white hover:shadow-md hover:border-[#124E66]/40">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="p-2.5 rounded-lg shrink-0 {{ $card['icon_color'] }}">
+                                        {!! $card['icon'] !!}
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-[#212A31]">{{ $card['title'] }}</h4>
+                                        <p class="text-sm text-[#748D92] mt-1">{{ $card['body'] }}</p>
+                                    </div>
+                                </div>
+                                <span
+                                    class="rounded-full bg-[#D3D9D4]/40 text-[#2E3944] px-3 py-1 text-xs font-bold ring-1 ring-[#748D92]/20 shrink-0">{{ $card['meta'] }}</span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+
+            <!-- 4. Academic Operations & Snapshot -->
+            <section class="grid grid-cols-1 xl:grid-cols-[1.2fr_.8fr] gap-6">
+                <div>
+                    <div class="flex items-end justify-between gap-4 mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-[#212A31]">Academic Operations</h3>
+                            <p class="text-sm text-[#748D92]">Marks, reports, summaries, years, and terms.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="{{ route('admin.academic-years.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-indigo-400 hover:bg-indigo-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-indigo-900">Academic Years</h4>
+                                <p class="text-sm text-[#748D92] mt-1">Open, lock, and close school years.</p>
+                            </div>
+                        </a>
+                        <a href="{{ route('admin.terms.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-amber-400 hover:bg-amber-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-amber-900">Terms</h4>
+                                <p class="text-sm text-[#748D92] mt-1">Create, activate, finalize, and lock terms.</p>
+                            </div>
+                        </a>
+                        <a href="{{ route('admin.marks.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-violet-400 hover:bg-violet-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-violet-900">Marks</h4>
+                                <p class="text-sm text-[#748D92] mt-1">
+                                    {{ $averageMarksCompletion !== null ? number_format($averageMarksCompletion, 1) . '% completion' : 'No marks completion data yet' }}
+                                </p>
+                            </div>
+                        </a>
+                        <a href="{{ route('admin.reports.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-sky-400 hover:bg-sky-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-sky-50 text-sky-600 group-hover:bg-sky-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-sky-900">Reports</h4>
+                                <p class="text-sm text-[#748D92] mt-1">Generate and download report cards.</p>
+                            </div>
+                        </a>
+                        <a href="{{ route('admin.exam-summaries.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-teal-400 hover:bg-teal-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-teal-50 text-teal-600 group-hover:bg-teal-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-teal-900">Exam Summaries</h4>
+                                <p class="text-sm text-[#748D92] mt-1">Midterm and endterm summaries.</p>
+                            </div>
+                        </a>
+                        <a href="{{ route('admin.promotions.index') }}"
+                            class="group bg-white border border-[#D3D9D4] hover:border-emerald-400 hover:bg-emerald-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4">
+                            <div class="p-2.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.64 8.38m6.14 3.4a48.98 48.98 0 00-5.82-.48M9.63 8.38a9 9 0 015.82.48M9.63 8.38L4.05 13.96a2.4 2.4 0 00-.7 1.7v4.74a1.2 1.2 0 001.2 1.2h4.74c.64 0 1.25-.25 1.7-.7l5.58-5.58M9.63 8.38a14.98 14.98 0 01-6.16 12.12" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-[#212A31] group-hover:text-emerald-900">Promotions</h4>
+                                <p class="text-sm text-[#748D92] mt-1">
+                                    {{ $canPromote ? 'Ready to promote students' : 'Promotion tools and history' }}</p>
+                            </div>
                         </a>
                     </div>
                 </div>
 
-                <div class="p-6">
-                    @if ($classes->count() > 0)
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            @foreach ($classes as $class)
-                                <div class="border border-gray-200 rounded-lg p-5 hover:bg-gray-50 transition-colors">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h4 class="font-semibold text-lg text-gray-900">{{ $class->name }}</h4>
-                                            <p class="text-gray-600">Level {{ $class->level }}</p>
-                                        </div>
-                                        <a href="{{ route('admin.classes.edit', $class) }}"
-                                            class="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                                            Edit
-                                        </a>
-                                    </div>
-
-                                    <div class="mt-3">
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                            {{ $class->students->count() }} students
-                                        </span>
-                                    </div>
-                                </div>
-                            @endforeach
+                <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <span class="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020 18V6a2.25 2.25 0 00-2-2H6a2.25 2.25 0 00-2 2v12a2.25 2.25 0 002 2.25z" />
+                                </svg>
+                            </span>
+                            <h3 class="text-lg font-semibold text-[#212A31]">Performance Snapshot</h3>
                         </div>
-                    @else
-                        <p class="text-gray-500">
-                            No classes found.
-                            <a href="{{ route('admin.classes.create') }}" class="text-blue-600 hover:text-blue-900">
-                                Create your first class
-                            </a>.
-                        </p>
-                    @endif
+                        <div class="mt-5 space-y-4">
+                            <div class="flex items-center justify-between gap-4 border-b border-[#D3D9D4]/50 pb-3">
+                                <span class="text-sm text-[#748D92]">Best class</span>
+                                <span
+                                    class="text-sm font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">{{ $bestClass?->name ?? 'N/A' }}
+                                    {{ $bestClass && $bestClass->average_score !== null ? '(' . number_format($bestClass->average_score, 1) . '%)' : '' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4 border-b border-[#D3D9D4]/50 pb-3">
+                                <span class="text-sm text-[#748D92]">Weakest class</span>
+                                <span
+                                    class="text-sm font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md">{{ $weakestClass?->name ?? 'N/A' }}
+                                    {{ $weakestClass && $weakestClass->average_score !== null ? '(' . number_format($weakestClass->average_score, 1) . '%)' : '' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4 border-b border-[#D3D9D4]/50 pb-3">
+                                <span class="text-sm text-[#748D92]">Top subject</span>
+                                <span
+                                    class="text-sm font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md">{{ $topSubject?->name ?? 'N/A' }}
+                                    {{ $topSubject && $topSubject->average_score !== null ? '(' . number_format($topSubject->average_score, 1) . '%)' : '' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4 border-b border-[#D3D9D4]/50 pb-3">
+                                <span class="text-sm text-[#748D92]">Weakest subject</span>
+                                <span
+                                    class="text-sm font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">{{ $weakestSubject?->name ?? 'N/A' }}
+                                    {{ $weakestSubject && $weakestSubject->average_score !== null ? '(' . number_format($weakestSubject->average_score, 1) . '%)' : '' }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <span class="text-sm text-[#748D92]">At-risk students</span>
+                                <span
+                                    class="text-sm font-extrabold text-rose-600 bg-rose-50/80 border border-rose-100 px-3 py-1 rounded-full">{{ $atRiskStudentsCount }}
+                                    students</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
 
+            <!-- 5. Operational Workflows: Balanced bright blocks -->
+            <section>
+                <div class="flex items-end justify-between gap-4 mb-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#212A31]">Operational Workflows</h3>
+                        <p class="text-sm text-[#748D92]">Office, register, inventory, and teacher requests.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @foreach ($operationsCards as $card)
+                        <a href="{{ $card['route'] }}"
+                            class="border rounded-xl transition-all duration-200 p-5 shadow-sm flex flex-col justify-between bg-white hover:shadow-md hover:border-[#124E66]/40">
+                            <div>
+                                <h4 class="font-bold text-[#212A31]">{{ $card['title'] }}</h4>
+                                <p class="text-sm text-[#748D92] mt-1">{{ $card['body'] }}</p>
+                            </div>
+                            <p
+                                class="mt-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 w-fit rounded {{ $card['tag_color'] }}">
+                                {{ $card['meta'] }}</p>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+
+            <!-- 6. Communication & Subject Overview: Highly engaging and lively sections -->
+            <section class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6">
+                <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                        <div class="flex items-center gap-3">
+                            <span class="p-2 bg-sky-50 rounded-lg text-sky-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#212A31]">Communication</h3>
+                                <p class="text-sm text-[#748D92]">Events, announcements, messages, and documents.</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.announcements.index') }}"
+                            class="text-sm font-bold text-[#124E66] hover:text-[#2E3944] hover:underline transition">Manage
+                            announcements</a>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <a href="{{ route('admin.events.index') }}"
+                            class="bg-sky-50 border border-sky-100 hover:border-sky-300 transition p-4 rounded-xl flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-sky-700 uppercase">Events</p>
+                                <p class="mt-2 text-3xl font-extrabold text-[#212A31]">
+                                    {{ $communicationsOverview['totalEvents'] ?? 0 }}</p>
+                            </div>
+                            <p class="text-xs text-sky-800 font-semibold mt-3 bg-white/60 px-2 py-0.5 rounded w-fit">
+                                {{ $communicationsOverview['upcomingEvents'] ?? 0 }} upcoming</p>
+                        </a>
+                        <a href="{{ route('admin.events.calendar') }}"
+                            class="bg-violet-50 border border-violet-100 hover:border-violet-300 transition p-4 rounded-xl flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-violet-700 uppercase">Calendar</p>
+                                <p class="mt-2 text-base font-bold text-[#212A31]">Visual Schedule</p>
+                            </div>
+                            <p
+                                class="text-xs text-violet-800 font-semibold mt-3 bg-white/60 px-2 py-0.5 rounded w-fit">
+                                Events & Holidays</p>
+                        </a>
+                        <a href="{{ route('admin.messages.index') }}"
+                            class="bg-amber-50 border border-amber-100 hover:border-amber-300 transition p-4 rounded-xl flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-amber-700 uppercase">Messages</p>
+                                <p class="mt-2 text-3xl font-extrabold text-[#212A31]">{{ $unreadMessageCount }}</p>
+                            </div>
+                            <p class="text-xs text-amber-800 font-semibold mt-3 bg-white/60 px-2 py-0.5 rounded w-fit">
+                                Unread from Parents</p>
+                        </a>
+                        <a href="{{ route('admin.documents.index') }}"
+                            class="bg-emerald-50 border border-emerald-100 hover:border-emerald-300 transition p-4 rounded-xl flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-emerald-700 uppercase">Documents</p>
+                                <p class="mt-2 text-3xl font-extrabold text-[#212A31]">{{ $activeDocumentCount }}</p>
+                            </div>
+                            <p
+                                class="text-xs text-emerald-800 font-semibold mt-3 bg-white/60 px-2 py-0.5 rounded w-fit">
+                                Published Files</p>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-[#212A31]">Subject Overview</h3>
+                        <div class="mt-4 grid grid-cols-2 gap-3">
+                            <div class="bg-[#D3D9D4]/25 border border-[#748D92]/20 rounded-lg p-3">
+                                <p class="text-xs text-[#748D92]">Total</p>
+                                <p class="text-lg font-bold text-[#212A31]">
+                                    {{ $subjectOverview['totalSubjects'] ?? 0 }}</p>
+                            </div>
+                            <div class="bg-[#D3D9D4]/25 border border-[#748D92]/20 rounded-lg p-3">
+                                <p class="text-xs text-[#748D92]">Active</p>
+                                <p class="text-lg font-bold text-[#212A31]">
+                                    {{ $subjectOverview['activeSubjects'] ?? 0 }}</p>
+                            </div>
+                            <div class="bg-[#D3D9D4]/25 border border-[#748D92]/20 rounded-lg p-3">
+                                <p class="text-xs text-[#748D92]">Core</p>
+                                <p class="text-lg font-bold text-[#212A31]">
+                                    {{ $subjectOverview['coreSubjects'] ?? 0 }}</p>
+                            </div>
+                            <div class="bg-[#D3D9D4]/25 border border-[#748D92]/20 rounded-lg p-3">
+                                <p class="text-xs text-[#748D92]">Class Links</p>
+                                <p class="text-lg font-bold text-[#212A31]">
+                                    {{ $subjectOverview['classAssignments'] ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2 pt-4 border-t border-[#D3D9D4]/40">
+                        <a href="{{ route('admin.subjects.manage-classes') }}"
+                            class="rounded-md bg-[#D3D9D4]/40 hover:bg-[#D3D9D4]/80 px-3 py-1.5 text-xs font-bold text-[#2E3944] transition duration-200">Class
+                            links</a>
+                        <a href="{{ route('admin.subjects.manage-teachers') }}"
+                            class="rounded-md bg-[#D3D9D4]/40 hover:bg-[#D3D9D4]/80 px-3 py-1.5 text-xs font-bold text-[#2E3944] transition duration-200">Teacher
+                            links</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. Recent Alumni Interests: Clean details -->
+            @if ($recentInterests->count() > 0)
+                <section class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm overflow-hidden">
+                    <div
+                        class="p-6 border-b border-[#D3D9D4]/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="p-2 bg-rose-50 rounded-lg text-rose-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#212A31]">Recent Alumni Interests</h3>
+                                <p class="text-sm text-[#748D92]">Newest unprocessed alumni outreach submissions.</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.alumni.interests') }}"
+                            class="rounded-md bg-[#124E66] px-4 py-2 text-sm font-bold text-white hover:bg-[#2E3944] transition duration-200 shadow-sm">View
+                            All Requests</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-[#D3D9D4]/40 text-sm">
+                            <thead
+                                class="bg-[#D3D9D4]/25 text-left text-xs font-bold uppercase tracking-wider text-[#2E3944]">
+                                <tr>
+                                    <th class="px-6 py-3">Name</th>
+                                    <th class="px-6 py-3">Email</th>
+                                    <th class="px-6 py-3">Graduation Year</th>
+                                    <th class="px-6 py-3">Submitted</th>
+                                    <th class="px-6 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#D3D9D4]/40 bg-white">
+                                @foreach ($recentInterests as $interest)
+                                    <tr class="hover:bg-[#D3D9D4]/10">
+                                        <td class="px-6 py-4 font-bold text-[#212A31]">{{ $interest->full_name }}</td>
+                                        <td class="px-6 py-4 text-[#748D92]">{{ $interest->email }}</td>
+                                        <td class="px-6 py-4 text-[#748D92]">{{ $interest->graduation_year }}</td>
+                                        <td class="px-6 py-4 text-[#748D92]">
+                                            {{ $interest->created_at->diffForHumans() }}</td>
+                                        <td class="px-6 py-4 text-right">
+                                            <form action="{{ route('admin.alumni.process-interest', $interest) }}"
+                                                method="POST">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit"
+                                                    class="text-sm font-bold text-[#124E66] hover:text-[#2E3944] transition">Mark
+                                                    processed</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            @endif
+
+            <!-- 8. Classes Overview Section -->
+            <section class="bg-white border border-[#D3D9D4] rounded-xl shadow-sm p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                    <div class="flex items-center gap-3">
+                        <span class="p-2 bg-violet-50 rounded-lg text-violet-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.62 48.62 0 0112 20.9c2.785 0 5.44-.233 8.025-.68a60.431 60.431 0 00-.49-6.348L12 14l-7.74-3.853zm0 0a30.17 30.17 0 012.484-4.386M12 4.25c2.974 0 5.88.22 8.725.644M12 4.25A48.566 48.566 0 003.275 4.894M12 4.25v13.5m8.725-12.856a48.554 48.554 0 01.375 7.425m-18.1 0a48.554 48.554 0 01.375-7.425M12 17.75c-2.974 0-5.88.22-8.725.644M12 17.75c2.974 0 5.88.22 8.725.644m-12 1.375h12" />
+                            </svg>
+                        </span>
+                        <div>
+                            <h3 class="text-lg font-semibold text-[#212A31]">Classes Overview</h3>
+                            <p class="text-sm text-[#748D92]">A quick scan of active sections and enrolment counts.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('admin.classes.create') }}"
+                        class="rounded-md bg-[#124E66] px-4 py-2 text-sm font-bold text-white hover:bg-[#2E3944] transition duration-200 shadow-sm">Add
+                        class</a>
+                </div>
+
+                @if ($classes->count() > 0)
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        @foreach ($classes as $class)
+                            <div
+                                class="bg-[#D3D9D4]/15 border border-[#748D92]/20 rounded-xl p-4 flex flex-col justify-between">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h4 class="font-bold text-[#212A31]">{{ $class->name }}</h4>
+                                        <p class="text-sm text-[#748D92]">Level {{ $class->level }}</p>
+                                    </div>
+                                    <a href="{{ route('admin.classes.edit', $class) }}"
+                                        class="text-xs font-bold text-[#124E66] hover:text-[#2E3944] bg-white border border-[#D3D9D4] px-2.5 py-1.5 rounded-md transition shadow-sm">Edit</a>
+                                </div>
+                                <p
+                                    class="mt-4 text-xs font-bold text-[#2E3944] bg-white border border-[#D3D9D4]/40 w-fit px-2.5 py-1 rounded-md">
+                                    {{ $class->students->count() }}
+                                    student{{ $class->students->count() === 1 ? '' : 's' }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                        No classes found. <a href="{{ route('admin.classes.create') }}"
+                            class="font-bold underline text-[#124E66]">Create your first class</a>.
+                    </div>
+                @endif
+            </section>
         </div>
     </div>
 </x-app-layout>
