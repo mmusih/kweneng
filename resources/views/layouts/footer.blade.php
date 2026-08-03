@@ -104,3 +104,10 @@
         </div>
     </div>
 </footer>
+<div class="bg-slate-950 py-2 text-center text-xs text-slate-500">
+    Powered by
+    <a href="https://dbsystems.tech" target="_blank" rel="noopener noreferrer"
+        class="hover:text-slate-300 transition">
+        dbsystems.tech
+    </a>
+</div>
