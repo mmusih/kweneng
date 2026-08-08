@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Runs the suite against real MariaDB instead of sqlite.
+
+    Why this file exists: phpunit.xml swaps in sqlite :memory: for speed, but sqlite is a
+    poor judge of MySQL/MariaDB schema. It accepts index names over 64 characters, is
+    relaxed about unsigned integer overflow, and reads DECIMAL columns back as floats
+    rather than strings. Migrations can therefore pass the normal suite and still fail on
+    the live database. Use this config to verify schema work on the engine that actually
+    runs in production.
+
+        vendor/bin/phpunit -c phpunit.mysql.xml tests/Feature/Timetable
+
+    DB_DATABASE is pinned to a disposable scratch database with force="true" so that no
+    stray shell variable can redirect RefreshDatabase at school_erp, which holds real
+    student records. Create the scratch database once with:
+
+        CREATE DATABASE school_erp_ttcheck CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    It holds nothing but throwaway schema and fixture rows, and is not needed in
+    production.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="school_erp_ttcheck" force="true"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

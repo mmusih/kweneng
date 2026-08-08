@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\TermController;
+use App\Http\Controllers\Admin\Timetable\GridController;
+use App\Http\Controllers\Admin\Timetable\PeriodController as TimetablePeriodController;
 use App\Http\Controllers\Admin\TimetableController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Hod\SchemeDashboardController as SchemeOversightController;
@@ -100,6 +102,23 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('timetable/groups', [TimetableController::class, 'storeGroup'])->name('timetable.groups.store');
         Route::post('timetable/templates/{template}/entries', [TimetableController::class, 'storeEntry'])->name('timetable.entries.store');
         Route::delete('timetable/templates/{template}/entries/{entry}', [TimetableController::class, 'destroyEntry'])->name('timetable.entries.destroy');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Timetable grid (tt_* schema)
+        |--------------------------------------------------------------------------
+        |
+        | The drag-and-drop editor. Separate from the nine routes above, which run on the
+        | legacy timetable_* tables and cannot represent an option block — both pages stay
+        | reachable until the old one is retired.
+        |
+        */
+        Route::get('timetable/grid', [GridController::class, 'index'])->name('timetable.grid');
+        Route::get('timetable/grid/candidates', [GridController::class, 'candidates'])->name('timetable.grid.candidates');
+        Route::post('timetable/grid/move', [GridController::class, 'move'])->name('timetable.grid.move');
+        Route::post('timetable/grid/unplace', [GridController::class, 'unplace'])->name('timetable.grid.unplace');
+        Route::post('timetable/grid/lock', [GridController::class, 'lock'])->name('timetable.grid.lock');
+        Route::post('timetable/day-structure', [TimetablePeriodController::class, 'update'])->name('timetable.day-structure');
 
         /*
         |--------------------------------------------------------------------------

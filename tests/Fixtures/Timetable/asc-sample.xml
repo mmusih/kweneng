@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<timetable ascttversion="2026.10.1" importtype="database" options="export:idprefix:%CHRID,import:idprefix:%TEMPID,groupstype1,decimalseparatordot,lessonsincludeclasseswithoutstudents,handlestudentsafterlessons" defaultexport="1" displayname="aSc Timetables 2012 XML" displaycountries="">
+<periods options="canadd,export:silent" columns="period,name,short,starttime,endtime">
+<period name="1" short="1" period="1" starttime="7:30" endtime="8:10"/>
+<period name="2" short="2" period="2" starttime="8:10" endtime="8:50"/>
+<period name="3" short="3" period="3" starttime="8:50" endtime="9:30"/>
+<period name="4" short="4" period="4" starttime="9:30" endtime="10:10"/>
+<period name="5" short="5" period="5" starttime="10:30" endtime="11:10"/>
+<period name="6" short="6" period="6" starttime="11:10" endtime="11:50"/>
+<period name="7" short="7" period="7" starttime="11:50" endtime="12:30"/>
+<period name="8" short="8" period="8" starttime="12:30" endtime="13:10"/>
+</periods>
+<breaks options="canadd,export:silent" columns="break,name,short,starttime,endtime">
+<break name="Breaktime" short="BK" break="5" starttime="10:10" endtime="10:30"/>
+</breaks>
+<daysdefs options="canadd,export:silent" columns="id,days,name,short">
+<daysdef id="DDDDDDDDDDDDDDD1" name="Every day" short="E" days="111111"/>
+<daysdef id="DDDDDDDDDDDDDDD2" name="Any day" short="X" days="100000,010000,001000,000100,000010,000001"/>
+</daysdefs>
+<weeksdefs options="canadd,export:silent" columns="id,weeks,name,short">
+<weeksdef id="EEEEEEEEEEEEEEE1" name="All weeks" short="All" weeks="1"/>
+</weeksdefs>
+<termsdefs options="canadd,export:silent" columns="id,terms,name,short">
+<termsdef id="FFFFFFFFFFFFFFF1" name="Whole year" short="YR" terms="1"/>
+</termsdefs>
+<subjects options="canadd,export:silent" columns="id,name,short,partner_id">
+<subject id="1111111111111111" name="Biology" short="Bi" partner_id=""/>
+<subject id="2222222222222222" name="Chemistry" short="Ch" partner_id=""/>
+<subject id="3333333333333333" name="Physics" short="Ph" partner_id=""/>
+<subject id="4444444444444444" name="Setswana" short="SET" partner_id=""/>
+<subject id="5555555555555555" name="Astronomy" short="Ast" partner_id=""/>
+</subjects>
+<teachers options="canadd,export:silent" columns="id,name,short,gender,color,email,mobile,partner_id,firstname,lastname">
+<teacher id="AAAAAAAAAAAAAAA1" firstname="K" lastname="Simukonda" name="K Simukonda" short="T1" gender="F" color="#FF8080" email="" mobile="" partner_id=""/>
+<teacher id="AAAAAAAAAAAAAAA2" firstname="N" lastname="Chisenga" name="N Chisenga" short="T2" gender="F" color="#66FFFF" email="" mobile="" partner_id=""/>
+<teacher id="AAAAAAAAAAAAAAA3" firstname="Zoë" lastname="Kgosi" name="Zoë Kgosi" short="T3" gender="F" color="#80FF80" email="" mobile="" partner_id=""/>
+</teachers>
+<buildings options="canadd,export:silent" columns="id,name,partner_id"/>
+<classrooms options="canadd,export:silent" columns="id,name,short,capacity,buildingid,partner_id">
+<classroom id="BBBBBBBBBBBBBBB1" name="Biology Lab R1" short="R1" capacity="*" buildingid="" partner_id=""/>
+<classroom id="BBBBBBBBBBBBBBB2" name="Room 2" short="R2" capacity="*" buildingid="" partner_id=""/>
+<classroom id="BBBBBBBBBBBBBBB3" name="Room 3" short="R3" capacity="30" buildingid="" partner_id=""/>
+</classrooms>
+<grades options="canadd,export:silent" columns="grade,name,short">
+<grade name="Grade 1" short="G 1" grade="1"/>
+</grades>
+<classes options="canadd,export:silent" columns="id,name,short,classroomids,teacherid,grade,partner_id">
+<class id="CCCCCCCCCCCCCCC1" name="FORM 5A" short="F5A" teacherid="AAAAAAAAAAAAAAA1" classroomids="BBBBBBBBBBBBBBB3" grade="" partner_id=""/>
+<class id="CCCCCCCCCCCCCCC2" name="Form 5B" short="F5B" teacherid="AAAAAAAAAAAAAAA2" classroomids="" grade="" partner_id=""/>
+<class id="CCCCCCCCCCCCCCC3" name="FORM 5C" short="F5C" teacherid="AAAAAAAAAAAAAAA3" classroomids="" grade="" partner_id=""/>
+</classes>
+<groups options="canadd,export:silent" columns="id,classid,name,entireclass,divisiontag,studentcount,studentids">
+<group id="1000000000000001" name="Entire class" classid="CCCCCCCCCCCCCCC1" studentids="9000000000000001,9000000000000002,9000000000000003,9000000000000004" entireclass="1" divisiontag="0" studentcount=""/>
+<group id="1000000000000002" name="BIO A" classid="CCCCCCCCCCCCCCC1" studentids="" entireclass="0" divisiontag="1" studentcount=""/>
+<group id="1000000000000003" name="CHE A" classid="CCCCCCCCCCCCCCC1" studentids="" entireclass="0" divisiontag="1" studentcount=""/>
+<group id="1000000000000004" name="SET_Simukonda" classid="CCCCCCCCCCCCCCC1" studentids="" entireclass="0" divisiontag="1" studentcount=""/>
+<group id="1000000000000005" name="SET_Chisenga" classid="CCCCCCCCCCCCCCC1" studentids="" entireclass="0" divisiontag="1" studentcount=""/>
+<group id="1000000000000006" name="PHY" classid="CCCCCCCCCCCCCCC1" studentids="" entireclass="0" divisiontag="2" studentcount=""/>
+<group id="2000000000000001" name="Entire class" classid="CCCCCCCCCCCCCCC2" studentids="9000000000000005,9000000000000006" entireclass="1" divisiontag="0" studentcount=""/>
+<group id="2000000000000002" name="PHY" classid="CCCCCCCCCCCCCCC2" studentids="" entireclass="0" divisiontag="2" studentcount=""/>
+<group id="3000000000000001" name="Entire class" classid="CCCCCCCCCCCCCCC3" studentids="9000000000000007" entireclass="1" divisiontag="0" studentcount=""/>
+<group id="3000000000000002" name="PHY" classid="CCCCCCCCCCCCCCC3" studentids="" entireclass="0" divisiontag="2" studentcount=""/>
+</groups>
+<students options="canadd,export:silent" columns="id,classid,name,number,email,mobile,partner_id,firstname,lastname">
+<student id="9000000000000001" firstname="Tebogo" lastname="Moeng" name="Tebogo Moeng" classid="CCCCCCCCCCCCCCC1" email="" mobile="" number="5A" partner_id=""/>
+<student id="9000000000000002" firstname="Naledi" lastname="Phiri" name="Naledi Phiri" classid="CCCCCCCCCCCCCCC1" email="" mobile="" number="" partner_id=""/>
+<student id="9000000000000003" firstname="Zoë" lastname="Motsumi" name="Zoë Motsumi" classid="CCCCCCCCCCCCCCC1" email="" mobile="" number="" partner_id=""/>
+<student id="9000000000000004" firstname="Kabelo" lastname="Ntsima" name="Kabelo Ntsima" classid="CCCCCCCCCCCCCCC1" email="" mobile="" number="" partner_id=""/>
+<student id="9000000000000005" firstname="Lesego" lastname="Bane" name="Lesego Bane" classid="CCCCCCCCCCCCCCC2" email="" mobile="" number="" partner_id=""/>
+<student id="9000000000000006" firstname="Mpho" lastname="Radise" name="Mpho Radise" classid="CCCCCCCCCCCCCCC2" email="" mobile="" number="" partner_id=""/>
+<student id="9000000000000007" firstname="Onalenna" lastname="Seru" name="Onalenna Seru" classid="CCCCCCCCCCCCCCC3" email="" mobile="" number="" partner_id=""/>
+</students>
+<studentsubjects options="canadd,export:silent" columns="studentid,subjectid,seminargroup,importance,alternatefor">
+<studentsubject subjectid="1111111111111111" studentid="9000000000000001" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="1111111111111111" studentid="9000000000000002" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="2222222222222222" studentid="9000000000000003" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="4444444444444444" studentid="9000000000000004" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="3333333333333333" studentid="9000000000000001" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="3333333333333333" studentid="9000000000000005" seminargroup="-" importance="normal" alternatefor=""/>
+<studentsubject subjectid="3333333333333333" studentid="9000000000000007" seminargroup="-" importance="normal" alternatefor=""/>
+</studentsubjects>
+<lessons options="canadd,export:silent" columns="id,subjectid,classids,groupids,teacherids,classroomids,periodspercard,periodsperweek,daysdefid,weeksdefid,termsdefid,seminargroup,capacity,partner_id">
+<lesson id="7000000000000001" classids="CCCCCCCCCCCCCCC1,CCCCCCCCCCCCCCC2,CCCCCCCCCCCCCCC3" subjectid="3333333333333333" periodspercard="2" periodsperweek="6.0" teacherids="AAAAAAAAAAAAAAA3" classroomids="BBBBBBBBBBBBBBB1,BBBBBBBBBBBBBBB2,BBBBBBBBBBBBBBB3" groupids="1000000000000006,2000000000000002,3000000000000002" capacity="*" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD2" partner_id=""/>
+<lesson id="7000000000000002" classids="CCCCCCCCCCCCCCC1" subjectid="1111111111111111" periodspercard="2" periodsperweek="4.0" teacherids="AAAAAAAAAAAAAAA1" classroomids="BBBBBBBBBBBBBBB1" groupids="1000000000000002" capacity="*" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD2" partner_id=""/>
+<lesson id="7000000000000003" classids="CCCCCCCCCCCCCCC1" subjectid="2222222222222222" periodspercard="1" periodsperweek="3.0" teacherids="AAAAAAAAAAAAAAA2" classroomids="BBBBBBBBBBBBBBB2" groupids="1000000000000003" capacity="24" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD1" partner_id=""/>
+<lesson id="7000000000000004" classids="CCCCCCCCCCCCCCC1" subjectid="4444444444444444" periodspercard="1" periodsperweek="2.0" teacherids="AAAAAAAAAAAAAAA1" classroomids="BBBBBBBBBBBBBBB3" groupids="1000000000000004" capacity="*" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD1" partner_id=""/>
+<lesson id="7000000000000005" classids="CCCCCCCCCCCCCCC1" subjectid="4444444444444444" periodspercard="1" periodsperweek="2.0" teacherids="AAAAAAAAAAAAAAA2" classroomids="BBBBBBBBBBBBBBB3" groupids="1000000000000005" capacity="*" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD1" partner_id=""/>
+<lesson id="7000000000000006" classids="CCCCCCCCCCCCCCC1" subjectid="5555555555555555" periodspercard="1" periodsperweek="1.0" teacherids="AAAAAAAAAAAAAAA2" classroomids="BBBBBBBBBBBBBBB2" groupids="1000000000000001" capacity="*" seminargroup="" termsdefid="FFFFFFFFFFFFFFF1" weeksdefid="EEEEEEEEEEEEEEE1" daysdefid="DDDDDDDDDDDDDDD1" partner_id=""/>
+</lessons>
+<cards options="canadd,export:silent" columns="lessonid,period,days,weeks,terms,classroomids">
+<card lessonid="7000000000000001" classroomids="BBBBBBBBBBBBBBB1" period="3" weeks="1" terms="1" days="001000"/>
+<card lessonid="7000000000000001" classroomids="BBBBBBBBBBBBBBB1" period="4" weeks="1" terms="1" days="001000"/>
+<card lessonid="7000000000000001" classroomids="BBBBBBBBBBBBBBB2" period="7" weeks="1" terms="1" days="000001"/>
+<card lessonid="7000000000000001" classroomids="BBBBBBBBBBBBBBB2" period="8" weeks="1" terms="1" days="000001"/>
+<card lessonid="7000000000000002" classroomids="BBBBBBBBBBBBBBB1" period="1" weeks="1" terms="1" days="100000"/>
+<card lessonid="7000000000000002" classroomids="BBBBBBBBBBBBBBB1" period="2" weeks="1" terms="1" days="100000"/>
+<card lessonid="7000000000000006" classroomids="BBBBBBBBBBBBBBB2" period="5" weeks="1" terms="1" days="000010"/>
+</cards>
+<classroomsupervisions options="canadd,export:silent" columns="classroomid,teacherid,day,week,term,period,break"/>
+</timetable>
