@@ -40,6 +40,66 @@
     --kw-admin-violet: #8b5cf6;
 }
 
+/* Timetable room fields: make the active edit target visually unmistakable. */
+.tt-room-field {
+    border-color: #94a3b8 !important;
+    border-width: 1px !important;
+    cursor: text;
+    caret-color: #0f172a;
+    box-shadow: inset 0 0 0 1px rgba(71, 85, 105, .08);
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.tt-room-field:focus {
+    background-color: #e2e8f0 !important;
+    border-color: #124E66 !important;
+    box-shadow: 0 0 0 3px rgba(18, 78, 102, .22) !important;
+    outline: none;
+}
+
+.dark .tt-room-field {
+    border-color: #748D92 !important;
+    caret-color: #f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(211, 217, 212, .08);
+}
+
+.dark .tt-room-field:focus {
+    background-color: #11181d !important;
+    border-color: #9fb3b8 !important;
+    box-shadow: 0 0 0 3px rgba(116, 141, 146, .28) !important;
+}
+
+/* Add-division fields stay obvious before editing, then darken around the
+   browser's native blinking caret so the active typing target is unmistakable. */
+.tt-division-field {
+    background-color: #fff !important;
+    border: 2px solid #64748b !important;
+    caret-color: #0f172a;
+    cursor: text;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06);
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.tt-division-field:focus {
+    background-color: #e2e8f0 !important;
+    border-color: #124E66 !important;
+    box-shadow: 0 0 0 3px rgba(18, 78, 102, .24) !important;
+    outline: none;
+}
+
+.dark .tt-division-field {
+    background-color: #182026 !important;
+    border-color: #9fb3b8 !important;
+    caret-color: #f8fafc;
+    box-shadow: inset 0 0 0 1px rgba(211, 217, 212, .1);
+}
+
+.dark .tt-division-field:focus {
+    background-color: #0f1519 !important;
+    border-color: #d3d9d4 !important;
+    box-shadow: 0 0 0 3px rgba(159, 179, 184, .3) !important;
+}
+
 .kw-page-header {
     background-color: #1e293b !important;
     border: 1px solid #334155 !important;

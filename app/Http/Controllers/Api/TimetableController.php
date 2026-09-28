@@ -17,7 +17,7 @@ class TimetableController extends Controller
         $teacher = $request->user()->teacher;
         abort_unless($teacher, 404);
 
-        return response()->json($this->timetables->forTeacher($teacher, $data['date'] ?? null));
+        return response()->json($this->timetables->forTeacher($teacher, $data['date'] ?? null, true));
     }
 
     public function student(Request $request): JsonResponse
@@ -26,7 +26,7 @@ class TimetableController extends Controller
         $student = $request->user()->student;
         abort_unless($student, 404);
 
-        return response()->json($this->timetables->forStudent($student, $data['date'] ?? null));
+        return response()->json($this->timetables->forStudent($student, $data['date'] ?? null, true));
     }
 
     public function parent(Request $request): JsonResponse
@@ -52,7 +52,7 @@ class TimetableController extends Controller
                 'name' => $student->user?->name,
                 'class' => $student->currentClass?->name,
             ],
-            ...$this->timetables->forStudent($student, $data['date'] ?? null),
+            ...$this->timetables->forStudent($student, $data['date'] ?? null, true),
         ]);
     }
 }

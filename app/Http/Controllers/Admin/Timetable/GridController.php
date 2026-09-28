@@ -3,19 +3,27 @@
 namespace App\Http\Controllers\Admin\Timetable;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassModel;
 use App\Models\Tt\Card;
+use App\Models\Tt\Group;
 use App\Models\Tt\Lesson;
+use App\Models\Tt\Room;
 use App\Models\Tt\Setting;
+use App\Services\Timetable\BaseRoomResolver;
 use App\Services\Timetable\CardPlacementService;
 use App\Services\Timetable\ConflictChecker;
 use App\Services\Timetable\GridPayload;
+use App\Services\Timetable\LessonEditorService;
 use App\Services\Timetable\Placement;
 use App\Services\Timetable\PlacementRefused;
 use App\Services\Timetable\SettingResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * The drag-and-drop grid: the payload it draws, the verdict it paints with, and the moves
@@ -32,14 +40,26 @@ class GridController extends Controller
         private readonly SettingResolver $settings,
         private readonly CardPlacementService $placement,
         private readonly GridPayload $payload,
+        private readonly LessonEditorService $lessonEditor,
+        private readonly BaseRoomResolver $baseRooms,
     ) {}
 
     /**
      * The editor page, or its payload for a client refreshing in place.
      */
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): View|JsonResponse|RedirectResponse
     {
-        $setting = $this->setting($request);
+        try {
+            $setting = $this->setting($request);
+        } catch (RuntimeException $exception) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $exception->getMessage()], 422);
+            }
+
+            return redirect()
+                ->route('admin.academic-years.index')
+                ->with('error', $exception->getMessage());
+        }
 
         if ($request->expectsJson()) {
             return response()->json($this->payload->build($setting));
@@ -68,15 +88,20 @@ class GridController extends Controller
         ]);
 
         $setting = $this->setting($request);
-        [$lesson, $unit] = $this->subject($data);
+        [$lesson, $unit] = $this->subject($data, $setting);
+        $this->assertRoom($lesson, $data['room_id'] ?? null);
 
         $ignore = $unit?->cardIds() ?? [];
 
         // A card already on the grid keeps the room it was placed in; one coming off the
         // tray has not chosen yet, so every room the lesson may use is a candidate.
-        $rooms = $this->candidateRooms($lesson, $data['room_id'] ?? $unit?->roomId());
+        $rooms = $unit === null
+            ? $this->candidateRooms($lesson, $data['room_id'] ?? null)
+            : [$data['room_id'] ?? $unit->roomId()];
 
-        $checker = (new ConflictChecker)->withPool(ConflictChecker::poolFor((int) $setting->id));
+        $pool = ConflictChecker::poolFor((int) $setting->id);
+        $checker = (new ConflictChecker)->withPool($pool);
+        $linked = $lesson->split_key ? $this->placement->linkedLessons($lesson) : collect();
         $span = $checker->span($lesson);
 
         $periods = $setting->periods()->pluck('period_number')->map(fn ($n) => (int) $n)->all();
@@ -84,7 +109,10 @@ class GridController extends Controller
 
         foreach (range(1, max(1, (int) $setting->cycle_length)) as $day) {
             foreach ($periods as $period) {
-                $slots[] = $this->verdict($checker, $lesson, $day, $period, $rooms, $ignore) + [
+                $verdict = $lesson->split_key
+                    ? $this->placement->splitVerdict($linked, $pool, $lesson, $day, $period, $data['room_id'] ?? null, $unit !== null)
+                    : $this->verdict($checker, $lesson, $day, $period, $rooms, $ignore);
+                $slots[] = $verdict + [
                     'day' => $day,
                     'period' => $period,
                 ];
@@ -114,7 +142,9 @@ class GridController extends Controller
         ]);
 
         $setting = $this->setting($request);
-        [$lesson, $unit] = $this->subject($data);
+        $this->assertDay($setting, $data['day']);
+        [$lesson, $unit] = $this->subject($data, $setting);
+        $this->assertRoom($lesson, $data['room_id'] ?? null);
 
         try {
             $result = $unit === null
@@ -132,6 +162,28 @@ class GridController extends Controller
     /**
      * Send a card back to the tray. Both rows of a double go.
      */
+    public function changeRoom(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
+            'card_id' => ['required', 'integer', 'exists:tt_cards,id'],
+            'room_id' => ['present', 'nullable', 'integer', 'exists:tt_rooms,id'],
+        ]);
+        $setting = $this->setting($request);
+        if ($data['room_id'] !== null && ! Room::where('tt_setting_id', $setting->id)->whereKey($data['room_id'])->exists()) {
+            throw ValidationException::withMessages(['room_id' => 'Choose a room from this timetable.']);
+        }
+        [, $unit] = $this->subject($data, $setting);
+
+        try {
+            $this->placement->changeRoom($unit, $data['room_id']);
+        } catch (PlacementRefused $refused) {
+            return $this->refusal($refused);
+        }
+
+        return response()->json($this->refreshed($setting));
+    }
+
     public function unplace(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -140,7 +192,7 @@ class GridController extends Controller
         ]);
 
         $setting = $this->setting($request);
-        [, $unit] = $this->subject($data);
+        [, $unit] = $this->subject($data, $setting);
 
         try {
             $this->placement->unplace($unit);
@@ -163,7 +215,7 @@ class GridController extends Controller
         ]);
 
         $setting = $this->setting($request);
-        [, $unit] = $this->subject($data);
+        [, $unit] = $this->subject($data, $setting);
 
         $result = $this->placement->lock($unit, (bool) $data['locked']);
 
@@ -172,16 +224,260 @@ class GridController extends Controller
         ] + $this->refreshed($setting));
     }
 
+    /** Create lesson cards from the school's existing class, subject and teacher records. */
+    public function storeLesson(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'teacher_ids' => ['present', 'array'],
+            'teacher_ids.*' => ['integer', 'distinct', 'exists:teachers,id'],
+            'room_ids' => ['present', 'array'],
+            'room_ids.*' => ['integer', 'distinct', 'exists:tt_rooms,id'],
+            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:40'],
+            'periods_per_card' => ['required', 'integer', 'min:1', 'max:4'],
+            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:40'],
+            'attendance' => ['required', 'array', 'min:1', 'max:12'],
+            'attendance.*.class_id' => ['required', 'integer', 'exists:classes,id'],
+            'attendance.*.group_id' => ['nullable', 'integer', 'distinct', 'exists:tt_groups,id'],
+        ]);
+
+        $setting = $this->setting($request);
+        [$classIds, $groupIds] = $this->attendance($data['attendance'], $setting);
+        $roomIds = array_map('intval', $data['room_ids']);
+        $this->assertRoomsInSetting($roomIds, $setting);
+        $this->assertSubjectAvailableToClasses((int) $data['subject_id'], $classIds, $setting);
+
+        $this->lessonEditor->create($setting, [
+            'subject_id' => (int) $data['subject_id'],
+            'teacher_ids' => array_map('intval', $data['teacher_ids']),
+            'room_ids' => $roomIds,
+            'periods_per_week' => (float) $data['periods_per_week'],
+            'periods_per_card' => (int) $data['periods_per_card'],
+            'cards_per_cycle' => isset($data['cards_per_cycle']) ? (int) $data['cards_per_cycle'] : null,
+            'class_ids' => $classIds,
+            'group_ids' => $groupIds,
+        ]);
+
+        return response()->json(['message' => 'Lesson cards added to the tray.'] + $this->refreshed($setting));
+    }
+
+    /** Change the lesson behind a card, while rechecking every existing placement. */
+    public function updateLesson(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
+            'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
+            'card_id' => ['nullable', 'integer', 'exists:tt_cards,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'teacher_ids' => ['present', 'array'],
+            'teacher_ids.*' => ['integer', 'distinct', 'exists:teachers,id'],
+            'room_ids' => ['present', 'array'],
+            'room_ids.*' => ['integer', 'distinct', 'exists:tt_rooms,id'],
+            'placement_room_id' => ['nullable', 'integer', 'exists:tt_rooms,id'],
+            'placement_room_mode' => ['sometimes', 'string', 'in:automatic,none,room'],
+            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:40'],
+            'periods_per_card' => ['required', 'integer', 'min:1', 'max:4'],
+            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:40'],
+            'attendance' => ['sometimes', 'array', 'min:1', 'max:12'],
+            'attendance.*.class_id' => ['required', 'integer', 'exists:classes,id'],
+            'attendance.*.group_id' => ['nullable', 'integer', 'distinct', 'exists:tt_groups,id'],
+        ]);
+
+        $setting = $this->setting($request);
+        $lesson = $this->editableLesson($data, $setting);
+        $roomIds = array_map('intval', $data['room_ids']);
+        $placementRoomMode = $data['placement_room_mode']
+            ?? (($data['placement_room_id'] ?? null) === null ? 'automatic' : 'room');
+
+        if ($placementRoomMode === 'room' && ($data['placement_room_id'] ?? null) === null) {
+            throw ValidationException::withMessages(['placement_room_id' => 'Choose the room for this card.']);
+        }
+
+        if ($placementRoomMode === 'room' && ! in_array((int) $data['placement_room_id'], $roomIds, true)) {
+            $roomIds[] = (int) $data['placement_room_id'];
+        }
+
+        [$classIds, $groupIds] = array_key_exists('attendance', $data)
+            ? $this->attendance($data['attendance'], $setting)
+            : [
+                $lesson->classes()->pluck('classes.id')->map(fn ($id) => (int) $id)->all(),
+                $lesson->groups()->pluck('tt_groups.id')->map(fn ($id) => (int) $id)->all(),
+            ];
+
+        $this->assertRoomsInSetting($roomIds, $setting);
+
+        $this->lessonEditor->update($lesson, [
+            'subject_id' => (int) $data['subject_id'],
+            'teacher_ids' => array_map('intval', $data['teacher_ids']),
+            'room_ids' => $roomIds,
+            'periods_per_week' => (float) $data['periods_per_week'],
+            'periods_per_card' => (int) $data['periods_per_card'],
+            'cards_per_cycle' => isset($data['cards_per_cycle']) ? (int) $data['cards_per_cycle'] : null,
+            'class_ids' => $classIds,
+            'group_ids' => $groupIds,
+            'card_id' => isset($data['card_id']) ? (int) $data['card_id'] : null,
+            'placement_room_id' => $placementRoomMode === 'room' ? (int) $data['placement_room_id'] : null,
+            'placement_room_mode' => $placementRoomMode,
+        ]);
+
+        return response()->json(['message' => 'Lesson updated.'] + $this->refreshed($setting));
+    }
+
+    /** @param list<int> $roomIds */
+    private function assertRoomsInSetting(array $roomIds, Setting $setting): void
+    {
+        if (Room::query()->whereIn('id', $roomIds)->where('tt_setting_id', '!=', $setting->id)->exists()) {
+            throw ValidationException::withMessages(['room_ids' => 'Every room must belong to this timetable revision.']);
+        }
+    }
+
+    /**
+     * When the school has curriculum records for a class, use them as authority. A class
+     * with no setup records remains usable so an incomplete initial setup is not a dead end.
+     *
+     * @param  list<int>  $classIds
+     */
+    private function assertSubjectAvailableToClasses(int $subjectId, array $classIds, Setting $setting): void
+    {
+        foreach ($classIds as $classId) {
+            $knownSubjectIds = collect(['class_subjects', 'teacher_subjects', 'student_subjects'])
+                ->flatMap(fn (string $table) => DB::table($table)
+                    ->where('academic_year_id', $setting->academic_year_id)
+                    ->where('class_id', $classId)
+                    ->pluck('subject_id'))
+                ->map(fn ($id) => (int) $id)
+                ->unique();
+
+            if ($knownSubjectIds->isNotEmpty() && ! $knownSubjectIds->contains($subjectId)) {
+                $className = ClassModel::query()->whereKey($classId)->value('name') ?? 'The selected class';
+
+                throw ValidationException::withMessages([
+                    'subject_id' => $className.' is not assigned this subject in the school setup.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  list<array{class_id:int, group_id?:int|null}>  $rows
+     * @return array{0:list<int>, 1:list<int>}
+     */
+    private function attendance(array $rows, Setting $setting): array
+    {
+        $classIds = collect($rows)
+            ->pluck('class_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $validClassCount = ClassModel::query()
+            ->where('academic_year_id', $setting->academic_year_id)
+            ->whereIn('id', $classIds)
+            ->count();
+
+        if ($validClassCount !== count($classIds)) {
+            throw ValidationException::withMessages([
+                'attendance' => 'Every attending class must belong to this timetable’s academic year.',
+            ]);
+        }
+
+        $groupIds = [];
+        $groupsByClass = [];
+        $wholeClasses = [];
+
+        foreach ($rows as $index => $row) {
+            if (($row['group_id'] ?? null) === null) {
+                $wholeClasses[(int) $row['class_id']] = true;
+
+                continue;
+            }
+
+            $group = Group::query()->findOrFail((int) $row['group_id']);
+
+            if ((int) $group->class_id !== (int) $row['class_id'] || $group->entire_class) {
+                throw ValidationException::withMessages([
+                    "attendance.{$index}.group_id" => 'Choose a division group belonging to the selected class.',
+                ]);
+            }
+
+            $groupIds[] = (int) $group->id;
+            $groupsByClass[(int) $row['class_id']][] = $group;
+        }
+
+        foreach ($classIds as $classId) {
+            $groups = collect($groupsByClass[$classId] ?? []);
+
+            if (isset($wholeClasses[$classId]) && $groups->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'attendance' => 'Choose either the entire class or its division groups, not both.',
+                ]);
+            }
+
+            if ($groups->pluck('tt_division_id')->filter()->unique()->count() > 1) {
+                throw ValidationException::withMessages([
+                    'attendance' => 'Groups from the same class must belong to one division.',
+                ]);
+            }
+        }
+
+        return [$classIds, $groupIds];
+    }
+
+    /** Make an unplaced copy with the same class, groups, teachers and room choices. */
+    public function duplicateLesson(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
+            'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
+        ]);
+        $setting = $this->setting($request);
+        $lesson = $this->editableLesson($data, $setting);
+
+        $copy = $lesson->replicate(['asc_id']);
+        $copy->asc_id = null;
+        $copy->save();
+        $copy->teachers()->sync($lesson->teachers()->pluck('teachers.id'));
+        $copy->classes()->sync($lesson->classes()->pluck('classes.id'));
+        $copy->groups()->sync($lesson->groups()->pluck('tt_groups.id'));
+        $copy->rooms()->sync($lesson->rooms()->get()->mapWithKeys(
+            fn ($room) => [$room->id => ['sort_order' => $room->pivot->sort_order]],
+        )->all());
+
+        return response()->json(['message' => 'Lesson duplicated into the tray.'] + $this->refreshed($setting));
+    }
+
+    /** Delete a lesson and all of its placed cards. */
+    public function destroyLesson(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
+            'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
+        ]);
+        $setting = $this->setting($request);
+        $lesson = $this->editableLesson($data, $setting);
+        $lesson->delete();
+
+        return response()->json(['message' => 'Lesson deleted.'] + $this->refreshed($setting));
+    }
+
     /**
      * The lesson being dragged, and the placement it came from if it was on the grid.
      *
      * @param  array<string, mixed>  $data
      * @return array{0: Lesson, 1: Placement|null}
      */
-    private function subject(array $data): array
+    private function subject(array $data, Setting $setting): array
     {
         if (($data['card_id'] ?? null) !== null) {
             $card = Card::query()->with('lesson')->findOrFail($data['card_id']);
+
+            if ((int) $card->lesson?->tt_setting_id !== (int) $setting->id) {
+                throw ValidationException::withMessages([
+                    'card_id' => 'That card belongs to another timetable. Refresh and try again.',
+                ]);
+            }
+
             $unit = $this->placement->unitContaining($card);
 
             if ($unit === null) {
@@ -199,7 +495,72 @@ class GridController extends Controller
             ]);
         }
 
-        return [Lesson::query()->findOrFail($data['lesson_id']), null];
+        $lesson = Lesson::query()->findOrFail($data['lesson_id']);
+
+        if ((int) $lesson->tt_setting_id !== (int) $setting->id) {
+            throw ValidationException::withMessages([
+                'lesson_id' => 'That lesson belongs to another timetable. Refresh and try again.',
+            ]);
+        }
+
+        return [$lesson, null];
+    }
+
+    /** @param array<string, mixed> $data */
+    private function editableLesson(array $data, Setting $setting): Lesson
+    {
+        $lesson = Lesson::query()->findOrFail($data['lesson_id']);
+
+        if ((int) $lesson->tt_setting_id !== (int) $setting->id) {
+            throw ValidationException::withMessages([
+                'lesson_id' => 'That lesson belongs to another timetable. Refresh and try again.',
+            ]);
+        }
+
+        if (($data['card_id'] ?? null) !== null) {
+            $belongs = Card::query()
+                ->whereKey($data['card_id'])
+                ->where('tt_lesson_id', $lesson->id)
+                ->exists();
+
+            if (! $belongs) {
+                throw ValidationException::withMessages(['card_id' => 'That card does not belong to this lesson.']);
+            }
+        }
+
+        if ($lesson->preparation_key !== null) {
+            throw ValidationException::withMessages(['lesson' => 'This occurrence is linked to teacher assignments. Use Create cards from teacher assignments to change its pattern, attendance or split. Return placed cards to the tray first.']);
+        }
+
+        return $lesson;
+    }
+
+    /**
+     * The request validator knows the application's broad limit; the selected setting
+     * knows the real one. Reject a stale or crafted day before Bitmask has to throw.
+     */
+    private function assertDay(Setting $setting, int $day): void
+    {
+        if ($day <= max(1, (int) $setting->cycle_length)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'day' => "Day {$day} is outside this timetable's cycle.",
+        ]);
+    }
+
+    /** A client may choose among the lesson's candidate rooms, never invent one. */
+    private function assertRoom(Lesson $lesson, ?int $roomId): void
+    {
+        if ($roomId === null || $lesson->rooms()->whereKey($roomId)->exists()
+            || $this->baseRooms->forLesson($lesson) === $roomId) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'room_id' => 'That room is not available to this lesson.',
+        ]);
     }
 
     /**
@@ -249,15 +610,18 @@ class GridController extends Controller
         $rooms = $lesson->rooms()->pluck('tt_rooms.id')->map(fn ($id) => (int) $id)->all();
 
         // A lesson with no room named is not roomless-illegal; it simply has no room rule.
-        return $rooms === [] ? [null] : $rooms;
+        if ($rooms === []) {
+            return [$this->baseRooms->forLesson($lesson)];
+        }
+
+        return $rooms;
     }
 
     /**
      * The whole grid, not just the card that moved.
      *
-     * A single drop can change a class row's height and every lane in it — put a fourth
-     * option group into a slot that held three and the row grows a line. Recomputing that
-     * client-side would be a second implementation of GridPayload::assignLanes().
+     * Return the authoritative grid after every write so every open editor sees the
+     * saved cards, tray counts, rooms and lesson details in one consistent payload.
      *
      * @return array{grid: array<string, mixed>}
      */

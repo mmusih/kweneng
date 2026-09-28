@@ -1,5 +1,8 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
+import { timetablePreparation } from './timetable-preparation';
+
+Alpine.data('timetablePreparation', timetablePreparation);
 
 const themeStorageKey = 'kweneng-theme';
 

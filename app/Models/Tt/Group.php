@@ -30,6 +30,7 @@ class Group extends Model
         'class_id',
         'tt_division_id',
         'name',
+        'shared_key',
         'entire_class',
         'asc_id',
         'partner_id',

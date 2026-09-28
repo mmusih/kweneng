@@ -1,4 +1,8 @@
 <x-app-layout>
+    @php
+        $displaySchedules = collect($schedule['schedules'] ?? []);
+        if ($displaySchedules->isEmpty() && $schedule['template']) $displaySchedules = collect([$schedule]);
+    @endphp
     <x-slot name="header">
         <div class="mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-6 shadow-md">
             <p class="text-xs font-semibold uppercase tracking-widest text-[#D3D9D4]">Daily learning plan</p>
@@ -32,14 +36,26 @@
                 <h3 class="text-lg font-semibold text-amber-950">No timetable has been published yet</h3>
                 <p class="mt-2 text-sm text-amber-800">The school will publish the active timetable here when it is ready.</p>
             </div>
-        @elseif ($schedule['days'] === [])
+        @elseif ($displaySchedules->every(fn ($item) => collect($item['days'])->isEmpty()))
             <div class="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-600">
                 No timetable days are configured.
             </div>
         @else
+            <div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-900">{{ $schedule['day_label'] }}</div>
+            @if($displaySchedules->count() > 1)
+                <div class="mb-4 flex gap-2 overflow-x-auto" role="tablist" aria-label="Timetable schedules">
+                    @foreach($displaySchedules as $scheduleIndex => $viewSchedule)
+                        <button type="button" data-schedule-tab="{{ $scheduleIndex }}" class="schedule-tab whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold">{{ $viewSchedule['template']['schedule_label'] ?? $viewSchedule['template']['name'] }}</button>
+                    @endforeach
+                </div>
+            @endif
+            @foreach($displaySchedules as $scheduleIndex => $viewSchedule)
+            <section data-schedule-panel="{{ $scheduleIndex }}" class="schedule-panel">
+            <div class="mb-3"><h3 class="text-xl font-bold">{{ $viewSchedule['template']['schedule_label'] ?? 'Timetable' }}</h3><p class="text-sm text-gray-500">{{ $viewSchedule['template']['name'] }} · {{ $viewSchedule['template']['cycle_length'] }} day cycle</p></div>
             <div class="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Timetable days">
-                @foreach ($schedule['days'] as $day)
+                @foreach ($viewSchedule['days'] as $day)
                     <button type="button"
+                        data-schedule="{{ $scheduleIndex }}"
                         data-day-tab="{{ $day['day_number'] }}"
                         class="day-tab whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition">
                         {{ $day['name'] }}
@@ -48,11 +64,11 @@
             </div>
 
             <div class="mt-4">
-                @foreach ($schedule['days'] as $day)
-                    <section data-day-panel="{{ $day['day_number'] }}" class="day-panel hidden space-y-3">
+                @foreach ($viewSchedule['days'] as $day)
+                    <section data-schedule="{{ $scheduleIndex }}" data-day-panel="{{ $day['day_number'] }}" class="day-panel hidden space-y-3">
                         <div class="flex items-center justify-between">
                             <h3 class="text-xl font-semibold text-gray-900">{{ $day['name'] }}</h3>
-                            @if ($schedule['selected_day_number'] === $day['day_number'])
+                            @if ($viewSchedule['selected_day_number'] === $day['day_number'])
                                 <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Today</span>
                             @endif
                         </div>
@@ -104,27 +120,38 @@
                     </section>
                 @endforeach
             </div>
+            </section>
+            @endforeach
         @endif
     </div>
 
-    @if ($schedule['template'])
+    @if ($schedule['template'] && $displaySchedules->isNotEmpty())
         <script>
-            const selectedDay = @json($schedule['selected_day_number'] ?? $schedule['days'][0]['day_number']);
-            const activateDay = (dayNumber) => {
-                document.querySelectorAll('[data-day-panel]').forEach((panel) => {
+            const selectedDays = @json($displaySchedules->map(fn ($item) => $item['selected_day_number'] ?? ($item['days'][0]['day_number'] ?? null))->values());
+            const activateDay = (scheduleIndex, dayNumber) => {
+                document.querySelectorAll(`[data-day-panel][data-schedule="${scheduleIndex}"]`).forEach((panel) => {
                     panel.classList.toggle('hidden', Number(panel.dataset.dayPanel) !== Number(dayNumber));
                 });
-                document.querySelectorAll('[data-day-tab]').forEach((tab) => {
+                document.querySelectorAll(`[data-day-tab][data-schedule="${scheduleIndex}"]`).forEach((tab) => {
                     const active = Number(tab.dataset.dayTab) === Number(dayNumber);
                     tab.className = `day-tab whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
                         active ? 'border-[#124E66] bg-[#124E66] text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-[#124E66]'
                     }`;
                 });
             };
+            const activateSchedule = (scheduleIndex) => {
+                document.querySelectorAll('[data-schedule-panel]').forEach((panel) => panel.classList.toggle('hidden', Number(panel.dataset.schedulePanel) !== Number(scheduleIndex)));
+                document.querySelectorAll('[data-schedule-tab]').forEach((tab) => {
+                    const active = Number(tab.dataset.scheduleTab) === Number(scheduleIndex);
+                    tab.className = `schedule-tab whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${active ? 'border-[#124E66] bg-[#124E66] text-white' : 'border-gray-200 bg-white text-gray-600'}`;
+                });
+                if (selectedDays[scheduleIndex] !== null) activateDay(scheduleIndex, selectedDays[scheduleIndex]);
+            };
             document.querySelectorAll('[data-day-tab]').forEach((tab) => {
-                tab.addEventListener('click', () => activateDay(tab.dataset.dayTab));
+                tab.addEventListener('click', () => activateDay(tab.dataset.schedule, tab.dataset.dayTab));
             });
-            activateDay(selectedDay);
+            document.querySelectorAll('[data-schedule-tab]').forEach((tab) => tab.addEventListener('click', () => activateSchedule(tab.dataset.scheduleTab)));
+            activateSchedule(0);
         </script>
     @endif
 </x-app-layout>

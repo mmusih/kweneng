@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Tt\Division;
+use App\Models\Tt\Group;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClassModel extends Model
@@ -80,6 +83,16 @@ class ClassModel extends Model
     public function studentSubjects()
     {
         return $this->hasMany(StudentSubject::class, 'class_id');
+    }
+
+    public function timetableDivisions(): HasMany
+    {
+        return $this->hasMany(Division::class, 'class_id');
+    }
+
+    public function timetableGroups(): HasMany
+    {
+        return $this->hasMany(Group::class, 'class_id');
     }
 
     public function attendances()

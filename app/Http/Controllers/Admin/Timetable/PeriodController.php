@@ -30,6 +30,8 @@ class PeriodController extends Controller
             'setting_id' => ['nullable', 'integer', 'exists:tt_settings,id'],
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:20'],
             'days_per_cycle' => ['required', 'integer', 'min:1', 'max:14'],
+            'cycle_anchor_date' => ['nullable', 'date'],
+            'cycle_anchor_day' => ['nullable', 'integer', 'min:1', 'lte:days_per_cycle'],
             'first_period_start' => ['required', 'date_format:H:i'],
             'period_minutes' => ['required', 'integer', 'min:5', 'max:180'],
             'breaks' => ['array', 'max:6'],
@@ -40,7 +42,6 @@ class PeriodController extends Controller
         ]);
 
         $setting = $this->settings->working($data['setting_id'] ?? null);
-
         try {
             $periods = $this->structure->apply(
                 $setting,
@@ -50,6 +51,10 @@ class PeriodController extends Controller
                 periodMinutes: $data['period_minutes'],
                 breaks: $data['breaks'] ?? [],
             );
+            $setting->update([
+                'cycle_anchor_date' => $data['cycle_anchor_date'] ?? $setting->cycle_anchor_date ?? now()->startOfWeek(),
+                'cycle_anchor_day' => $data['cycle_anchor_day'] ?? $setting->cycle_anchor_day ?? 1,
+            ]);
         } catch (DayStructureRefused $refused) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -77,7 +82,7 @@ class PeriodController extends Controller
         }
 
         return redirect()
-            ->route('admin.timetable.grid', ['setting' => $setting->id])
+            ->route('admin.timetable.index', ['setting' => $setting->id])
             ->with('success', $periods->count().' periods a day, '.$setting->fresh()->cycle_length.' days a cycle.');
     }
 }

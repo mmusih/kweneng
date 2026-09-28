@@ -4,212 +4,45 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\ClassModel;
-use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherSubject;
 use App\Models\TimetableDay;
-use App\Models\TimetableEntry;
-use App\Models\TimetableGroup;
 use App\Models\TimetablePeriod;
 use App\Models\TimetableRoom;
 use App\Models\TimetableTemplate;
 use App\Models\User;
 use App\Services\TimetableService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class TimetableTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_create_a_five_day_weekly_timetable_template(): void
+    public function test_old_bookmarks_redirect_to_the_current_timetable_and_old_writes_are_removed(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
-        $year = $this->academicYear();
-
-        $response = $this->actingAs($admin)->post(route('admin.timetable.templates.store'), [
-            'academic_year_id' => $year->id,
-            'name' => 'Main timetable',
-            'cycle_type' => 'weekly',
-            'cycle_length' => 5,
-        ]);
-
-        $template = TimetableTemplate::firstOrFail();
-
-        $response->assertRedirect(route('admin.timetable.index', ['template_id' => $template->id]));
-        $this->assertSame(5, $template->days()->count());
-        $this->assertSame(
-            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-            $template->days()->pluck('name')->all(),
-        );
-
-        $this->actingAs($admin)
-            ->get(route('admin.timetable.index', ['template_id' => $template->id]))
-            ->assertOk()
-            ->assertSee('School timetable');
+        $this->actingAs($admin)->get('/admin/timetable/legacy')
+            ->assertRedirect('/admin/timetable');
+        $this->post('/admin/timetable/templates', [])->assertNotFound();
+        $this->post('/admin/timetable/templates/1/publish', [])->assertNotFound();
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.timetable.legacy'));
     }
 
-    public function test_rotating_cycle_skips_weekends_and_can_resume_from_an_admin_selected_day(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
-        $year = $this->academicYear();
-
-        $this->actingAs($admin)
-            ->post(route('admin.timetable.templates.store'), [
-                'academic_year_id' => $year->id,
-                'name' => 'Six-day rotating timetable',
-                'cycle_type' => 'rotating',
-                'cycle_length' => 6,
-                'cycle_start_date' => '2026-07-06',
-                'cycle_start_day_number' => 4,
-            ])
-            ->assertSessionHasNoErrors();
-
-        $template = TimetableTemplate::with(['days', 'cycleAnchors'])->firstOrFail();
-
-        $this->assertSame(4, $template->dayForDate('2026-07-06')?->day_number);
-        $this->assertSame(2, $template->dayForDate('2026-07-10')?->day_number);
-        $this->assertNull($template->dayForDate('2026-07-11'));
-        $this->assertNull($template->dayForDate('2026-07-12'));
-        $this->assertSame(3, $template->dayForDate('2026-07-13')?->day_number);
-
-        $this->actingAs($admin)
-            ->post(route('admin.timetable.cycle-anchors.store', $template), [
-                'anchor_date' => '2026-07-20',
-                'day_number' => 6,
-                'note' => 'Resume after short break',
-            ])
-            ->assertSessionHasNoErrors();
-
-        $template->refresh()->load(['days', 'cycleAnchors']);
-
-        $this->assertSame(3, $template->dayForDate('2026-07-13')?->day_number);
-        $this->assertSame(6, $template->dayForDate('2026-07-20')?->day_number);
-        $this->assertSame(1, $template->dayForDate('2026-07-21')?->day_number);
-
-        $this->actingAs($admin)
-            ->from(route('admin.timetable.index', ['template_id' => $template->id]))
-            ->post(route('admin.timetable.cycle-anchors.store', $template), [
-                'anchor_date' => '2026-07-25',
-                'day_number' => 2,
-            ])
-            ->assertSessionHasErrors('anchor_date');
-    }
-
-    public function test_clash_detection_rejects_an_overlapping_teacher_lesson(): void
+    public function test_published_legacy_schedules_are_not_served_to_teachers_or_students(): void
     {
         $fixture = $this->fixture();
         $service = app(TimetableService::class);
-
-        TimetableEntry::create([
-            'timetable_template_id' => $fixture['template']->id,
-            'timetable_day_id' => $fixture['day']->id,
-            'start_period_id' => $fixture['period']->id,
-            'end_period_id' => $fixture['period']->id,
-            'class_id' => $fixture['class']->id,
-            'subject_id' => $fixture['subject']->id,
-            'teacher_id' => $fixture['teacher']->id,
-            'timetable_room_id' => $fixture['room']->id,
-        ]);
-
-        try {
-            $service->validateEntry([
-                'timetable_day_id' => $fixture['day']->id,
-                'start_period_id' => $fixture['period']->id,
-                'end_period_id' => $fixture['period']->id,
-                'class_id' => $fixture['class']->id,
-                'timetable_group_id' => null,
-                'subject_id' => $fixture['subject']->id,
-                'teacher_id' => $fixture['teacher']->id,
-                'timetable_room_id' => null,
-            ]);
-            $this->fail('Expected a teacher clash validation error.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('teacher_id', $exception->errors());
+        foreach ([false, true] as $includeSchedules) {
+            $teacher = $service->forTeacher($fixture['teacher'], '2026-07-06', $includeSchedules);
+            $student = $service->forStudent($fixture['student'], '2026-07-06', $includeSchedules);
+            $this->assertNull($teacher['template']);
+            $this->assertNull($student['template']);
+            $this->assertCount(0, $teacher['days']);
+            $this->assertCount(0, $student['days']);
         }
-    }
-
-    public function test_split_groups_create_individual_student_timetables(): void
-    {
-        $fixture = $this->fixture();
-        $secondStudent = $this->student('student.two@example.test', 'Student Two', $fixture['class']);
-        $group = TimetableGroup::create([
-            'academic_year_id' => $fixture['year']->id,
-            'subject_id' => $fixture['subject']->id,
-            'name' => 'Computer Studies Option',
-        ]);
-        $group->classes()->attach($fixture['class']);
-        $group->students()->attach($fixture['student']);
-
-        TimetableEntry::create([
-            'timetable_template_id' => $fixture['template']->id,
-            'timetable_day_id' => $fixture['day']->id,
-            'start_period_id' => $fixture['period']->id,
-            'end_period_id' => $fixture['period']->id,
-            'timetable_group_id' => $group->id,
-            'subject_id' => $fixture['subject']->id,
-            'teacher_id' => $fixture['teacher']->id,
-            'title' => 'Option lesson',
-        ]);
-
-        $service = app(TimetableService::class);
-        $selected = $service->forStudent($fixture['student'], '2026-07-27');
-        $notSelected = $service->forStudent($secondStudent, '2026-07-27');
-
-        $this->assertSame('Option lesson', $selected['days']->first()['blocks'][0]['title']);
-        $this->assertSame('Free period', $notSelected['days']->first()['blocks'][0]['title']);
-    }
-
-    public function test_teacher_student_and_linked_parent_can_view_the_published_timetable(): void
-    {
-        $fixture = $this->fixture();
-        $parentUser = User::factory()->create([
-            'name' => 'Parent User',
-            'email' => 'parent@example.test',
-            'role' => 'parent',
-            'status' => 'active',
-        ]);
-        $parent = ParentModel::create(['user_id' => $parentUser->id]);
-        $parent->students()->attach($fixture['student'], ['relationship' => 'parent']);
-
-        TimetableEntry::create([
-            'timetable_template_id' => $fixture['template']->id,
-            'timetable_day_id' => $fixture['day']->id,
-            'start_period_id' => $fixture['period']->id,
-            'end_period_id' => $fixture['period']->id,
-            'class_id' => $fixture['class']->id,
-            'subject_id' => $fixture['subject']->id,
-            'teacher_id' => $fixture['teacher']->id,
-            'title' => 'Mathematics lesson',
-        ]);
-
-        $this->actingAs($fixture['teacher']->user)
-            ->get(route('teacher.timetable'))
-            ->assertOk()
-            ->assertSee('Mathematics lesson');
-
-        $this->actingAs($fixture['student']->user)
-            ->get(route('student.timetable'))
-            ->assertOk()
-            ->assertSee('Mathematics lesson');
-
-        $this->actingAs($fixture['student']->user, 'sanctum')
-            ->getJson('/api/student/timetable')
-            ->assertOk()
-            ->assertJsonPath('days.0.blocks.0.title', 'Mathematics lesson');
-
-        $this->actingAs($parentUser)
-            ->get(route('parent.timetable', ['student_id' => $fixture['student']->id]))
-            ->assertOk()
-            ->assertSee('Mathematics lesson');
-
-        $this->actingAs($parentUser, 'sanctum')
-            ->getJson('/api/parent/timetable?student_id='.$fixture['student']->id)
-            ->assertOk()
-            ->assertJsonPath('days.0.blocks.0.title', 'Mathematics lesson');
     }
 
     private function academicYear(): AcademicYear

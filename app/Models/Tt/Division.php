@@ -19,6 +19,7 @@ class Division extends Model
         'class_id',
         'division_tag',
         'name',
+        'shared_key',
     ];
 
     protected static function newFactory(): DivisionFactory

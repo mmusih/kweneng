@@ -544,6 +544,11 @@ payload compatible so the shipped Flutter apps and both Blade viewers keep worki
 Done when: the imported real timetable renders correctly for a teacher, a
 whole-class student, and an option-block student, and the contract test passes.
 
+**Status: done (2026-08-08).** `CardsScheduleService` now adapts published `tt_*`
+cards to the frozen web/mobile payload, merges double rows into one display block,
+interleaves breaks, and resolves option membership from subject elections. The
+legacy read path remains only as a fallback while old published templates exist.
+
 ### Phase 4 — Lesson and card management (no generator)
 CRUD for divisions, groups, global periods, defs, lessons, and manual card placement.
 Replaces the current create-only forms and finally adds editing (gap 2.8, partly).
@@ -854,3 +859,63 @@ Still open:
 
   Next action: decide whether to commit a real (non-dry) import of this stale file,
   then start Phase 3.
+
+- **2026-08-08** — **Phase 7 (pulled forward) complete.** The aSc-style grid editor:
+  `resources/views/admin/timetable/grid.blade.php` plus the `GridControllerTest` and
+  `PeriodSetupTest` suites. The Phase 4 services it needed (`ConflictChecker`,
+  `CardPlacementService`, `DayStructureService`, `GridPayload`) were built first and
+  are described in the memory file `timetable-grid-editor-state.md`; everything here
+  is on branch `codex/timetable-features`, still entirely uncommitted.
+
+  Full timetable suite: **109 passed, 526 assertions** (78 baseline + 31 new).
+
+  **The view** — one CSS grid per class row; drop targets one per column at
+  `grid-row: 1 / -1` underneath, cards on top at `grid-column: i+1 / span span`,
+  `grid-row: lane+1`. The lane count comes from `GridPayload` (busiest slot, not
+  group count — two divisions never share a period, so their lanes overlap rather
+  than stack). Cards get `pointer-events: none` while a drag is in flight so a
+  lane-0 card cannot block a drop into lane 1 of the same slot; the flag is set via
+  `setTimeout(…, 0)` because applying it inside `dragstart` cancels the drag in
+  some browsers. Click-to-select-then-click-to-place works alongside native DnD as
+  a keyboard/accessibility fallback. A card sitting on a period the current day
+  structure no longer has (a longer-day import, say) is counted and announced
+  rather than silently drawn in column 1. Zoom S/M/L rescales the grid via CSS
+  custom properties.
+
+  **Two real problems the tests flushed out, both fixed in the view:**
+  - `@js()` on an associative array emits `JSON.parse('{"move":"http:\\/\\/…"}')`
+    — triple-escaped, unreadable in page source. The four endpoint URLs are now
+    written as plain `{{ route(...) }}` interpolations inside the `x-data` object
+    literal; `@js()` is kept only for the structured `$grid` payload.
+  - `CardPlacementService::move()` rewrites rows rather than updating them, so the
+    card id a client just moved no longer exists afterwards. The tests assert via
+    the lesson, not the stale id, and confirm the move does not carry a lock back.
+
+  **Day-structure refusals** name their obstacles: a JSON shrink refusal carries
+  `occupied_periods` / `occupied_days` keyed by number, and the message names the
+  periods in the way. Growth is always safe; a shrink is refused while any card
+  sits on a period or day being dropped, and nothing is lost in the refusal.
+
+  Next action: commit this branch, then decide the live-import question (still
+  open, see the Phase 2 entry) before Phase 3.
+
+- **2026-08-08** — **The grid is now the primary, end-to-end timetable feature.**
+  `/admin/timetable` opens the grid; the legacy `timetable_*` form stack moved to
+  `/admin/timetable/legacy` and no longer occupies a dashboard card. The grid now
+  imports an aSc XML export in the browser as a new draft, reports unmatched rows,
+  refuses publication while lesson cards remain in the tray, and publishes a clean
+  revision to the existing teacher/student/parent web and mobile payload.
+
+  The public adapter preserves the shipped payload keys, combines double-card rows,
+  interleaves `tt_breaks`, and filters option lessons through derived election
+  membership. Empty schedules now serialize `days` consistently and the Blade viewer
+  no longer indexes a missing first day.
+
+  Grid request boundaries were tightened at the same time: a request cannot move,
+  lock, or unplace a card from another revision; cannot assign a foreign room; and a
+  day outside the selected cycle returns a validation error instead of a bitmask
+  exception. Cards outside a changed day structure can now be selected and returned
+  to the tray directly from the warning instead of being sent to a legacy page that
+  cannot edit them.
+
+  Timetable-focused suite: **127 passed, 612 assertions**.

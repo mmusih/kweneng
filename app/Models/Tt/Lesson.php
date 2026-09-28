@@ -23,16 +23,22 @@ class Lesson extends Model
         'subject_id',
         'periods_per_week',
         'periods_per_card',
+        'cards_per_cycle',
         'tt_daysdef_id',
         'tt_weeksdef_id',
         'tt_termsdef_id',
         'seminar_group',
         'capacity',
         'asc_id',
+        'preparation_key',
+        'assignment_sources',
+        'split_key',
     ];
 
     protected $casts = [
         'periods_per_week' => 'decimal:1',
+        'cards_per_cycle' => 'integer',
+        'assignment_sources' => 'array',
     ];
 
     protected static function newFactory(): LessonFactory
@@ -101,6 +107,10 @@ class Lesson extends Model
     // rows on consecutive periods that share a days mask.
     public function cardsRequired(): int
     {
+        if ($this->cards_per_cycle !== null) {
+            return max(1, (int) $this->cards_per_cycle);
+        }
+
         return (int) ceil((float) $this->periods_per_week / max(1, (int) $this->periods_per_card));
     }
 }

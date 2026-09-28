@@ -151,6 +151,23 @@ class CardPlacementTest extends TestCase
         $this->assertSame($this->rooms['Room 2']->id, $second->roomId());
     }
 
+    public function test_moving_a_roomless_card_does_not_silently_assign_a_room(): void
+    {
+        $bio = $this->lesson('Biology', 'Form 5A', 'BIO A', 'K Simukonda', rooms: ['Lab 1']);
+        $placed = $this->placement->place($bio, dayNumber: 1, startPeriod: 1);
+        Card::query()->whereKey($placed->cardIds())->update(['tt_room_id' => null]);
+        $roomless = $this->placement->unitContaining(Card::query()->findOrFail($placed->cardIds()[0]));
+
+        $moved = $this->placement->move($roomless, dayNumber: 2, startPeriod: 2);
+
+        $this->assertNull($moved->roomId());
+        $this->assertDatabaseHas('tt_cards', [
+            'tt_lesson_id' => $bio->id,
+            'period_number' => 2,
+            'tt_room_id' => null,
+        ]);
+    }
+
     // -----------------------------------------------------------------
     // Moving
     // -----------------------------------------------------------------

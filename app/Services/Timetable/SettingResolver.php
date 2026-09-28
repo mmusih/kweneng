@@ -39,7 +39,10 @@ class SettingResolver
                 'name' => 'Master Timetable',
                 'term_label' => $year->year_name,
                 'revision' => 1,
+                'schedule_type' => Setting::TYPE_DAY,
                 'cycle_length' => 6,
+                'cycle_anchor_date' => now()->startOfWeek(),
+                'cycle_anchor_day' => 1,
                 'is_active' => true,
                 'is_published' => false,
             ]);

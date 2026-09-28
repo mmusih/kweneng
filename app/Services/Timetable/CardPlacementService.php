@@ -23,14 +23,140 @@ use Illuminate\Support\Facades\DB;
  */
 class CardPlacementService
 {
-    public function __construct(private readonly ConflictChecker $checker = new ConflictChecker) {}
+    /** One prepared occurrence per lesson makes a split an atomic set of placements. */
+    public function linkedLessons(Lesson $lesson): Collection
+    {
+        return $lesson->split_key
+            ? Lesson::where('tt_setting_id', $lesson->tt_setting_id)->where('split_key', $lesson->split_key)->orderBy('id')->get()
+            : collect([$lesson]);
+    }
+
+    public function place(Lesson $lesson, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
+    {
+        return DB::transaction(function () use ($lesson, $dayNumber, $startPeriod, $roomId) {
+            \App\Models\Tt\Setting::whereKey($lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
+            $result = null;
+            foreach ($this->linkedLessons($lesson) as $member) {
+                $placed = $this->placeOne($member, $dayNumber, $startPeriod, $member->id === $lesson->id ? $roomId : null);
+                if ($member->id === $lesson->id) {
+                    $result = $placed;
+                }
+            }
+
+            return $result;
+        });
+    }
+
+    public function move(Placement $placement, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
+    {
+        if (! $placement->lesson->split_key) {
+            return $this->moveOne($placement, $dayNumber, $startPeriod, $roomId);
+        }
+
+        return DB::transaction(function () use ($placement, $dayNumber, $startPeriod, $roomId) {
+            \App\Models\Tt\Setting::whereKey($placement->lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
+            $units = $this->linkedUnits($placement);
+            // Remove every old member before checking the new positions; rollback restores all on failure.
+            foreach ($units as $unit) {
+                $this->unplaceOne($unit);
+            }
+            $result = null;
+            foreach ($units as $unit) {
+                $selected = $unit->lesson->id === $placement->lesson->id;
+                $newRoom = $selected ? ($roomId ?? $unit->roomId()) : $unit->roomId();
+                $this->refuseIfConflicting($unit->lesson, $dayNumber, $startPeriod, $newRoom, []);
+                $placed = $this->write($unit->lesson, $dayNumber, $startPeriod, $newRoom, [
+                    'weeks' => (string) $unit->first()->weeks, 'terms' => (string) $unit->first()->terms,
+                ]);
+                if ($selected) {
+                    $result = $placed;
+                }
+            }
+
+            return $result;
+        });
+    }
+
+    public function unplace(Placement $placement): void
+    {
+        DB::transaction(function () use ($placement) {
+            \App\Models\Tt\Setting::whereKey($placement->lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
+            foreach ($this->linkedUnits($placement) as $unit) {
+                $this->unplaceOne($unit);
+            }
+        });
+    }
+
+    public function lock(Placement $placement, bool $locked = true): Placement
+    {
+        return DB::transaction(function () use ($placement, $locked) {
+            foreach ($this->linkedUnits($placement) as $unit) {
+                $this->lockOne($unit, $locked);
+            }
+
+            return $this->reload($placement);
+        });
+    }
+
+    public function linkedUnits(Placement $placement): array
+    {
+        return $placement->lesson->split_key
+            ? $this->linkedLessons($placement->lesson)->flatMap(fn ($lesson) => $this->unitsFor($lesson))->all()
+            : [$placement];
+    }
+
+    /** Check the entire split using an in-memory pool, including its proposed members. */
+    public function splitVerdict(Collection $members, Collection $pool, Lesson $selected, int $day, int $period, ?int $roomId, bool $moving): array
+    {
+        $ids = $members->pluck('id')->all();
+        $occupants = $pool->reject(fn ($card) => in_array($card->tt_lesson_id, $ids))->values();
+        foreach ($members as $member) {
+            $member->loadMissing(['setting', 'weeksDef', 'termsDef', 'teachers.user', 'classes', 'groups', 'rooms', 'subject']);
+            $old = $pool->firstWhere('tt_lesson_id', $member->id);
+            if ($pool->contains(fn ($card) => $card->tt_lesson_id === $member->id && $card->locked)) {
+                return ['ok' => false, 'room_id' => null, 'conflicts' => [(new Conflict(Conflict::LOCKED, 'A card in this split is locked. Unlock the split before moving it.'))->toArray()]];
+            }
+            $rooms = $moving ? [$member->id === $selected->id ? ($roomId ?? $old?->tt_room_id) : $old?->tt_room_id]
+                : ($member->id === $selected->id && $roomId !== null ? [$roomId] : ($member->rooms->pluck('id')->all() ?: [$this->baseRooms->forLesson($member)]));
+            $checker = $this->checker->withPool($occupants);
+            $first = [];
+            $chosen = null;
+            foreach ($rooms as $candidate) {
+                $conflicts = $checker->check($member, $day, $period, $candidate);
+                if ($conflicts === []) {
+                    $chosen = $candidate;
+                    $first = [];
+                    break;
+                }
+                $first = $first ?: $conflicts;
+            }
+            if ($first !== []) {
+                return ['ok' => false, 'room_id' => null, 'conflicts' => array_map(fn ($c) => $c->toArray(), $first)];
+            }
+            $masks = PlacementMasks::forLesson($member, $day);
+            foreach (range($period, $period + $member->periods_per_card - 1) as $number) {
+                $card = new Card(['tt_lesson_id' => $member->id, 'period_number' => $number, 'days' => (string) $masks->days,
+                    'weeks' => (string) $masks->weeks, 'terms' => (string) $masks->terms, 'tt_room_id' => $chosen]);
+                $card->setRelation('lesson', $member);
+                $card->setRelation('room', $chosen ? \App\Models\Tt\Room::find($chosen) : null);
+                $occupants->push($card);
+            }
+        }
+
+        return ['ok' => true, 'room_id' => $roomId, 'conflicts' => []];
+    }
+
+    public function __construct(
+        private readonly ConflictChecker $checker = new ConflictChecker,
+        private readonly BaseRoomResolver $baseRooms = new BaseRoomResolver,
+    ) {}
 
     /**
      * Drop a new card from the tray onto the grid.
      *
      * @throws PlacementRefused
      */
-    public function place(Lesson $lesson, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
+    private function placeOne(Lesson $lesson, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
     {
         $lesson->loadMissing(['setting', 'weeksDef', 'termsDef', 'rooms', 'cards']);
 
@@ -60,7 +186,38 @@ class CardPlacementService
      *
      * @throws PlacementRefused
      */
-    public function move(Placement $placement, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
+    public function changeRoom(Placement $placement, ?int $roomId): Placement
+    {
+        return DB::transaction(function () use ($placement, $roomId) {
+            if ($placement->isLocked()) {
+                throw new PlacementRefused([new Conflict(Conflict::LOCKED, 'Unlock this card before changing its room.')]);
+            }
+
+            // A room-only change preserves the actual placement's masks and periods.
+            // Imported cards can differ from their lesson's default recurrence.
+            if ($roomId !== null) {
+                $width = (int) $placement->lesson->setting->cycle_length;
+                $first = $placement->first();
+                $masks = PlacementMasks::fromStrings($first->days, $first->weeks, $first->terms, $width);
+                $occupants = Card::where('tt_room_id', $roomId)
+                    ->whereHas('lesson', fn ($query) => $query->where('tt_setting_id', $placement->lesson->tt_setting_id))
+                    ->whereIn('period_number', $placement->periods())
+                    ->whereNotIn('id', $placement->cardIds())->get();
+                foreach ($occupants as $card) {
+                    if ($masks->intersects(PlacementMasks::fromStrings($card->days, $card->weeks, $card->terms, $width))) {
+                        throw new PlacementRefused([new Conflict(Conflict::ROOM,
+                            'That room is already occupied in period '.$card->period_number.'.', $card->id, $card->period_number)]);
+                    }
+                }
+            }
+
+            Card::whereIn('id', $placement->cardIds())->update(['tt_room_id' => $roomId]);
+
+            return $this->reload($placement);
+        });
+    }
+
+    private function moveOne(Placement $placement, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
     {
         if ($placement->isLocked()) {
             throw new PlacementRefused([new Conflict(
@@ -76,7 +233,9 @@ class CardPlacementService
 
         // The card must not collide with the copy of itself it is leaving behind, or
         // nothing could ever be nudged one period sideways.
-        $roomId = $this->pickRoom($lesson, $dayNumber, $startPeriod, $roomId ?? $placement->roomId(), $ignore);
+        // Moving an existing card preserves its room, including an explicit "no room".
+        // Automatic room selection is only for a new card coming out of the tray.
+        $roomId ??= $placement->roomId();
 
         $this->refuseIfConflicting($lesson, $dayNumber, $startPeriod, $roomId, $ignore);
 
@@ -97,7 +256,7 @@ class CardPlacementService
     /**
      * Return a card to the tray. Both rows of a double go.
      */
-    public function unplace(Placement $placement): void
+    private function unplaceOne(Placement $placement): void
     {
         if ($placement->isLocked()) {
             throw new PlacementRefused([new Conflict(
@@ -111,7 +270,7 @@ class CardPlacementService
         DB::transaction(fn () => $this->delete($placement));
     }
 
-    public function lock(Placement $placement, bool $locked = true): Placement
+    private function lockOne(Placement $placement, bool $locked = true): Placement
     {
         DB::transaction(function () use ($placement, $locked) {
             Card::whereIn('id', $placement->cardIds())->update(['locked' => $locked]);
@@ -246,7 +405,7 @@ class CardPlacementService
         $candidates = $lesson->rooms->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         if ($candidates === []) {
-            return null;
+            return $this->baseRooms->forLesson($lesson);
         }
 
         foreach ($candidates as $candidate) {

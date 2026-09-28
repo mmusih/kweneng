@@ -14,6 +14,12 @@ class Setting extends Model
 {
     use HasFactory;
 
+    public const TYPE_DAY = 'day';
+
+    public const TYPE_AFTERNOON = 'afternoon';
+
+    public const TYPES = [self::TYPE_DAY, self::TYPE_AFTERNOON];
+
     protected $table = 'tt_settings';
 
     protected $fillable = [
@@ -21,7 +27,10 @@ class Setting extends Model
         'name',
         'term_label',
         'revision',
+        'schedule_type',
         'cycle_length',
+        'cycle_anchor_date',
+        'cycle_anchor_day',
         'asc_options',
         'is_active',
         'is_published',
@@ -30,6 +39,7 @@ class Setting extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_published' => 'boolean',
+        'cycle_anchor_date' => 'date',
     ];
 
     protected static function newFactory(): SettingFactory
@@ -92,7 +102,12 @@ class Setting extends Model
         return $query->where('is_active', true);
     }
 
-    public static function current(?int $academicYearId = null): ?self
+    public function scopeOfType(Builder $query, string $type): Builder
+    {
+        return $query->where('schedule_type', $type);
+    }
+
+    public static function current(?int $academicYearId = null, string $type = self::TYPE_DAY): ?self
     {
         $academicYearId ??= AcademicYear::current()?->id;
 
@@ -102,9 +117,15 @@ class Setting extends Model
 
         return static::query()
             ->where('academic_year_id', $academicYearId)
+            ->ofType($type)
             ->active()
             ->where('is_published', true)
             ->latest('id')
             ->first();
+    }
+
+    public function typeLabel(): string
+    {
+        return $this->schedule_type === self::TYPE_AFTERNOON ? 'Afternoon / study' : 'Day';
     }
 }

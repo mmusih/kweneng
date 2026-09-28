@@ -17,7 +17,7 @@ class TimetableController extends Controller
 
         return view('timetable.viewer', [
             'title' => 'My teaching timetable',
-            'schedule' => $this->timetables->forTeacher($teacher, $request->date),
+            'schedule' => $this->timetables->forTeacher($teacher, $request->date, true),
             'children' => collect(),
             'selectedStudent' => null,
         ]);
@@ -30,7 +30,7 @@ class TimetableController extends Controller
 
         return view('timetable.viewer', [
             'title' => 'My timetable',
-            'schedule' => $this->timetables->forStudent($student, $request->date),
+            'schedule' => $this->timetables->forStudent($student, $request->date, true),
             'children' => collect(),
             'selectedStudent' => $student,
         ]);
@@ -55,7 +55,7 @@ class TimetableController extends Controller
                 ? ($selectedStudent->user?->name."'s timetable")
                 : 'Child timetable',
             'schedule' => $selectedStudent
-                ? $this->timetables->forStudent($selectedStudent, $request->date)
+                ? $this->timetables->forStudent($selectedStudent, $request->date, true)
                 : $this->timetables->emptySchedule($request->date),
             'children' => $children,
             'selectedStudent' => $selectedStudent,

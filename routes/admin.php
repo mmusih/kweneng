@@ -25,7 +25,12 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Admin\Timetable\GridController;
 use App\Http\Controllers\Admin\Timetable\PeriodController as TimetablePeriodController;
-use App\Http\Controllers\Admin\TimetableController;
+use App\Http\Controllers\Admin\Timetable\PrintController as TimetablePrintController;
+use App\Http\Controllers\Admin\Timetable\RoomController as TimetableRoomGridController;
+use App\Http\Controllers\Admin\Timetable\SettingController as TimetableSettingController;
+use App\Http\Controllers\Admin\Timetable\TeacherLoadController as TimetableTeacherLoadController;
+use App\Http\Controllers\Admin\Timetable\TimetableDivisionGridController;
+use App\Http\Controllers\Admin\Timetable\VerificationController as TimetableVerificationController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Hod\SchemeDashboardController as SchemeOversightController;
 use Illuminate\Support\Facades\Route;
@@ -92,32 +97,34 @@ Route::middleware(['auth', 'role:admin'])
         | Timetable
         |--------------------------------------------------------------------------
         */
-        Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index');
-        Route::post('timetable/templates', [TimetableController::class, 'storeTemplate'])->name('timetable.templates.store');
-        Route::post('timetable/templates/{template}/publish', [TimetableController::class, 'publish'])->name('timetable.templates.publish');
-        Route::post('timetable/templates/{template}/cycle-anchors', [TimetableController::class, 'storeCycleAnchor'])->name('timetable.cycle-anchors.store');
-        Route::delete('timetable/templates/{template}/cycle-anchors/{anchor}', [TimetableController::class, 'destroyCycleAnchor'])->name('timetable.cycle-anchors.destroy');
-        Route::post('timetable/templates/{template}/days/{day}/periods', [TimetableController::class, 'storePeriod'])->name('timetable.periods.store');
-        Route::post('timetable/rooms', [TimetableController::class, 'storeRoom'])->name('timetable.rooms.store');
-        Route::post('timetable/groups', [TimetableController::class, 'storeGroup'])->name('timetable.groups.store');
-        Route::post('timetable/templates/{template}/entries', [TimetableController::class, 'storeEntry'])->name('timetable.entries.store');
-        Route::delete('timetable/templates/{template}/entries/{entry}', [TimetableController::class, 'destroyEntry'])->name('timetable.entries.destroy');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Timetable grid (tt_* schema)
-        |--------------------------------------------------------------------------
-        |
-        | The drag-and-drop editor. Separate from the nine routes above, which run on the
-        | legacy timetable_* tables and cannot represent an option block — both pages stay
-        | reachable until the old one is retired.
-        |
-        */
+        // One timetable editor; old bookmarks open the current grid.
+        Route::get('timetable', [GridController::class, 'index'])->name('timetable.index');
+        Route::redirect('timetable/legacy', '/admin/timetable');
         Route::get('timetable/grid', [GridController::class, 'index'])->name('timetable.grid');
+        Route::get('timetable/settings/{setting}/prepare', [\App\Http\Controllers\Admin\Timetable\PreparationController::class, 'index'])->name('timetable.prepare');
+        Route::post('timetable/settings/{setting}/prepare', [\App\Http\Controllers\Admin\Timetable\PreparationController::class, 'store'])->name('timetable.prepare.store');
+        Route::post('timetable/settings/{setting}/publish', [TimetableSettingController::class, 'publish'])->name('timetable.settings.publish');
+        Route::post('timetable/settings', [TimetableSettingController::class, 'store'])->name('timetable.settings.store');
+        Route::get('timetable/teacher-loads', [TimetableTeacherLoadController::class, 'index'])->name('timetable.teacher-loads');
+        Route::get('timetable/teacher-loads/download', [TimetableTeacherLoadController::class, 'download'])->name('timetable.teacher-loads.download');
+        Route::get('timetable/settings/{setting}/verification', TimetableVerificationController::class)->name('timetable.settings.verification');
+        Route::get('timetable/settings/{setting}/print/{type}/{id}', TimetablePrintController::class)->name('timetable.settings.print');
         Route::get('timetable/grid/candidates', [GridController::class, 'candidates'])->name('timetable.grid.candidates');
         Route::post('timetable/grid/move', [GridController::class, 'move'])->name('timetable.grid.move');
+        Route::post('timetable/grid/card-room', [GridController::class, 'changeRoom'])->name('timetable.grid.card-room');
         Route::post('timetable/grid/unplace', [GridController::class, 'unplace'])->name('timetable.grid.unplace');
         Route::post('timetable/grid/lock', [GridController::class, 'lock'])->name('timetable.grid.lock');
+        Route::post('timetable/grid/lessons', [GridController::class, 'storeLesson'])->name('timetable.grid.lesson.store');
+        Route::post('timetable/grid/lesson', [GridController::class, 'updateLesson'])->name('timetable.grid.lesson.update');
+        Route::post('timetable/grid/lesson/duplicate', [GridController::class, 'duplicateLesson'])->name('timetable.grid.lesson.duplicate');
+        Route::delete('timetable/grid/lesson', [GridController::class, 'destroyLesson'])->name('timetable.grid.lesson.destroy');
+        Route::post('timetable/grid/divisions', [TimetableDivisionGridController::class, 'store'])->name('timetable.grid.divisions.store');
+        Route::put('timetable/grid/divisions/{division}', [TimetableDivisionGridController::class, 'update'])->name('timetable.grid.divisions.update');
+        Route::delete('timetable/grid/divisions/{division}', [TimetableDivisionGridController::class, 'destroy'])->name('timetable.grid.divisions.destroy');
+        Route::post('timetable/grid/rooms', [TimetableRoomGridController::class, 'store'])->name('timetable.grid.rooms.store');
+        Route::put('timetable/grid/rooms/{room}', [TimetableRoomGridController::class, 'update'])->name('timetable.grid.rooms.update');
+        Route::delete('timetable/grid/rooms/{room}', [TimetableRoomGridController::class, 'destroy'])->name('timetable.grid.rooms.destroy');
+        Route::put('timetable/grid/base-rooms', [TimetableRoomGridController::class, 'updateBaseRooms'])->name('timetable.grid.base-rooms.update');
         Route::post('timetable/day-structure', [TimetablePeriodController::class, 'update'])->name('timetable.day-structure');
 
         /*
