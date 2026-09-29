@@ -587,6 +587,18 @@
                 </div>
             @endif
 
+            @if($student->prefectAppointments->isNotEmpty())
+                @php
+                    $prefect = $student->prefectAppointments->first();
+                @endphp
+                <div class="sd-section rounded-xl border border-amber-200 bg-amber-50 p-5">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div><div class="text-xs font-bold uppercase tracking-wider text-amber-700">Student leadership</div><h2 class="mt-1 text-xl font-bold text-slate-900">{{ $prefect->title }}</h2><p class="mt-1 text-sm text-slate-600">{{ $prefect->academicYear?->year_name }} · {{ ucfirst($prefect->status) }}</p><p class="mt-3 whitespace-pre-line text-sm text-slate-700"><strong>Duties:</strong> {{ $prefect->duties }}</p></div>
+                        <a href="{{ route('student.prefects.certificate', $prefect) }}" class="sd-btn bg-amber-700 text-white">Download certificate</a>
+                    </div>
+                </div>
+            @endif
+
             {{-- ───── STAT ROW ───── --}}
             <div class="sd-stats">
                 <div class="sd-stat s-blue">
@@ -637,7 +649,8 @@
             {{-- ───── PERFORMANCE ───── --}}
             <div class="sd-section">
                 <div class="sd-section-title">
-                    Performance
+                    <span>Performance</span>
+                    <div class="flex flex-wrap justify-end gap-2">
                     <a href="{{ route('student.marks.index') }}" class="sd-btn sd-btn-primary">
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -645,6 +658,11 @@
                         </svg>
                         <span>View full marks</span>
                     </a>
+                    <a href="{{ route('student.academic-record.show') }}" class="sd-btn sd-btn-teal">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6l5 5v11a2 2 0 01-2 2z" /></svg>
+                        <span>Academic record</span>
+                    </a>
+                    </div>
                 </div>
                 <div class="sd-perf-grid">
                     <div class="sd-perf-card">

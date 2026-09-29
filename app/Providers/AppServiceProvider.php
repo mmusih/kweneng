@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use App\Services\PromotionService;
 use App\Services\AcademicStructureService;
-use App\Services\SubjectService;
-use App\Services\MarksService;
 use App\Services\ExamSummaryService;
+use App\Services\MarksService;
+use App\Services\PromotionService;
+use App\Services\SubjectService;
+use App\Services\Timetable\TimetableDayService;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,19 +19,17 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PromotionService::class, function ($app) {
-            return new PromotionService();
+            return new PromotionService;
         });
 
-        $this->app->singleton(AcademicStructureService::class, function ($app) {
-            return new AcademicStructureService();
-        });
+        $this->app->singleton(AcademicStructureService::class);
 
         $this->app->singleton(SubjectService::class, function ($app) {
-            return new SubjectService();
+            return new SubjectService;
         });
 
         $this->app->singleton(MarksService::class, function ($app) {
-            return new MarksService();
+            return new MarksService;
         });
 
         $this->app->singleton(ExamSummaryService::class, function ($app) {
@@ -44,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('components.app-layout', function ($view) {
+            $view->with('schoolDayLabel', app(TimetableDayService::class)->label());
+        });
     }
 }

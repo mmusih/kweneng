@@ -84,6 +84,16 @@
                                                     Marks can be viewed for this student.
                                                 </p>
                                             </div>
+                                            <div class="mt-3 flex flex-wrap gap-2">
+                                                <a href="{{ route('parent.children.academic-record.show', $child) }}"
+                                                    class="inline-flex items-center rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+                                                    View Full Academic Record
+                                                </a>
+                                                <a href="{{ route('parent.children.academic-record.download', $child) }}"
+                                                    class="inline-flex items-center rounded-lg border border-emerald-700 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+                                                    Download PDF
+                                                </a>
+                                            </div>
                                         @endif
                                     </div>
                                 @endforeach

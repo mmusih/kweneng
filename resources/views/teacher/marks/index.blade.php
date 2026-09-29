@@ -664,6 +664,31 @@
                 return 'The learner’s performance is weak and requires immediate improvement.';
             }
 
+            function isGeneratedTeacherComment(comment) {
+                if (!comment) {
+                    return false;
+                }
+
+                const comparisonComments = [
+                    'The learner has shown clear improvement since midterm. This progress is encouraging; continued effort is needed.',
+                    'The learner has improved since midterm, but more effort is still needed to reach the expected standard.',
+                    'The learner has improved and is making steady progress. More consistent effort can lead to even better results.',
+                    'The learner has shown some improvement since midterm. Continued practice is encouraged.',
+                    'The learner’s performance has declined significantly since midterm. Immediate improvement and greater commitment are required.',
+                    'The learner’s performance has dropped since midterm. More focus and consistency are needed.',
+                    'The learner has maintained a very good standard throughout the term. Keep up the good work.',
+                    'The learner’s performance has remained fairly steady. More effort can lead to better results.',
+                    'The learner’s performance remains below expectation. More effort and support are required.',
+                    'The learner’s performance is weak and requires immediate improvement.'
+                ];
+
+                if (comparisonComments.includes(comment)) {
+                    return true;
+                }
+
+                return /^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|end-of-term assessment)\.$/.test(comment);
+            }
+
             function parseNullableNumber(value) {
                 if (value === '' || value === null || value === undefined) {
                     return null;
@@ -732,7 +757,8 @@
                             parseNullableNumber(endtermValue)
                         );
 
-                        const useExistingRemark = existingRemark !== '';
+                        const existingRemarkIsGenerated = isGeneratedTeacherComment(existingRemark);
+                        const useExistingRemark = existingRemark !== '' && !existingRemarkIsGenerated;
                         const initialRemark = useExistingRemark ? existingRemark : generatedComment;
                         const useCustomRemark = initialRemark && !presetComments.includes(initialRemark);
 
@@ -841,8 +867,14 @@
 
                     select.addEventListener('change', function() {
                         if (hiddenInput) {
-                            hiddenInput.dataset.manualOverride = 'true';
+                            hiddenInput.dataset.manualOverride = this.value === '' ? 'false' : 'true';
                         }
+
+                        if (this.value === '') {
+                            refreshAutomaticComment(studentId);
+                            return;
+                        }
+
                         syncCommentField(select, customInput, hiddenInput);
                     });
 
@@ -863,49 +895,56 @@
                 scoreInputs.forEach(input => {
                     input.addEventListener('input', function() {
                         const studentId = this.getAttribute('data-student-id');
-                        const hiddenInput = document.querySelector(
-                            `.remarks-hidden-input[data-student-id="${studentId}"]`);
-                        const presetSelect = document.querySelector(
-                            `.preset-comment-select[data-student-id="${studentId}"]`);
-                        const customInput = document.querySelector(
-                            `.custom-comment-input[data-student-id="${studentId}"]`);
-                        const midtermInput = document.querySelector(
-                            `input[data-student-id="${studentId}"][data-field="midterm"]`);
-                        const endtermInput = document.querySelector(
-                            `input[data-student-id="${studentId}"][data-field="endterm"]`);
-
-                        if (!hiddenInput || hiddenInput.dataset.manualOverride === 'true') {
-                            return;
-                        }
-
-                        const midterm = parseNullableNumber(midtermInput ? midtermInput.value : null);
-                        const endterm = parseNullableNumber(endtermInput ? endtermInput.value : null);
-                        const generated = generateTeacherComment(midterm, endterm);
-
-                        hiddenInput.value = generated;
-
-                        if (presetSelect) {
-                            if (presetComments.includes(generated)) {
-                                presetSelect.value = generated;
-                                if (customInput) {
-                                    customInput.classList.remove('show');
-                                    customInput.value = '';
-                                }
-                            } else {
-                                presetSelect.value = generated ? '__custom__' : '';
-                                if (customInput) {
-                                    if (generated) {
-                                        customInput.classList.add('show');
-                                        customInput.value = generated;
-                                    } else {
-                                        customInput.classList.remove('show');
-                                        customInput.value = '';
-                                    }
-                                }
-                            }
-                        }
+                        refreshAutomaticComment(studentId);
                     });
                 });
+            }
+
+            function refreshAutomaticComment(studentId) {
+                const hiddenInput = document.querySelector(
+                    `.remarks-hidden-input[data-student-id="${studentId}"]`);
+                const presetSelect = document.querySelector(
+                    `.preset-comment-select[data-student-id="${studentId}"]`);
+                const customInput = document.querySelector(
+                    `.custom-comment-input[data-student-id="${studentId}"]`);
+                const midtermInput = document.querySelector(
+                    `input[data-student-id="${studentId}"][data-field="midterm"]`);
+                const endtermInput = document.querySelector(
+                    `input[data-student-id="${studentId}"][data-field="endterm"]`);
+
+                if (!hiddenInput || hiddenInput.dataset.manualOverride === 'true') {
+                    return;
+                }
+
+                const midterm = parseNullableNumber(midtermInput ? midtermInput.value : null);
+                const endterm = parseNullableNumber(endtermInput ? endtermInput.value : null);
+                const generated = generateTeacherComment(midterm, endterm);
+
+                hiddenInput.value = generated;
+
+                if (!presetSelect) {
+                    return;
+                }
+
+                if (presetComments.includes(generated)) {
+                    presetSelect.value = generated;
+                    if (customInput) {
+                        customInput.classList.remove('show');
+                        customInput.value = '';
+                    }
+                    return;
+                }
+
+                presetSelect.value = generated ? '__custom__' : '';
+                if (customInput) {
+                    if (generated) {
+                        customInput.classList.add('show');
+                        customInput.value = generated;
+                    } else {
+                        customInput.classList.remove('show');
+                        customInput.value = '';
+                    }
+                }
             }
 
             function syncCommentField(select, customInput, hiddenInput) {

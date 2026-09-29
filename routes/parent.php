@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Parent\AnnouncementController;
+use App\Http\Controllers\Parent\AcademicRecordController;
 use App\Http\Controllers\Parent\DashboardController;
+use App\Http\Controllers\Parent\AwardController;
 use App\Http\Controllers\Parent\EventsController;
 use App\Http\Controllers\Parent\HomeworkController;
 use App\Http\Controllers\Parent\MarksController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\Parent\ReportCardController;
 use App\Http\Controllers\Parent\SchoolDocumentController;
 use App\Http\Controllers\Parent\StudentProfileController;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\PrefectController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:parent'])->prefix('parent')->name('parent.')->group(function () {
@@ -20,6 +23,9 @@ Route::middleware(['auth', 'role:parent'])->prefix('parent')->name('parent.')->g
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/awards', [AwardController::class, 'index'])->name('awards.index');
+    Route::get('/awards/{studentAward}/certificate', [AwardController::class, 'certificate'])->name('awards.certificate');
+    Route::get('/prefects/{prefect}/certificate', [PrefectController::class, 'certificate'])->name('prefects.certificate');
     Route::get('/timetable', [TimetableController::class, 'parent'])->name('timetable');
 
     /*
@@ -28,6 +34,11 @@ Route::middleware(['auth', 'role:parent'])->prefix('parent')->name('parent.')->g
     |--------------------------------------------------------------------------
     */
     Route::get('/children/marks', [MarksController::class, 'index'])->name('children.marks.index');
+
+    Route::get('/children/{student}/academic-record', [AcademicRecordController::class, 'show'])
+        ->name('children.academic-record.show');
+    Route::get('/children/{student}/academic-record/download', [AcademicRecordController::class, 'download'])
+        ->name('children.academic-record.download');
 
     Route::middleware('results.access')->group(function () {
         Route::get('/children/{student}/marks/{academicYearId}/{termId}', [MarksController::class, 'show'])

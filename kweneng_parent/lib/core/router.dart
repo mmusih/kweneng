@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../models/flutter_models.dart';
 import '../providers/flutter_providers.dart';
 import '../screens/login_screen.dart';
+import '../screens/portal_screens.dart';
+import 'theme.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/change_password_screen.dart';
 import '../screens/parent_code_screen.dart';
@@ -18,10 +20,13 @@ import '../screens/library_screen.dart';
 import '../screens/messages_screen.dart';
 import '../screens/documents_screen.dart';
 import '../screens/fees_screen.dart';
+import '../screens/receipts_screen.dart';
 import '../screens/absence_notice_screen.dart';
 import '../screens/homework_screen.dart';
 import '../screens/child_profile_screen.dart';
 import '../screens/timetable_screen.dart';
+import '../screens/awards_screen.dart';
+import '../screens/academic_record_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   ref.watch(authProvider);
@@ -98,6 +103,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => MainScaffold(child: child),
         routes: [
           GoRoute(
+            path: '/updates',
+            builder: (context, state) => const UpdatesScreen(),
+          ),
+          GoRoute(
+            path: '/more',
+            builder: (context, state) => const MoreScreen(),
+          ),
+          GoRoute(
+            path: '/attendance',
+            builder: (context, state) => const AttendanceScreen(),
+          ),
+          GoRoute(
             path: '/dashboard',
             builder: (context, state) => const DashboardScreen(),
           ),
@@ -129,6 +146,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/marks',
             builder: (context, state) => const MarksScreen(),
+          ),
+          GoRoute(
+            path: '/awards',
+            builder: (context, state) => const AwardsScreen(),
+          ),
+          GoRoute(
+            path: '/children/:studentId/academic-record',
+            builder: (context, state) => AcademicRecordScreen(
+              studentId:
+                  int.tryParse(state.pathParameters['studentId'] ?? '') ?? 0,
+            ),
           ),
           GoRoute(
             path: '/library',
@@ -165,6 +193,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/fees',
             builder: (context, state) => const FeesScreen(),
           ),
+          GoRoute(
+            path: '/receipts',
+            builder: (context, state) => const ReceiptsScreen(),
+          ),
         ],
       ),
     ],
@@ -174,158 +206,67 @@ final routerProvider = Provider<GoRouter>((ref) {
 class MainScaffold extends ConsumerWidget {
   final Widget child;
   const MainScaffold({super.key, required this.child});
-
-  static const homeColor = Color(0xFF2563EB);
-  static const eventsColor = Color(0xFF7C3AED);
-  static const noticesColor = Color(0xFFEF4444);
-  static const marksColor = Color(0xFF10B981);
-  static const libraryColor = Color(0xFFF59E0B);
-  static const mutedColor = Color(0xFF64748B);
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-
-    final unreadMessages = ref.watch(
-      messagesProvider.select((async) => async.asData?.value.unreadCount ?? 0),
-    );
     final unreadNotices = ref.watch(
       announcementsProvider.select(
-        (async) => async.asData?.value.unreadCount ?? 0,
+        (data) => data.asData?.value.unreadCount ?? 0,
       ),
     );
-    int currentIndex = 0;
-    if (location.startsWith('/dashboard')) currentIndex = 0;
-    if (location.startsWith('/events')) currentIndex = 1;
-    if (location.startsWith('/announcements')) currentIndex = 2;
-    if (location.startsWith('/marks')) currentIndex = 3;
-    if (location.startsWith('/library')) currentIndex = 4;
-
+    final unreadMessages = ref.watch(
+      messagesProvider.select((data) => data.asData?.value.unreadCount ?? 0),
+    );
+    final index = location == '/dashboard'
+        ? 0
+        : location == '/marks' ||
+              location.contains('/academic-record') ||
+              location == '/homework' ||
+              location == '/timetable' ||
+              location == '/awards'
+        ? 1
+        : location == '/updates' ||
+              location.startsWith('/announcements') ||
+              location == '/events' ||
+              location == '/messages'
+        ? 2
+        : 3;
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: const Color(0xFFF8FAFC),
-          indicatorColor: _indicatorColor(currentIndex),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            final selected = states.contains(WidgetState.selected);
-            return TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              color: selected ? _selectedColor(currentIndex) : mutedColor,
-            );
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: currentIndex,
-          height: 74,
-          elevation: 8,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (index) {
-            switch (index) {
-              case 0:
-                context.go('/dashboard');
-                break;
-              case 1:
-                context.go('/events');
-                break;
-              case 2:
-                context.go('/announcements');
-                break;
-              case 3:
-                context.go('/marks');
-                break;
-              case 4:
-                context.go('/library');
-                break;
-            }
-          },
-          destinations: [
-            NavigationDestination(
-              icon: _badgedIcon(
-                Icons.home_outlined,
-                unreadMessages,
-                homeColor.withValues(alpha: 0.55),
-              ),
-              selectedIcon: _badgedIcon(Icons.home, unreadMessages, homeColor),
-              label: 'Home',
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        backgroundColor: Colors.white,
+        indicatorColor: AppTheme.accent.withValues(alpha: .65),
+        elevation: 0,
+        height: 72,
+        onDestinationSelected: (value) =>
+            context.go(['/dashboard', '/marks', '/updates', '/more'][value]),
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart_rounded),
+            label: 'Academics',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: unreadNotices + unreadMessages > 0,
+              label: Text('${unreadNotices + unreadMessages}'),
+              child: const Icon(Icons.notifications_outlined),
             ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.calendar_month_outlined,
-                color: eventsColor.withValues(alpha: 0.55),
-              ),
-              selectedIcon: const Icon(
-                Icons.calendar_month,
-                color: eventsColor,
-              ),
-              label: 'Events',
-            ),
-            NavigationDestination(
-              icon: _badgedIcon(
-                Icons.campaign_outlined,
-                unreadNotices,
-                noticesColor.withValues(alpha: 0.55),
-              ),
-              selectedIcon: _badgedIcon(
-                Icons.campaign,
-                unreadNotices,
-                noticesColor,
-              ),
-              label: 'Notices',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.bar_chart_outlined,
-                color: marksColor.withValues(alpha: 0.55),
-              ),
-              selectedIcon: const Icon(Icons.bar_chart, color: marksColor),
-              label: 'Marks',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.menu_book_outlined,
-                color: libraryColor.withValues(alpha: 0.55),
-              ),
-              selectedIcon: const Icon(Icons.menu_book, color: libraryColor),
-              label: 'Library',
-            ),
-          ],
-        ),
+            selectedIcon: const Icon(Icons.notifications_rounded),
+            label: 'Updates',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+        ],
       ),
-    );
-  }
-
-  Color _selectedColor(int index) {
-    switch (index) {
-      case 1:
-        return eventsColor;
-      case 2:
-        return noticesColor;
-      case 3:
-        return marksColor;
-      case 4:
-        return libraryColor;
-      case 0:
-      default:
-        return homeColor;
-    }
-  }
-
-  Color _indicatorColor(int index) {
-    return _selectedColor(index).withValues(alpha: 0.14);
-  }
-
-  Widget _badgedIcon(IconData icon, int count, Color color) {
-    final iconWidget = Icon(icon, color: color);
-
-    if (count <= 0) return iconWidget;
-
-    return Badge.count(
-      count: count > 99 ? 99 : count,
-      backgroundColor: noticesColor,
-      textColor: Colors.white,
-      child: iconWidget,
     );
   }
 }

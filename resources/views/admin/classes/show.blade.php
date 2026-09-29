@@ -257,22 +257,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <form action="{{ route('admin.subjects.remove-class') }}"
-                                                        method="POST"
-                                                        onsubmit="return confirm('Remove this subject from class? This will also remove teacher assignments.')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <input type="hidden" name="class_id"
-                                                            value="{{ $class->id }}">
-                                                        <input type="hidden" name="subject_id"
-                                                            value="{{ $classSubject->subject->id }}">
-                                                        <input type="hidden" name="academic_year_id"
-                                                            value="{{ $classSubject->academic_year_id }}">
-                                                        <button type="submit"
-                                                            class="text-red-600 hover:text-red-900">
-                                                            Remove
-                                                        </button>
-                                                    </form>
+                                                    <a href="{{ route('admin.subjects.manage-classes', ['class_id' => $class->id, 'academic_year_id' => $class->academic_year_id]) }}" class="text-indigo-600 hover:text-indigo-900">Edit assignments</a>
                                                 </td>
                                             </tr>
                                         @endforeach

@@ -50,17 +50,33 @@ class AuthNotifier extends Notifier<AuthState> {
       return;
     }
 
-    final userMap = await api.storedUser();
-    if (userMap == null) {
+    final storedUser = await api.storedUser();
+    if (storedUser == null) {
       await api.logout();
       state = const AuthState();
       return;
     }
 
-    state = AuthState(
-      isAuthenticated: true,
-      user: TeacherUser.fromJson(userMap),
-    );
+    try {
+      final serverUser = await api.currentUser();
+      final userMap = <String, dynamic>{
+        ...storedUser,
+        ...serverUser,
+        'teacher_id': storedUser['teacher_id'],
+      };
+      final token = await api.getToken();
+      if (token == null || token.isEmpty) {
+        throw const ApiException('Your session has expired.');
+      }
+      await api.saveAuth(token: token, user: userMap);
+      state = AuthState(
+        isAuthenticated: true,
+        user: TeacherUser.fromJson(userMap),
+      );
+    } catch (_) {
+      await api.logout();
+      state = const AuthState();
+    }
   }
 
   Future<bool> login(String email, String password) async {
@@ -84,6 +100,46 @@ class AuthNotifier extends Notifier<AuthState> {
       return true;
     } catch (e) {
       state = AuthState(error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final api = ref.read(apiProvider);
+      await api.changePassword(
+        currentPassword: currentPassword,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+
+      final updatedUser = state.user?.copyWith(mustChangePassword: false);
+      if (updatedUser != null) {
+        final token = await api.getToken();
+        if (token == null || token.isEmpty) {
+          throw const ApiException(
+            'Your session has expired. Please sign in again.',
+          );
+        }
+        await api.saveAuth(
+          token: token,
+          user: updatedUser.toJson(),
+        );
+      }
+      state = state.copyWith(
+        isAuthenticated: true,
+        isLoading: false,
+        user: updatedUser,
+        clearError: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
   }

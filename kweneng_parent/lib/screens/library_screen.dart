@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/flutter_providers.dart';
 import '../core/theme.dart';
+import '../widgets/portal_widgets.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -9,11 +10,12 @@ class LibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryAsync = ref.watch(libraryProvider);
+    final selectedId = ref.watch(selectedChildProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Library')),
       body: libraryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const PortalLoading(),
         error: (e, _) => Center(
           child: ElevatedButton(
             onPressed: () => ref.invalidate(libraryProvider),
@@ -21,15 +23,38 @@ class LibraryScreen extends ConsumerWidget {
           ),
         ),
         data: (data) {
-          final children = data['children'] as List? ?? [];
-          final totalBorrowed = data['total_borrowed'] ?? 0;
-          final totalOverdue = data['total_overdue'] ?? 0;
+          final allChildren = data['children'] as List? ?? [];
+          final chosen =
+              allChildren
+                  .where((child) => child['student_id'] == selectedId)
+                  .firstOrNull ??
+              allChildren.firstOrNull;
+          final children = chosen == null ? [] : [chosen];
+          final totalBorrowed = chosen?['borrowed'] ?? 0;
+          final totalOverdue = chosen?['overdue'] ?? 0;
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(libraryProvider),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (allChildren.length > 1) ...[
+                  ChildTabs(
+                    children: allChildren
+                        .map(
+                          (item) => ChildTabInfo(
+                            id: item['student_id'] as int,
+                            name: item['student_name'] as String,
+                            className: item['class'] as String?,
+                            photo: item['photo'] as String?,
+                          ),
+                        )
+                        .toList(),
+                    selectedId: chosen?['student_id'] as int?,
+                    onSelected: ref.read(selectedChildProvider.notifier).select,
+                  ),
+                  const SizedBox(height: 18),
+                ],
                 // Summary banner
                 Container(
                   padding: const EdgeInsets.all(14),

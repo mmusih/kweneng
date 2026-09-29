@@ -249,7 +249,8 @@
                             <p class="text-blue-800 text-sm mb-4">
                                 Our admissions team can guide you on forms, requirements, and fee payments.
                             </p>
-                            <a href="https://wa.me/26776855620"
+                            <a href="https://wa.me/26777738838?text=Hello%2C%20I%20would%20like%20help%20with%20a%202027%20student%20application%20to%20Kweneng%20International%20Secondary%20School."
+                                target="_blank" rel="noopener"
                                 class="inline-block bg-[#25D366] hover:bg-[#20B957] text-white font-bold py-3 px-6 rounded-lg transition duration-300">
                                 Speak to Admissions on WhatsApp
                             </a>
@@ -426,12 +427,14 @@
                 </p>
 
                 <div class="flex flex-wrap justify-center gap-4">
-                    <a href="#"
+                    <a href="{{ asset('documents/KISS-Student-Application-Form.pdf') }}" target="_blank"
+                        rel="noopener"
                         class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                         Download Application Form
                     </a>
 
-                    <a href="https://wa.me/26776855620"
+                    <a href="https://wa.me/26777738838?text=Hello%2C%20I%20would%20like%20help%20with%20a%202027%20student%20application%20to%20Kweneng%20International%20Secondary%20School."
+                        target="_blank" rel="noopener"
                         class="bg-[#25D366] hover:bg-[#20B957] text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                         <span class="flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">

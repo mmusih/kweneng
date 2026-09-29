@@ -5,6 +5,7 @@ use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\BehaviourController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Teacher\HomeworkController;
+use App\Http\Controllers\Teacher\LoadController;
 use App\Http\Controllers\Teacher\MarksController;
 use App\Http\Controllers\Teacher\PunctualityController;
 use App\Http\Controllers\Teacher\RequisitionController;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'role:teacher,headmaster'])->prefix('teacher')->name('teacher.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/timetable', [TimetableController::class, 'teacher'])->name('timetable');
+    Route::get('/teaching-load/download', [LoadController::class, 'download'])->name('load.download');
 
     // Marks routes
     Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');

@@ -11,7 +11,9 @@ class Student extends Model
     use HasFactory, SoftDeletes;
 
     public const DOCUMENT_BIRTH_CERTIFICATE = 'birth_certificate';
+
     public const DOCUMENT_ID_NUMBER = 'id_number';
+
     public const DOCUMENT_PASSPORT = 'passport';
 
     protected $fillable = [
@@ -37,8 +39,8 @@ class Student extends Model
 
     protected $casts = [
         'results_access' => 'boolean',
-        'fees_blocked'   => 'boolean',
-        'date_of_birth'  => 'date',
+        'fees_blocked' => 'boolean',
+        'date_of_birth' => 'date',
         'profile_updated_by_parent_at' => 'datetime',
     ];
 
@@ -64,10 +66,10 @@ class Student extends Model
     public function identityDisplay(): string
     {
         if (! filled($this->identity_document_type) && ! filled($this->identity_document_number)) {
-            return $this->admission_no ? 'Legacy No: ' . $this->admission_no : 'Missing';
+            return $this->admission_no ? 'Legacy No: '.$this->admission_no : 'Missing';
         }
 
-        return $this->identityDocumentLabel() . ': ' . ($this->identity_document_number ?: 'Missing');
+        return $this->identityDocumentLabel().': '.($this->identity_document_number ?: 'Missing');
     }
 
     public function profileCompletionIssues(): array
@@ -207,5 +209,15 @@ class Student extends Model
     public function homeworkParentReads()
     {
         return $this->hasMany(HomeworkParentRead::class);
+    }
+
+    public function awards()
+    {
+        return $this->hasMany(StudentAward::class);
+    }
+
+    public function prefectAppointments()
+    {
+        return $this->hasMany(PrefectAppointment::class);
     }
 }

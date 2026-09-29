@@ -108,7 +108,7 @@ class ReportCardController extends Controller
             'logoPath' => public_path('images/logo.png'),
         ]))->setPaper('a4', 'landscape');
 
-        $filename = str_replace(' ', '_', $student->user->name) . '_report_card.pdf';
+        $filename = str_replace(' ', '_', $student->user->name).'_report_card.pdf';
 
         return $pdf->download($filename);
     }
@@ -140,7 +140,7 @@ class ReportCardController extends Controller
             'logoPath' => public_path('images/logo.png'),
         ])->setPaper('a4', 'landscape');
 
-        $filename = str_replace(' ', '_', $class->name) . '_' . str_replace(' ', '_', $term->name) . '_report_cards.pdf';
+        $filename = str_replace(' ', '_', $class->name).'_'.str_replace(' ', '_', $term->name).'_report_cards.pdf';
 
         return $pdf->download($filename);
     }
@@ -198,11 +198,16 @@ class ReportCardController extends Controller
             ];
         });
 
-        $averages = $subjects->pluck('average')->filter(fn($value) => $value !== null);
+        $formFivePoints = $this->marksService->calculateFormFiveReportPoints(
+            $student->currentClass,
+            $subjects
+        );
+
+        $averages = $subjects->pluck('average')->filter(fn ($value) => $value !== null);
         $overallAverage = $averages->count() ? round($averages->avg(), 2) : null;
 
-        $midtermScores = $subjects->pluck('midterm_score')->filter(fn($value) => $value !== null);
-        $endtermScores = $subjects->pluck('endterm_score')->filter(fn($value) => $value !== null);
+        $midtermScores = $subjects->pluck('midterm_score')->filter(fn ($value) => $value !== null);
+        $endtermScores = $subjects->pluck('endterm_score')->filter(fn ($value) => $value !== null);
 
         $midtermAverage = $midtermScores->count() ? round($midtermScores->avg(), 2) : null;
         $midtermTotal = $midtermScores->count() ? round($midtermScores->sum(), 2) : null;
@@ -244,8 +249,8 @@ class ReportCardController extends Controller
             'late' => $attendanceRecords->where('status', Attendance::STATUS_LATE)->count(),
             'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
             'rate' => $attendanceTotal > 0 ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1) : null,
-            'display' => $attendancePresentEquivalent . '/' . $attendanceTotal,
-            'label' => $attendanceTotal > 0 ? ($attendancePresentEquivalent . '/' . $attendanceTotal) : 'N/A',
+            'display' => $attendancePresentEquivalent.'/'.$attendanceTotal,
+            'label' => $attendanceTotal > 0 ? ($attendancePresentEquivalent.'/'.$attendanceTotal) : 'N/A',
         ];
 
         $punctualityRecords = Punctuality::where('student_id', $student->id)
@@ -297,14 +302,14 @@ class ReportCardController extends Controller
                 $termSummary->attendance_days_present !== null &&
                 $termSummary->attendance_total_days !== null
             ) {
-                $attendanceSummary['label'] = $termSummary->attendance_days_present . '/' . $termSummary->attendance_total_days;
+                $attendanceSummary['label'] = $termSummary->attendance_days_present.'/'.$termSummary->attendance_total_days;
             }
 
-            if (!empty($termSummary->punctuality)) {
+            if (! empty($termSummary->punctuality)) {
                 $punctualitySummary['label'] = $termSummary->punctuality;
             }
 
-            if (!empty($termSummary->behaviour)) {
+            if (! empty($termSummary->behaviour)) {
                 $behaviourSummary['label'] = $termSummary->behaviour;
             }
         }
@@ -331,7 +336,8 @@ class ReportCardController extends Controller
             'punctualitySummary',
             'behaviourSummary',
             'headmasterComment',
-            'classTeacherName'
+            'classTeacherName',
+            'formFivePoints'
         );
     }
 
@@ -367,7 +373,6 @@ class ReportCardController extends Controller
 
         return 'Must remain focused';
     }
-
 
     private function routePrefix(): string
     {

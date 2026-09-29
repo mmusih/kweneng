@@ -2,7 +2,7 @@ name: kweneng_parent
 description: "Kweneng International Secondary School Parent Portal"
 publish_to: "none"
 
-version: 1.0.0+4
+version: 1.1.2+8
 
 environment:
   sdk: ^3.12.0
@@ -26,6 +26,7 @@ dependencies:
   firebase_core: ^4.10.0
   firebase_messaging: ^16.3.0
   flutter_local_notifications: ^18.0.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +54,9 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/app_icon.png"
 
+# Native splash sizing is maintained in school_splash_icon.xml and launch_background.xml.
+# Do not regenerate the native resources without preserving these safe-area layouts
+# and the school_splash_icon reference in both values-v31 and values-night-v31.
 flutter_native_splash:
   color: "#FFFFFF"
 

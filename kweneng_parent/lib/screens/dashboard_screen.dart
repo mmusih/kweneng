@@ -1,1415 +1,498 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../providers/flutter_providers.dart';
-import '../models/flutter_models.dart';
+import 'package:intl/intl.dart';
 import '../core/theme.dart';
+import '../models/flutter_models.dart';
+import '../providers/flutter_providers.dart';
+import '../widgets/portal_widgets.dart';
+import '../widgets/powered_by_footer.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashAsync = ref.watch(dashboardProvider);
-
+    final dashboard = ref.watch(dashboardProvider);
     return Scaffold(
-      backgroundColor: AppTheme.surface,
-      body: dashAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
-              const SizedBox(height: 12),
-              const Text('Could not load dashboard'),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(dashboardProvider),
-                child: const Text('Retry'),
-              ),
-            ],
+      body: SafeArea(
+        child: dashboard.when(
+          loading: () => const PortalLoading(),
+          error: (_, _) => PortalError(
+            title: 'Your home could not be loaded',
+            onRetry: () => ref.invalidate(dashboardProvider),
           ),
-        ),
-        data: (data) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(dashboardProvider),
-          child: CustomScrollView(
-            slivers: [
-              // ── Rich App Bar ─────────────────────────────────────────────
-              SliverAppBar(
-                expandedHeight: 238,
-                pinned: true,
-                backgroundColor: AppTheme.primary,
-                automaticallyImplyLeading: false,
-                // No elevation so the scoop below looks seamless
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  collapseMode: CollapseMode.pin,
-                  background: _DashboardHeader(data: data, ref: ref),
-                ),
-              ),
-
-              SliverPadding(
-                // Breathing room between the blue dashboard header and the first card.
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // ── Important notices ───────────────────────────────
-                    if (data.importantAnnouncements.isNotEmpty) ...[
-                      _ImportantBanner(
-                        announcements: data.importantAnnouncements,
+          data: (data) {
+            final child = selectedChild(
+              data.children,
+              ref.watch(selectedChildProvider),
+            );
+            final hour = DateTime.now().hour;
+            final greeting = hour < 12
+                ? 'Good morning'
+                : hour < 17
+                ? 'Good afternoon'
+                : 'Good evening';
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(dashboardProvider);
+                await ref.read(dashboardProvider.future);
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.primary, Color(0xFF405885)],
                       ),
-                      const SizedBox(height: 16),
-                    ],
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    greeting,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    data.user.name,
+                                    style: const TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'School updates',
+                              onPressed: () => context.push('/updates'),
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Account and more',
+                              onPressed: () => context.push('/more'),
+                              icon: const Icon(
+                                Icons.account_circle_outlined,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          [
+                            data.currentTerm?.name,
+                            data.academicYear?.yearName,
+                            if (data.dayLabel.isNotEmpty) data.dayLabel,
+                          ].whereType<String>().join(' · '),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        if (data.children.length > 1) ...[
+                          const SizedBox(height: 18),
+                          ChildSelector(
+                            children: data.children,
+                            bottomPadding: 0,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
 
-                    // ── Blocked children notice ──────────────────────────
-                    if (data.stats.blockedChildren > 0) ...[
-                      _BlockedNotice(count: data.stats.blockedChildren),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // ── Profile completion prompts ────────────────────
-                    if (data.stats.incompleteProfiles > 0) ...[
-                      _ProfileCompletionPrompt(children: data.children),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // ── Full Icon Navigation Grid ────────────────────────
-                    _NavigationGrid(homeworkBadge: data.stats.unreadHomework),
+                  const _HomeShortcuts(),
+                  const SizedBox(height: 24),
+                  if (child == null)
+                    const PortalCard(
+                      child: Text(
+                        'No children are linked yet. Please contact the school to link your child to this account.',
+                      ),
+                    )
+                  else ...[
+                    _ChildSummary(child: child),
                     const SizedBox(height: 20),
-
-                    // ── Upcoming Events ──────────────────────────────────
-                    if (data.upcomingEvents.isNotEmpty) ...[
-                      _SectionHeader(
-                        title: 'Upcoming Events',
-                        icon: Icons.calendar_month,
-                        color: Colors.purple,
-                        onTap: () => context.go('/events'),
-                      ),
-                      const SizedBox(height: 8),
-                      ...data.upcomingEvents
-                          .take(3)
-                          .map((e) => _EventTile(event: e)),
-                      if (data.upcomingEvents.length > 3)
-                        TextButton(
-                          onPressed: () => context.go('/events'),
-                          child: Text(
-                            '+ ${data.upcomingEvents.length - 3} more events →',
-                          ),
+                    _Attention(child: child, data: data),
+                  ],
+                  const SizedBox(height: 26),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'From your school',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                      const SizedBox(height: 16),
+                      ),
+                      TextButton(
+                        onPressed: () => context.push('/updates'),
+                        child: const Text('View all'),
+                      ),
                     ],
-
-                    // ── Notices ─────────────────────────────────────────
-                    if (data.announcements.isNotEmpty) ...[
-                      _SectionHeader(
-                        title: 'School Notices',
-                        icon: Icons.campaign,
-                        color: AppTheme.primaryLight,
-                        onTap: () => context.go('/announcements'),
+                  ),
+                  if (data.announcements.isEmpty &&
+                      data.importantAnnouncements.isEmpty)
+                    const PortalCard(
+                      child: Text(
+                        'You’re up to date. School notices will appear here.',
                       ),
-                      const SizedBox(height: 8),
-                      Card(
-                        child: Column(
-                          children: data.announcements
-                              .take(3)
-                              .map((a) => _AnnouncementTile(announcement: a))
-                              .toList(),
-                        ),
-                      ),
-                      if (data.announcements.length > 3)
-                        TextButton(
-                          onPressed: () => context.go('/announcements'),
-                          child: Text(
-                            'View all ${data.announcements.length} →',
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // ── Children ─────────────────────────────────────────
-                    _SectionHeader(
-                      title: 'Your Children',
-                      icon: Icons.people,
-                      color: AppTheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    ...data.children.map((c) => _ChildCard(child: c)),
-
-                    const SizedBox(height: 80),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Rich Dashboard Header
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DashboardHeader extends ConsumerWidget {
-  final DashboardData data;
-  final WidgetRef ref;
-
-  const _DashboardHeader({required this.data, required this.ref});
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadMessages = ref.watch(
-      messagesProvider.select((async) => async.asData?.value.unreadCount ?? 0),
-    );
-
-    // Compute summary stats across all children
-    double totalAvg = 0;
-    int avgCount = 0;
-    double totalAttendance = 0;
-    int attCount = 0;
-    for (final child in data.children) {
-      final avg = child.marks?.endtermAverage ?? child.marks?.midtermAverage;
-      if (avg != null) {
-        totalAvg += avg;
-        avgCount++;
-      }
-      if (child.attendanceRate != null) {
-        totalAttendance += child.attendanceRate!;
-        attCount++;
-      }
-    }
-    final avgMarks = avgCount > 0
-        ? (totalAvg / avgCount).toStringAsFixed(1)
-        : '--';
-    final avgAttendance = attCount > 0
-        ? '${(totalAttendance / attCount).toStringAsFixed(0)}%'
-        : 'No data';
-    final attendanceSub = attCount > 0 ? 'this term' : 'register pending';
-
-    return Container(
-      // The bottom radius creates the "scoop" curve into the body
-      decoration: BoxDecoration(
-        color: AppTheme.primary,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 40, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // Greeting row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _greeting(),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                    )
+                  else
+                    PortalCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          ...({
+                                ...{
+                                  for (final a in data.importantAnnouncements)
+                                    a.id: a,
+                                },
+                                ...{
+                                  for (final a in data.announcements) a.id: a,
+                                },
+                              }.values.toList()..sort(
+                                (a, b) =>
+                                    b.displayDate.compareTo(a.displayDate),
+                              ))
+                              .take(2)
+                              .map(
+                                (a) => PortalLink(
+                                  icon: Icons.campaign_outlined,
+                                  title: a.title,
+                                  subtitle: DateFormat(
+                                    'd MMM yyyy',
+                                  ).format(a.displayDate),
+                                  onTap: () => context.push(
+                                    '/announcements/${a.id}',
+                                    extra: a,
+                                  ),
+                                ),
+                              ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
+                  if (data.upcomingEvents.isNotEmpty) ...[
+                    const SizedBox(height: 22),
                     Text(
-                      data.user.name.split(' ').first,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
+                      'Coming up',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    PortalCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: data.upcomingEvents
+                            .take(2)
+                            .map(
+                              (event) => PortalLink(
+                                icon: Icons.calendar_today_outlined,
+                                title: event.title,
+                                subtitle: DateFormat(
+                                  event.isAllDay
+                                      ? 'EEE, d MMM · All day'
+                                      : 'EEE, d MMM · HH:mm',
+                                ).format(event.startDatetime),
+                                onTap: () => context.push('/events'),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 24),
+                  const PoweredByFooter(),
+                ],
               ),
-              _AvatarMenu(data: data, ref: ref),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Term pills
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              if (data.academicYear != null)
-                _HeaderPill(
-                  icon: Icons.school_outlined,
-                  label: data.academicYear!.yearName,
-                ),
-              if (data.currentTerm != null) ...[
-                _HeaderPill(
-                  icon: Icons.calendar_today_outlined,
-                  label: data.currentTerm!.name,
-                ),
-                if (data.currentTerm!.daysLeft > 0)
-                  _HeaderPill(
-                    icon: Icons.hourglass_bottom_outlined,
-                    label: '${data.currentTerm!.daysLeft}d left',
-                    highlight: data.currentTerm!.daysLeft <= 14,
-                  ),
-              ],
-              _HeaderPill(
-                icon: Icons.people_outline,
-                label:
-                    '${data.children.length} ${data.children.length == 1 ? 'child' : 'children'}',
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Stats row
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  label: 'Avg marks',
-                  value: avgMarks,
-                  sub: 'this term',
-                  icon: Icons.bar_chart,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _StatCard(
-                  label: 'Attendance',
-                  value: avgAttendance,
-                  sub: attendanceSub,
-                  icon: Icons.check_circle_outline,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _StatCard(
-                  label: 'Unread',
-                  value: unreadMessages > 0 ? '$unreadMessages' : '0',
-                  sub: 'messages',
-                  icon: Icons.mail_outline,
-                  alert: unreadMessages > 0,
-                ),
-              ),
-            ],
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _HeaderPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool highlight;
-
-  const _HeaderPill({
-    required this.icon,
-    required this.label,
-    this.highlight = false,
-  });
+class _HomeShortcuts extends StatelessWidget {
+  const _HomeShortcuts();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: highlight
-            ? Colors.orange.withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: highlight
-            ? Border.all(color: Colors.orange.withValues(alpha: 0.5), width: 1)
-            : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 12,
-            color: highlight
-                ? Colors.orange.shade200
-                : Colors.white.withValues(alpha: 0.8),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: highlight
-                  ? Colors.orange.shade100
-                  : Colors.white.withValues(alpha: 0.85),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String sub;
-  final IconData icon;
-  final bool alert;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.sub,
-    required this.icon,
-    this.alert = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(10),
-        border: alert
-            ? Border.all(color: Colors.orange.withValues(alpha: 0.6), width: 1)
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.65)),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              height: 1,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            sub,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 9,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Avatar with dropdown menu (logout)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _AvatarMenu extends ConsumerWidget {
-  final DashboardData data;
-  final WidgetRef ref;
-
-  const _AvatarMenu({required this.data, required this.ref});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return PopupMenuButton<String>(
-      onSelected: (value) async {
-        if (value == 'logout') {
-          await ref.read(authProvider.notifier).logout();
-          if (context.mounted) context.go('/login');
-        }
-      },
-      offset: const Offset(0, 52),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          enabled: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data.user.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: Colors.black87,
-                ),
-              ),
-              Text(
-                data.user.email,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'logout',
-          child: Row(
-            children: [
-              Icon(Icons.logout, size: 18, color: Colors.redAccent),
-              SizedBox(width: 10),
-              Text('Log out', style: TextStyle(color: Colors.redAccent)),
-            ],
-          ),
-        ),
-      ],
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppTheme.primaryLight,
-            child: Text(
-              data.user.name.substring(0, 1).toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.primary, width: 1.5),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Full Navigation Icon Grid (all 9 destinations)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _NavigationGrid extends ConsumerWidget {
-  final int homeworkBadge;
-  const _NavigationGrid({required this.homeworkBadge});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadMessages = ref.watch(
-      messagesProvider.select((async) => async.asData?.value.unreadCount ?? 0),
-    );
-    final unreadNotices = ref.watch(
-      announcementsProvider.select(
-        (async) => async.asData?.value.unreadCount ?? 0,
-      ),
-    );
-
-    final items = [
-      _NavItem(
-        icon: Icons.calendar_view_week_outlined,
-        label: 'Timetable',
-        color: const Color(0xFF0284C7),
-        bg: const Color(0xFFE0F2FE),
-        route: '/timetable',
-      ),
-      _NavItem(
-        icon: Icons.calendar_month_outlined,
-        label: 'Events',
-        color: const Color(0xFF7C3AED),
-        bg: const Color(0xFFF5F3FF),
-        route: '/events',
-      ),
-      _NavItem(
-        icon: Icons.campaign_outlined,
-        label: 'Notices',
-        color: const Color(0xFFEF4444),
-        bg: const Color(0xFFFEF2F2),
-        route: '/announcements',
-        badge: unreadNotices,
-      ),
-      _NavItem(
-        icon: Icons.bar_chart_outlined,
-        label: 'Marks',
-        color: const Color(0xFF10B981),
-        bg: const Color(0xFFECFDF5),
-        route: '/marks',
-      ),
-      _NavItem(
-        icon: Icons.assignment_outlined,
-        label: 'Homework',
-        color: const Color(0xFF0EA5E9),
-        bg: const Color(0xFFE0F2FE),
-        route: '/homework',
-        badge: homeworkBadge,
-      ),
-      _NavItem(
-        icon: Icons.menu_book_outlined,
-        label: 'Library',
-        color: const Color(0xFFF59E0B),
-        bg: const Color(0xFFFFFBEB),
-        route: '/library',
-      ),
-      _NavItem(
-        icon: Icons.mail_outline_rounded,
-        label: 'Messages',
-        color: const Color(0xFF6366F1),
-        bg: const Color(0xFFEEF2FF),
-        route: '/messages',
-        badge: unreadMessages,
-      ),
-      _NavItem(
-        icon: Icons.account_balance_wallet_outlined,
-        label: 'Fees',
-        color: const Color(0xFFD97706),
-        bg: const Color(0xFFFFFBEB),
-        route: '/fees',
-      ),
-      _NavItem(
-        icon: Icons.folder_outlined,
-        label: 'Documents',
-        color: const Color(0xFF059669),
-        bg: const Color(0xFFECFDF5),
-        route: '/documents',
-      ),
-      _NavItem(
-        icon: Icons.event_busy_rounded,
-        label: 'Absence',
-        color: const Color(0xFFDC2626),
-        bg: const Color(0xFFFEF2F2),
-        route: '/absence-notices',
-      ),
+    const shortcuts = [
+      (Icons.bar_chart_rounded, 'Results', '/marks'),
+      (Icons.assignment_outlined, 'Homework', '/homework'),
+      (Icons.schedule_rounded, 'Timetable', '/timetable'),
+      (Icons.fact_check_outlined, 'Attendance', '/attendance'),
+      (Icons.account_balance_wallet_outlined, 'Fees', '/fees'),
+      (Icons.receipt_long_outlined, 'Receipts', '/receipts'),
+      (Icons.chat_bubble_outline_rounded, 'Messages', '/messages'),
+      (Icons.campaign_outlined, 'Notices', '/announcements'),
+      (Icons.event_outlined, 'Events', '/events'),
+      (Icons.folder_open_rounded, 'Documents', '/documents'),
+      (Icons.menu_book_outlined, 'Library', '/library'),
+      (Icons.emoji_events_outlined, 'Awards', '/awards'),
     ];
-
+    const colours = [AppTheme.primary, Color(0xFF147D78), Color(0xFF8055A2)];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GridView.count(
-          padding: EdgeInsets.zero,
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 0.9,
-          children: items.map((item) => _NavIconCard(item: item)).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _NavItem {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final Color bg;
-  final String route;
-  final int badge;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.route,
-    this.badge = 0,
-  });
-}
-
-class _NavIconCard extends StatelessWidget {
-  final _NavItem item;
-  const _NavIconCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 0,
-      child: InkWell(
-        onTap: () => context.go(item.route),
-        borderRadius: BorderRadius.circular(16),
-        splashColor: item.color.withValues(alpha: 0.10),
-        highlightColor: item.color.withValues(alpha: 0.06),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: item.bg,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(item.icon, color: item.color, size: 22),
-                  ),
-                  if (item.badge > 0)
-                    Positioned(
-                      top: -3,
-                      right: -3,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 17,
-                          minHeight: 17,
-                        ),
-                        child: Text(
-                          item.badge > 99 ? '99+' : '${item.badge}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
+        Text('Quick access', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 14),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(13) / 13;
+            final columns = (constraints.maxWidth / (96 * scale)).floor().clamp(
+              1,
+              4,
+            );
+            final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (var index = 0; index < shortcuts.length; index++)
+                  SizedBox(
+                    width: width,
+                    child: Semantics(
+                      button: true,
+                      child: PortalCard(
+                        padding: EdgeInsets.zero,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => context.push(shortcuts[index].$3),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 14,
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: colours[index % colours.length]
+                                        .withValues(alpha: 0.10),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(
+                                    shortcuts[index].$1,
+                                    size: 28,
+                                    color: colours[index % colours.length],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  height: 34 * scale,
+                                  child: Center(
+                                    child: Text(
+                                      shortcuts[index].$2,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        height: 1.2,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Text(
-                item.label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF374151),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+                  ),
+              ],
+            );
+          },
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Existing widgets — unchanged
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _SectionHeader({
-    required this.title,
-    required this.icon,
-    required this.color,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-        const Spacer(),
-        if (onTap != null)
-          GestureDetector(
-            onTap: onTap,
-            child: Text(
-              'View all →',
-              style: TextStyle(fontSize: 12, color: color),
-            ),
-          ),
       ],
     );
   }
 }
 
-class _ImportantBanner extends StatelessWidget {
-  final List<AnnouncementModel> announcements;
-  const _ImportantBanner({required this.announcements});
-
+class _ChildSummary extends StatelessWidget {
+  final ChildModel child;
+  const _ChildSummary({required this.child});
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFEF2F2), Color(0xFFFFF7ED)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      padding: const EdgeInsets.all(12),
+    final marks = child.isBlocked ? null : child.marks;
+    final average = marks?.endtermAverage ?? marks?.midtermAverage;
+    return PortalCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
-              Icon(Icons.warning_amber, color: Color(0xFFDC2626), size: 18),
-              SizedBox(width: 6),
-              Text(
-                'IMPORTANT NOTICES',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF991B1B),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...announcements.map(
-            (a) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: const Border(
-                    left: BorderSide(color: Color(0xFFDC2626), width: 3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${a.typeIcon} ${a.title}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      a.message,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BlockedNotice extends StatelessWidget {
-  final int count;
-  const _BlockedNotice({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCEBEB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF7C1C1)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.warning, color: Color(0xFFA32D2D), size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              count == 1
-                  ? 'One student has restricted results due to an outstanding balance.'
-                  : '$count students have restricted results due to outstanding balances.',
-              style: const TextStyle(color: Color(0xFFA32D2D), fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileCompletionPrompt extends StatelessWidget {
-  final List<ChildModel> children;
-
-  const _ProfileCompletionPrompt({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final incomplete = children
-        .where((child) => !child.profile.complete)
-        .toList();
-    if (incomplete.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.health_and_safety_outlined,
-                color: Color(0xFFD97706),
-                size: 20,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Complete student emergency information',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Please update nationality, ID/passport or birth certificate details, and emergency contacts.',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: incomplete.map((child) {
-              return OutlinedButton.icon(
-                onPressed: () =>
-                    context.go('/children/${child.id}/profile', extra: child),
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: Text(child.name),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EventTile extends StatelessWidget {
-  final EventModel event;
-  const _EventTile({required this.event});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Column(
-              children: [
-                Text(
-                  _monthShort(event.startDatetime.month),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.purple,
-                  ),
-                ),
-                Text(
-                  event.startDatetime.day.toString().padLeft(2, '0'),
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () =>
+                context.push('/children/${child.id}/profile', extra: child),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
                 children: [
-                  Text(
-                    event.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                  ChildAvatar(name: child.name, photo: child.photo, radius: 34),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          child.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(child.className ?? 'Class not assigned'),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'View child profile',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    event.isAllDay
-                        ? 'All day · ${event.typeLabel}'
-                        : '${_formatTime(event.startDatetime)} · ${event.typeLabel}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
+                  const Icon(Icons.chevron_right),
                 ],
               ),
             ),
-            _DaysChip(daysUntil: event.daysUntil),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _monthShort(int month) {
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
-    ];
-    return months[month - 1];
-  }
-
-  String _formatTime(DateTime dt) {
-    final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-    final m = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '$h:$m $period';
-  }
-}
-
-class _DaysChip extends StatelessWidget {
-  final int daysUntil;
-  const _DaysChip({required this.daysUntil});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    String label;
-
-    if (daysUntil == 0) {
-      // Today — vivid green
-      bg = const Color(0xFF16A34A);
-      fg = Colors.white;
-      label = 'Today';
-    } else if (daysUntil == 1) {
-      // Tomorrow — warm amber
-      bg = const Color(0xFFF59E0B);
-      fg = Colors.white;
-      label = 'Tomorrow';
-    } else if (daysUntil <= 7) {
-      // Within a week — electric blue
-      bg = const Color(0xFF2563EB);
-      fg = Colors.white;
-      label = 'In ${daysUntil}d';
-    } else if (daysUntil <= 14) {
-      // 8–14 days — purple
-      bg = const Color(0xFF7C3AED);
-      fg = Colors.white;
-      label = 'In ${daysUntil}d';
-    } else {
-      // Far out — neutral slate
-      bg = const Color(0xFFE2E8F0);
-      fg = const Color(0xFF475569);
-      label = 'In ${daysUntil}d';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: fg,
-          letterSpacing: 0.1,
-        ),
-      ),
-    );
-  }
-}
-
-class _AnnouncementTile extends StatelessWidget {
-  final AnnouncementModel announcement;
-  const _AnnouncementTile({required this.announcement});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Text(
-        announcement.typeIcon,
-        style: const TextStyle(fontSize: 20),
-      ),
-      title: Text(
-        announcement.title,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        announcement.message,
-        style: const TextStyle(fontSize: 12),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      dense: true,
-    );
-  }
-}
-
-class _ChildCard extends StatelessWidget {
-  final ChildModel child;
-  const _ChildCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _avatar(),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        child.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Text(
-                        '${child.admissionNo} · ${child.className ?? 'N/A'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: child.isBlocked
-                        ? const Color(0xFFFEE2E2)
-                        : const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    child.isBlocked ? 'Blocked' : 'Results OK',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: child.isBlocked
-                          ? const Color(0xFFDC2626)
-                          : const Color(0xFF16A34A),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatBox(
-                    label: 'Midterm avg',
-                    value: child.isBlocked
-                        ? 'Restricted'
-                        : child.marks?.midtermAverage != null
-                        ? child.marks!.midtermAverage!.toStringAsFixed(1)
-                        : 'Not recorded',
-                    score: child.isBlocked ? null : child.marks?.midtermAverage,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _StatBox(
-                    label: 'Endterm avg',
-                    value: child.isBlocked
-                        ? 'Restricted'
-                        : child.marks?.endtermAverage != null
-                        ? child.marks!.endtermAverage!.toStringAsFixed(1)
-                        : 'Not recorded',
-                    score: child.isBlocked ? null : child.marks?.endtermAverage,
-                  ),
-                ),
-              ],
-            ),
-            if (!child.isBlocked) ...[
-              const SizedBox(height: 10),
-              _InfoRow(
-                'Position',
-                child.marks?.endtermPosition?.display ??
-                    child.marks?.midtermPosition?.display ??
-                    'Not available yet',
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Divider(height: 1),
+          ),
+          Wrap(
+            spacing: 14,
+            runSpacing: 18,
+            children: [
+              PortalMetric(
+                label: marks?.endtermAverage != null
+                    ? 'End-term average'
+                    : 'Midterm average',
+                value: child.isBlocked
+                    ? 'Restricted'
+                    : average == null
+                    ? '—'
+                    : '${average.toStringAsFixed(1)}%',
               ),
-              _InfoRow('Trend', child.marks?.trend ?? 'Not enough data'),
-              _InfoRow(
-                'Attendance',
-                child.attendanceRate != null
-                    ? '${child.attendanceRate!.toStringAsFixed(1)}%'
-                    : 'No register records yet',
+              PortalMetric(
+                label: 'Attendance · this term',
+                value: child.attendanceRate == null
+                    ? 'Not recorded'
+                    : '${child.attendanceRate!.toStringAsFixed(0)}%',
               ),
-              _InfoRow(
-                'Behaviour',
-                '${child.behaviour?.label ?? 'Good'}'
-                    '${(child.behaviour?.total ?? 0) > 0 ? ' (${child.behaviour!.total})' : ''}',
+              PortalMetric(
+                label: 'Behaviour',
+                value: child.behaviour?.label ?? 'Not recorded',
               ),
             ],
-            const Divider(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'LIBRARY',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                    letterSpacing: 0.5,
-                  ),
+          ),
+          if (marks?.performanceLabel != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 18),
+              child: Text(
+                marks!.performanceLabel!,
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w600,
                 ),
-                Text(
-                  '${child.library?.borrowed ?? 0} borrowed'
-                  '${(child.library?.overdue ?? 0) > 0 ? ' · ${child.library!.overdue} overdue' : ''}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: (child.library?.overdue ?? 0) > 0
-                        ? AppTheme.danger
-                        : Colors.grey,
-                    fontWeight: (child.library?.overdue ?? 0) > 0
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                ),
-              ],
+              ),
             ),
-            if (child.library != null && child.library!.books.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              ...child.library!.books.map(
-                (b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.menu_book,
-                        size: 14,
-                        color: b.overdue
-                            ? AppTheme.danger
-                            : Colors.blue.shade200,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          b.title,
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        b.overdue ? 'Overdue' : 'Due ${b.dueAt ?? ''}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: b.overdue ? AppTheme.danger : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Attention extends StatelessWidget {
+  final ChildModel child;
+  final DashboardData data;
+  const _Attention({required this.child, required this.data});
+  @override
+  Widget build(BuildContext context) {
+    final notices = {
+      ...{for (final a in data.importantAnnouncements) a.id: a},
+      ...{
+        for (final a in data.announcements.where(
+          (a) => a.hasPendingAcknowledgement,
+        ))
+          a.id: a,
+      },
+    }.values.where((a) => !a.isRead || a.hasPendingAcknowledgement).toList();
+    final links = <Widget>[
+      if (child.isBlocked)
+        PortalLink(
+          icon: Icons.lock_outline,
+          title: 'Results access is restricted',
+          subtitle: 'Review fees or contact the school for help.',
+          alert: true,
+          onTap: () => context.push('/fees'),
+        ),
+      if ((child.library?.overdue ?? 0) > 0)
+        PortalLink(
+          icon: Icons.menu_book_outlined,
+          title: '${child.library!.overdue} overdue library book(s)',
+          subtitle: 'Check titles and return dates.',
+          alert: true,
+          onTap: () => context.push('/library'),
+        ),
+      if (!child.profile.complete)
+        PortalLink(
+          icon: Icons.person_outline,
+          title: 'Complete your child’s profile',
+          subtitle: 'Check identity and emergency contacts.',
+          onTap: () =>
+              context.push('/children/${child.id}/profile', extra: child),
+        ),
+      if (child.homework.unreadCount > 0)
+        PortalLink(
+          icon: Icons.assignment_outlined,
+          title: '${child.homework.unreadCount} new homework update(s)',
+          onTap: () => context.push('/homework'),
+        ),
+      for (final notice in notices)
+        PortalLink(
+          icon: Icons.campaign_outlined,
+          title: notice.title,
+          subtitle: notice.hasPendingAcknowledgement
+              ? 'Acknowledgement needed'
+              : 'Important school notice',
+          onTap: () =>
+              context.push('/announcements/${notice.id}', extra: notice),
+        ),
+    ];
+    if (links.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: PortalCard(
+        padding: const EdgeInsets.only(top: 16, bottom: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Needs your attention',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
               ),
-            ] else
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'No books currently borrowed.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              ),
+            ),
+            ...links,
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _avatar() {
-    if (child.photo != null) {
-      return CircleAvatar(
-        radius: 22,
-        backgroundImage: CachedNetworkImageProvider(child.photo!),
-      );
-    }
-    return CircleAvatar(
-      radius: 22,
-      backgroundColor: AppTheme.accent,
-      child: Text(
-        child.name.substring(0, 1).toUpperCase(),
-        style: const TextStyle(
-          color: AppTheme.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  final double? score; // raw number for colour logic
-
-  const _StatBox({required this.label, required this.value, this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    // Colour-code by percentage: ≥60 green, <60 red, null/unrecorded neutral
-    final Color bg;
-    final Color valueColor;
-
-    if (score == null) {
-      bg = const Color(0xFFF1F5F9);
-      valueColor = const Color(0xFF64748B);
-    } else if (score! >= 60) {
-      bg = const Color(0xFFDCFCE7);
-      valueColor = const Color(0xFF15803D);
-    } else {
-      bg = const Color(0xFFFEE2E2);
-      valueColor = const Color(0xFFDC2626);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: valueColor.withValues(alpha: 0.65),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: valueColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _InfoRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-        ],
       ),
     );
   }

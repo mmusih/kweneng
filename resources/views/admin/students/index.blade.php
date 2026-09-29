@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 shadow-xl flex items-center justify-between">
+            class="mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-4 shadow-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="font-bold text-2xl text-white leading-tight">
                     Manage Students
                 </h2>
-                <p class="text-blue-100 text-sm mt-1">
-                    Search, filter, print login slips, and safely remove test students without losing page context.
+                <p class="text-white/90 text-sm mt-1">
+                    Manage student profiles, update photos, and print login slips.
                 </p>
             </div>
 
@@ -26,7 +26,7 @@
                     <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div class="text-sm text-gray-600">
                             <a href="{{ route('admin.dashboard') }}"
-                                class="font-medium text-blue-600 hover:text-indigo-700">Dashboard</a>
+                                class="font-medium text-blue-600 hover:text-indigo-700 dark:hover:text-white">Dashboard</a>
                             <span class="mx-2 text-gray-400">/</span>
                             <span class="font-medium text-gray-800">Manage Students</span>
                         </div>
@@ -37,7 +37,7 @@
                                 Back to Dashboard
                             </a>
                             <a href="{{ route('admin.students.create') }}"
-                                class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow">
+                                class="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 shadow">
                                 New Student
                             </a>
                         </div>
@@ -60,35 +60,35 @@
                     @endif
 
                     <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-4">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Visible Students</p>
+                        <div class="rounded-2xl bg-gray-50 dark:bg-brand-700 border border-gray-200 dark:border-brand-400 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-200">Visible Students</p>
                             <p class="mt-2 text-2xl font-bold text-gray-900">{{ $students->total() }}</p>
                         </div>
 
                         <div
-                            class="rounded-2xl bg-gradient-to-br from-purple-50 to-fuchsia-50 border border-purple-100 p-4">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-purple-700">Current Page</p>
+                            class="rounded-2xl bg-gray-50 dark:bg-brand-700 border border-gray-200 dark:border-brand-400 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-200">Current Page</p>
                             <p class="mt-2 text-2xl font-bold text-gray-900">{{ $students->currentPage() }}</p>
                         </div>
 
                         <div
-                            class="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 p-4">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Per Page</p>
+                            class="rounded-2xl bg-gray-50 dark:bg-brand-700 border border-gray-200 dark:border-brand-400 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-200">Per Page</p>
                             <p class="mt-2 text-2xl font-bold text-gray-900">{{ $students->perPage() }}</p>
                         </div>
 
                         <div
-                            class="rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 p-4">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Selected</p>
+                            class="rounded-2xl bg-gray-50 dark:bg-brand-700 border border-gray-200 dark:border-brand-400 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-200">Selected</p>
                             <p class="mt-2 text-2xl font-bold text-gray-900" id="selected-count">0</p>
                         </div>
                     </div>
 
                     <div
-                        class="mb-8 rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6 shadow-sm">
+                        class="mb-8 rounded-2xl border border-gray-200 bg-gray-50 dark:bg-brand-800 p-6 shadow-sm">
                         <div class="mb-4">
                             <h3 class="text-lg font-bold text-gray-900">Filter Students</h3>
-                            <p class="text-sm text-gray-500 mt-1">Find test students quickly before deleting them.</p>
+                            <p class="text-sm text-gray-500 mt-1">Find students by name, identity details, nationality or class.</p>
                         </div>
 
                         <form method="GET" action="{{ route('admin.students.index') }}"
@@ -115,7 +115,7 @@
 
                             <div class="flex items-end gap-2">
                                 <button type="submit"
-                                    class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700">
+                                    class="inline-flex items-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-brand-700">
                                     Filter
                                 </button>
 
@@ -142,7 +142,7 @@
                             <input type="hidden" name="selection_scope" id="selection_scope" value="selected">
 
                             <div
-                                class="mb-4 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 md:flex-row md:items-center md:justify-between">
+                                class="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50 dark:bg-brand-700 p-4 md:flex-row md:items-center md:justify-between">
                                 <div class="flex flex-wrap items-center gap-4">
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" id="select-all"
@@ -160,7 +160,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     <button type="submit" formaction="{{ route('admin.students.slips.bulk') }}"
                                         formmethod="POST" onclick="return confirmPrintLogins('selected');"
-                                        class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700">
+                                        class="inline-flex items-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-brand-700">
                                         Print Login Slips
                                     </button>
 
@@ -181,7 +181,7 @@
 
                             <div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm">
                                 <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gradient-to-r from-slate-100 to-gray-100">
+                                    <thead class="bg-gray-100 dark:bg-brand-700">
                                         <tr>
                                             <th
                                                 class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-600">
@@ -232,7 +232,7 @@
                                                 }
                                             @endphp
 
-                                            <tr class="hover:bg-indigo-50/40 transition">
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-brand-700 transition">
                                                 <td class="px-4 py-4 whitespace-nowrap">
                                                     <input type="checkbox" name="student_ids[]"
                                                         value="{{ $student->id }}"
@@ -311,15 +311,13 @@
 
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div class="flex items-center gap-3 flex-wrap">
-                                                        <a href="{{ route('admin.students.show', $student) }}"
-                                                            class="text-blue-600 hover:text-blue-900">
+                                                        <a href="{{ route('admin.students.show', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page']))) }}"
+                                                            class="text-blue-600 hover:text-blue-900 dark:hover:text-white">
                                                             View
                                                         </a>
 
-                                                        <a href="{{ route('admin.students.edit', $student) }}"
-                                                            class="text-indigo-600 hover:text-indigo-900">
-                                                            Edit
-                                                        </a>
+                                                        <a href="{{ route('admin.students.edit', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page']))) }}"
+                                                            class="text-indigo-600 hover:text-indigo-900 dark:hover:text-white">Edit / Photo</a>
 
                                                         <form
                                                             action="{{ route('admin.students.reset-password', $student) }}"
@@ -327,7 +325,7 @@
                                                             onsubmit="return confirm('Reset password for this student?');">
                                                             @csrf
                                                             <button type="submit"
-                                                                class="text-orange-600 hover:text-orange-900">
+                                                                class="text-orange-600 hover:text-orange-900 dark:hover:text-white">
                                                                 Reset Password
                                                             </button>
                                                         </form>
@@ -345,7 +343,7 @@
                                                                 value="{{ request('page', 1) }}">
 
                                                             <button type="submit"
-                                                                class="text-red-600 hover:text-red-900">
+                                                                class="text-red-600 hover:text-red-900 dark:hover:text-white">
                                                                 Delete
                                                             </button>
                                                         </form>

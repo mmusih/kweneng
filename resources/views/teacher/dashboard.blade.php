@@ -79,6 +79,22 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
             <!-- Summary Cards -->
+            @if($teacherLoad)
+                <section class="rounded-xl border border-sky-100 bg-white p-6 shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div><h3 class="text-xl font-semibold text-gray-800">My teaching load</h3><p class="mt-1 text-sm text-gray-500">Scheduled periods by subject. Day and afternoon totals are separate.</p></div>
+                        <a href="{{ route('teacher.load.download') }}" target="_blank" class="rounded-lg bg-[#124E66] px-4 py-2 text-sm font-bold text-white">Download PDF</a>
+                    </div>
+                    <div class="mt-5 grid gap-4 md:grid-cols-2">
+                        @forelse($teacherLoad['schedules'] as $load)
+                            <div class="rounded-xl border border-slate-200 p-4"><div class="flex items-center justify-between"><h4 class="font-bold">{{ $load['label'] }} timetable</h4><span class="text-2xl font-black text-[#124E66]">{{ $load['total'] }}</span></div>
+                                <div class="mt-3 space-y-2">@forelse($load['subjects'] as $subject)<div class="flex justify-between text-sm"><span>{{ $subject['subject'] }}</span><strong>{{ $subject['periods'] }} periods</strong></div>@empty<p class="text-sm text-slate-500">No scheduled periods.</p>@endforelse</div>
+                            </div>
+                        @empty<p class="text-sm text-slate-500">No published timetable load is available.</p>@endforelse
+                    </div>
+                </section>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-6">
                 <div class="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
                     <p class="text-sm text-gray-500">Academic Year</p>

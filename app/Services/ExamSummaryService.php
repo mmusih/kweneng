@@ -12,6 +12,7 @@ use Illuminate\Support\Collection;
 class ExamSummaryService
 {
     public const EXAM_MIDTERM = 'midterm';
+
     public const EXAM_ENDTERM = 'endterm';
 
     public function __construct(
@@ -28,7 +29,7 @@ class ExamSummaryService
 
     public function generate(int $classId, int $academicYearId, int $termId, string $examType): array
     {
-        if (!in_array($examType, self::examTypes(), true)) {
+        if (! in_array($examType, self::examTypes(), true)) {
             abort(422, 'Invalid exam type.');
         }
 
@@ -88,12 +89,13 @@ class ExamSummaryService
             $scoreValues = [];
 
             foreach ($subjects as $subject) {
-                if (!$studentSubjectIds->contains($subject['id'])) {
+                if (! $studentSubjectIds->contains($subject['id'])) {
                     $subjectScores[$subject['id']] = [
                         'score' => null,
                         'grade' => null,
                         'display' => '',
                     ];
+
                     continue;
                 }
 
@@ -140,7 +142,7 @@ class ExamSummaryService
         $subjectAverages = $this->calculateSubjectAverages($subjects, $ranked);
         $classAverage = collect($subjectAverages)
             ->pluck('average')
-            ->filter(fn($value) => $value !== null)
+            ->filter(fn ($value) => $value !== null)
             ->avg();
 
         return [
@@ -170,6 +172,7 @@ class ExamSummaryService
         foreach ($sorted as $index => $row) {
             if ($row['average'] === null) {
                 $sorted[$index]['position'] = null;
+
                 continue;
             }
 
@@ -189,7 +192,7 @@ class ExamSummaryService
         return $subjects->map(function ($subject) use ($rows) {
             $scores = $rows->map(function ($row) use ($subject) {
                 return $row['scores'][$subject['id']]['score'] ?? null;
-            })->filter(fn($value) => $value !== null)->values();
+            })->filter(fn ($value) => $value !== null)->values();
 
             $average = $scores->count() > 0 ? round($scores->avg(), 2) : null;
             $grade = $average !== null ? $this->marksService->calculateGrade($average) : null;
@@ -210,12 +213,12 @@ class ExamSummaryService
     {
         $formatted = (string) ((int) ceil($score));
 
-        return $grade ? $formatted . $grade : $formatted;
+        return $grade ? $formatted.$grade : $formatted;
     }
 
     protected function subjectPriority(array $subject): int
     {
-        $value = $this->normalizeSubjectKey(($subject['code'] ?? '') . ' ' . ($subject['name'] ?? ''));
+        $value = $this->normalizeSubjectKey(($subject['code'] ?? '').' '.($subject['name'] ?? ''));
 
         $priorityMap = [
             1 => ['english'],
@@ -247,12 +250,14 @@ class ExamSummaryService
     protected function gradeScale(): array
     {
         return [
-            'A' => '80 - 100',
-            'B' => '70 - 79',
-            'C' => '60 - 69',
-            'D' => '50 - 59',
-            'E' => '40 - 49',
-            'F' => '0 - 39',
+            'A*' => '>89 to 100',
+            'A' => '>79 to 89',
+            'B' => '>69 to 79',
+            'C' => '>59 to 69',
+            'D' => '>49 to 59',
+            'E' => '>39 to 49',
+            'F' => '>34 to 39',
+            'G' => '0 to 34',
         ];
     }
 
@@ -267,7 +272,7 @@ class ExamSummaryService
 
         $row = collect($summary['rows'])->firstWhere('student_id', $studentId);
 
-        if (!$row) {
+        if (! $row) {
             return null;
         }
 
@@ -276,7 +281,7 @@ class ExamSummaryService
             'average' => $row['average'],
             'total' => $row['total'],
             'class_size' => collect($summary['rows'])->count(),
-            'ranked_students_count' => collect($summary['rows'])->filter(fn($r) => $r['average'] !== null)->count(),
+            'ranked_students_count' => collect($summary['rows'])->filter(fn ($r) => $r['average'] !== null)->count(),
         ];
     }
 }

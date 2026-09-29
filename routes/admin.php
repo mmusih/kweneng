@@ -19,7 +19,9 @@ use App\Http\Controllers\Admin\ParentController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\Admin\SchoolDocumentController;
+use App\Http\Controllers\Admin\StudentAcademicRecordController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudyRetentionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\TermController;
@@ -32,6 +34,8 @@ use App\Http\Controllers\Admin\Timetable\TeacherLoadController as TimetableTeach
 use App\Http\Controllers\Admin\Timetable\TimetableDivisionGridController;
 use App\Http\Controllers\Admin\Timetable\VerificationController as TimetableVerificationController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\AwardController;
+use App\Http\Controllers\PrefectController;
 use App\Http\Controllers\Hod\SchemeDashboardController as SchemeOversightController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +50,31 @@ Route::middleware(['auth', 'role:admin'])
         |--------------------------------------------------------------------------
         */
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/awards', [AwardController::class, 'index'])->name('awards.index');
+        Route::get('/awards/create', [AwardController::class, 'create'])->name('awards.create');
+        Route::post('/awards', [AwardController::class, 'store'])->name('awards.store');
+        Route::get('/awards/{award}/edit', [AwardController::class, 'edit'])->name('awards.edit');
+        Route::put('/awards/{award}', [AwardController::class, 'update'])->name('awards.update');
+        Route::get('/awards/{award}', [AwardController::class, 'show'])->name('awards.show');
+        Route::post('/awards/{award}/publish', [AwardController::class, 'publish'])->name('awards.publish');
+        Route::delete('/awards/{award}', [AwardController::class, 'destroy'])->name('awards.destroy');
+        Route::post('/awards/{award}/recipients', [AwardController::class, 'addRecipient'])->name('awards.recipients.store');
+        Route::delete('/awards/{award}/recipients/{studentAward}', [AwardController::class, 'removeRecipient'])->name('awards.recipients.destroy');
+        Route::get('/awards/{award}/print', [AwardController::class, 'printRun'])->name('awards.print');
+        Route::get('/awards/{award}/excel', [AwardController::class, 'exportExcel'])->name('awards.excel');
+        Route::get('/awards/{award}/certificates', [AwardController::class, 'bulkCertificates'])->name('awards.certificates');
+        Route::get('/awards/{award}/certificates/pdf', [AwardController::class, 'bulkCertificatesPdf'])->name('awards.certificates-pdf');
+        Route::get('/awards/{award}/certificates/{studentAward}', [AwardController::class, 'certificate'])->name('awards.certificate');
+
+        Route::get('/prefects', [PrefectController::class, 'index'])->name('prefects.index');
+        Route::get('/prefects/create', [PrefectController::class, 'create'])->name('prefects.create');
+        Route::get('/prefects/certificates/pdf', [PrefectController::class, 'bulkCertificatesPdf'])->name('prefects.certificates-pdf');
+        Route::post('/prefects', [PrefectController::class, 'store'])->name('prefects.store');
+        Route::get('/prefects/{prefect}/edit', [PrefectController::class, 'edit'])->name('prefects.edit');
+        Route::put('/prefects/{prefect}', [PrefectController::class, 'update'])->name('prefects.update');
+        Route::delete('/prefects/{prefect}', [PrefectController::class, 'destroy'])->name('prefects.destroy');
+        Route::get('/prefects/{prefect}/certificate', [PrefectController::class, 'certificate'])->name('prefects.certificate');
 
         /*
         |--------------------------------------------------------------------------
@@ -63,11 +92,16 @@ Route::middleware(['auth', 'role:admin'])
         Route::delete('students/bulk-delete', [StudentController::class, 'bulkDestroy'])
             ->name('students.bulk-delete');
 
+        Route::put('students/{student}/photo', [StudentController::class, 'updatePhoto'])
+            ->name('students.photo.update');
+
         Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])
             ->name('students.reset-password');
 
         Route::get('students/{student}/slip', [LoginSlipController::class, 'show'])
             ->name('students.slip');
+        Route::get('students/{student}/academic-record', [StudentAcademicRecordController::class, 'show'])->name('students.academic-record.show');
+        Route::get('students/{student}/academic-record/download', [StudentAcademicRecordController::class, 'download'])->name('students.academic-record.download');
         Route::post('students/slips/bulk', [LoginSlipController::class, 'bulk'])
             ->name('students.slips.bulk');
 
@@ -77,8 +111,8 @@ Route::middleware(['auth', 'role:admin'])
         |--------------------------------------------------------------------------
         */
         Route::resource('students', StudentController::class);
-        Route::resource('classes', ClassController::class);
-        Route::resource('teachers', TeacherController::class)->except(['show']);
+        Route::resource('classes', ClassController::class)->except(['show']);
+        Route::resource('teachers', TeacherController::class)->except(['show', 'destroy']);
         Route::resource('parents', ParentController::class)->except(['show']);
         Route::resource('librarians', LibrarianController::class)->except(['show']);
         Route::resource('accounts-officers', AccountsOfficerController::class)->except(['show']);
@@ -113,6 +147,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('timetable/grid/move', [GridController::class, 'move'])->name('timetable.grid.move');
         Route::post('timetable/grid/card-room', [GridController::class, 'changeRoom'])->name('timetable.grid.card-room');
         Route::post('timetable/grid/unplace', [GridController::class, 'unplace'])->name('timetable.grid.unplace');
+        Route::put('timetable/grid/required-count', [GridController::class, 'updateRequiredCount'])->name('timetable.grid.required-count');
         Route::post('timetable/grid/lock', [GridController::class, 'lock'])->name('timetable.grid.lock');
         Route::post('timetable/grid/lessons', [GridController::class, 'storeLesson'])->name('timetable.grid.lesson.store');
         Route::post('timetable/grid/lesson', [GridController::class, 'updateLesson'])->name('timetable.grid.lesson.update');
@@ -143,7 +178,7 @@ Route::middleware(['auth', 'role:admin'])
         | Academic Years
         |--------------------------------------------------------------------------
         */
-        Route::resource('academic-years', AcademicYearController::class);
+        Route::resource('academic-years', AcademicYearController::class)->except(['show']);
         Route::post('academic-years/{academicYear}/close', [AcademicYearController::class, 'close'])->name('academic-years.close');
         Route::post('academic-years/{academicYear}/lock', [AcademicYearController::class, 'lock'])->name('academic-years.lock');
 
@@ -152,9 +187,14 @@ Route::middleware(['auth', 'role:admin'])
         | Terms
         |--------------------------------------------------------------------------
         */
-        Route::resource('terms', TermController::class);
+        Route::resource('terms', TermController::class)->except(['show']);
+        Route::get('study-retention', [StudyRetentionController::class, 'index'])->name('study-retention.index');
+        Route::post('study-retention', [StudyRetentionController::class, 'store'])->name('study-retention.store');
+        Route::get('study-retention/print', [StudyRetentionController::class, 'print'])->name('study-retention.print');
+        Route::delete('study-retention/{studyRule}', [StudyRetentionController::class, 'destroy'])->name('study-retention.destroy');
         Route::post('terms/{term}/finalize', [TermController::class, 'finalize'])->name('terms.finalize');
         Route::post('terms/{term}/lock', [TermController::class, 'lock'])->name('terms.lock');
+        Route::post('terms/{term}/unlock', [TermController::class, 'unlock'])->name('terms.unlock');
         Route::post('terms/{term}/activate', [TermController::class, 'activate'])->name('terms.activate');
         Route::post('terms/{term}/lock-midterm', [TermController::class, 'lockMidterm'])->name('terms.lock-midterm');
         Route::post('terms/{term}/unlock-midterm', [TermController::class, 'unlockMidterm'])->name('terms.unlock-midterm');
@@ -172,7 +212,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('subjects/manage/teachers/bulk-save', [SubjectController::class, 'bulkSaveTeacherAssignments'])->name('subjects.bulk-save-teachers');
         Route::delete('subjects/remove/teacher', [SubjectController::class, 'removeTeacherFromSubject'])->name('subjects.remove-teacher');
 
-        Route::resource('subjects', SubjectController::class);
+        Route::resource('subjects', SubjectController::class)->except(['show']);
 
         /*
         |--------------------------------------------------------------------------
@@ -204,6 +244,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('/marks/import-apply', [MarksController::class, 'importApply'])->name('marks.import-apply');
 
         Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
+        Route::get('/marks/group/edit', [MarksController::class, 'editGroup'])->name('marks.group.edit');
+        Route::put('/marks/group', [MarksController::class, 'updateGroup'])->name('marks.group.update');
         Route::get('/marks/{id}', [MarksController::class, 'show'])->name('marks.show');
         Route::get('/marks/{id}/edit', [MarksController::class, 'edit'])->name('marks.edit');
         Route::put('/marks/{id}', [MarksController::class, 'update'])->name('marks.update');

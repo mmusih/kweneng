@@ -228,37 +228,42 @@
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 mr-2">A*</span>
-                                    <span class="text-sm text-gray-600">90-100</span>
+                                    <span class="text-sm text-gray-600">&gt;89 to 100</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 mr-2">A</span>
-                                    <span class="text-sm text-gray-600">80-89</span>
+                                    <span class="text-sm text-gray-600">&gt;79 to 89</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 mr-2">B</span>
-                                    <span class="text-sm text-gray-600">70-79</span>
+                                    <span class="text-sm text-gray-600">&gt;69 to 79</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 mr-2">C</span>
-                                    <span class="text-sm text-gray-600">60-69</span>
+                                    <span class="text-sm text-gray-600">&gt;59 to 69</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800 mr-2">D</span>
-                                    <span class="text-sm text-gray-600">50-59</span>
+                                    <span class="text-sm text-gray-600">&gt;49 to 59</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 mr-2">E</span>
-                                    <span class="text-sm text-gray-600">40-49</span>
+                                    <span class="text-sm text-gray-600">&gt;39 to 49</span>
                                 </div>
                                 <div class="flex items-center">
                                     <span
                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 mr-2">F</span>
-                                    <span class="text-sm text-gray-600">0-39</span>
+                                    <span class="text-sm text-gray-600">&gt;34 to 39</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 mr-2">G</span>
+                                    <span class="text-sm text-gray-600">0 to 34</span>
                                 </div>
                             </div>
                         </div>

@@ -62,6 +62,40 @@
                 </div>
             </div>
 
+            @if (!empty($formFivePoints))
+                <div class="rounded-2xl border-2 border-blue-600 bg-blue-50 p-6 shadow-sm dark:border-blue-400 dark:bg-blue-950/40">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <p class="text-sm font-bold uppercase tracking-wide text-blue-800 dark:text-blue-300">
+                                Form 5 Best-Six Points
+                            </p>
+                            <p class="mt-1 text-sm text-slate-600 dark:text-brand-300">
+                                English (EFL/ESL) and Mathematics (MaC/MaE) are compulsory, plus the best four other subjects.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            @foreach (['midterm' => 'Midterm', 'endterm' => 'Endterm'] as $examKey => $examLabel)
+                                @php($points = $formFivePoints[$examKey])
+                                <div class="min-w-40 rounded-xl border border-blue-200 bg-white px-5 py-3 text-center dark:border-blue-700 dark:bg-brand-800">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-brand-300">
+                                        {{ $examLabel }} Points
+                                    </p>
+                                    <p class="mt-1 text-3xl font-black {{ $points['complete'] ? 'text-blue-700 dark:text-blue-300' : 'text-amber-600 dark:text-amber-300' }}">
+                                        {{ $points['display'] }}
+                                    </p>
+                                    @if (!$points['complete'])
+                                        <p class="mt-1 max-w-56 text-xs text-amber-700 dark:text-amber-300">
+                                            Missing: {{ implode(', ', $points['missing']) }}
+                                        </p>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white kw-panel p-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Midterm Standing</h3>

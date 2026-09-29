@@ -22,6 +22,16 @@ class BookCopy extends Model
         'is_available' => 'boolean',
     ];
 
+    public function scopeWhereIdentifier($query, string $identifier)
+    {
+        $identifier = trim($identifier);
+
+        return $query->where(function ($query) use ($identifier) {
+            $query->where('accession_no', $identifier)
+                ->orWhere('barcode', $identifier);
+        });
+    }
+
     public function book()
     {
         return $this->belongsTo(Book::class);

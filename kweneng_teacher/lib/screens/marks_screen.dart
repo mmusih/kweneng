@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/app_providers.dart';
+import '../utils/grade_utils.dart';
 import '../widgets/app_widgets.dart';
 
 class MarksScreen extends ConsumerStatefulWidget {
@@ -173,6 +174,7 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
   late final TextEditingController _midterm;
   late final TextEditingController _endterm;
   late final TextEditingController _remarks;
+  late bool _commentIsAutomatic;
 
   @override
   void initState() {
@@ -183,6 +185,16 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
     _endterm = TextEditingController(
       text: widget.student.endtermScore?.toStringAsFixed(1) ?? '',
     );
+    final generated = _generateTeacherComment(
+      widget.student.midtermScore,
+      widget.student.endtermScore,
+    );
+    _commentIsAutomatic =
+        widget.student.remarks.trim().isEmpty ||
+        _isGeneratedTeacherComment(widget.student.remarks);
+    if (_commentIsAutomatic) {
+      widget.student.remarks = generated;
+    }
     _remarks = TextEditingController(text: widget.student.remarks);
   }
 
@@ -196,6 +208,13 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
 
   @override
   Widget build(BuildContext context) {
+    final midtermGrade = gradeForScore(widget.student.midtermScore);
+    final endtermGrade = gradeForScore(widget.student.endtermScore);
+    final overallGrade = gradeForScores(
+      widget.student.midtermScore,
+      widget.student.endtermScore,
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -232,8 +251,12 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
                           ? 'Midterm locked'
                           : 'Midterm',
                     ),
-                    onChanged: (value) =>
-                        widget.student.midtermScore = _score(value),
+                    onChanged: (value) {
+                      setState(() {
+                        widget.student.midtermScore = _score(value);
+                        _refreshAutomaticComment();
+                      });
+                    },
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -254,21 +277,44 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
                           ? 'Endterm locked'
                           : 'Endterm',
                     ),
-                    onChanged: (value) =>
-                        widget.student.endtermScore = _score(value),
+                    onChanged: (value) {
+                      setState(() {
+                        widget.student.endtermScore = _score(value);
+                        _refreshAutomaticComment();
+                      });
+                    },
                   ),
                 ),
               ],
             ),
+            if (overallGrade != null) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (midtermGrade != null)
+                    Chip(label: Text('Midterm: $midtermGrade')),
+                  if (endtermGrade != null)
+                    Chip(label: Text('Endterm: $endtermGrade')),
+                  Chip(label: Text('Overall: $overallGrade')),
+                ],
+              ),
+            ],
             const SizedBox(height: 10),
             TextField(
               controller: _remarks,
               minLines: 1,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Remarks (optional)',
+                labelText: 'Comment',
+                helperText:
+                    'Generated from marks in real time. Edit to use a custom comment.',
               ),
-              onChanged: (value) => widget.student.remarks = value,
+              onChanged: (value) {
+                widget.student.remarks = value;
+                _commentIsAutomatic = false;
+              },
             ),
           ],
         ),
@@ -282,5 +328,113 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
     if (score < 0) return 0;
     if (score > 100) return 100;
     return score;
+  }
+
+  void _refreshAutomaticComment() {
+    if (!_commentIsAutomatic) return;
+
+    final generated = _generateTeacherComment(
+      widget.student.midtermScore,
+      widget.student.endtermScore,
+    );
+    widget.student.remarks = generated;
+    _remarks.value = TextEditingValue(
+      text: generated,
+      selection: TextSelection.collapsed(offset: generated.length),
+    );
+  }
+
+  String _performancePhrase(double score) {
+    if (score >= 90) return 'excellent performance';
+    if (score >= 80) return 'very good performance';
+    if (score >= 70) return 'good performance';
+    if (score >= 60) return 'fair performance';
+    if (score >= 50) return 'satisfactory performance';
+    if (score >= 40) return 'below expectation performance';
+    return 'weak performance';
+  }
+
+  String _generateTeacherComment(double? midterm, double? endterm) {
+    if (midterm == null && endterm == null) return '';
+
+    if (midterm != null && endterm == null) {
+      return 'The learner showed ${_performancePhrase(midterm)} in the '
+          'midterm assessment but did not write the end-of-term assessment.';
+    }
+
+    if (midterm == null && endterm != null) {
+      return 'The learner showed ${_performancePhrase(endterm)} in the '
+          'end-of-term assessment.';
+    }
+
+    final difference = endterm! - midterm!;
+
+    if (difference >= 10) {
+      return endterm >= 60
+          ? 'The learner has shown clear improvement since midterm. This '
+                'progress is encouraging; continued effort is needed.'
+          : 'The learner has improved since midterm, but more effort is still '
+                'needed to reach the expected standard.';
+    }
+
+    if (difference >= 3) {
+      return endterm >= 70
+          ? 'The learner has improved and is making steady progress. More '
+                'consistent effort can lead to even better results.'
+          : 'The learner has shown some improvement since midterm. Continued '
+                'practice is encouraged.';
+    }
+
+    if (difference <= -10) {
+      return 'The learner’s performance has declined significantly since '
+          'midterm. Immediate improvement and greater commitment are required.';
+    }
+
+    if (difference <= -3) {
+      return 'The learner’s performance has dropped since midterm. More focus '
+          'and consistency are needed.';
+    }
+
+    if (endterm >= 80) {
+      return 'The learner has maintained a very good standard throughout the '
+          'term. Keep up the good work.';
+    }
+
+    if (endterm >= 60) {
+      return 'The learner’s performance has remained fairly steady. More '
+          'effort can lead to better results.';
+    }
+
+    if (endterm >= 40) {
+      return 'The learner’s performance remains below expectation. More '
+          'effort and support are required.';
+    }
+
+    return 'The learner’s performance is weak and requires immediate '
+        'improvement.';
+  }
+
+  bool _isGeneratedTeacherComment(String comment) {
+    final normalized = comment.trim();
+    if (normalized.isEmpty) return false;
+
+    const comparisonComments = {
+      'The learner has shown clear improvement since midterm. This progress is encouraging; continued effort is needed.',
+      'The learner has improved since midterm, but more effort is still needed to reach the expected standard.',
+      'The learner has improved and is making steady progress. More consistent effort can lead to even better results.',
+      'The learner has shown some improvement since midterm. Continued practice is encouraged.',
+      'The learner’s performance has declined significantly since midterm. Immediate improvement and greater commitment are required.',
+      'The learner’s performance has dropped since midterm. More focus and consistency are needed.',
+      'The learner has maintained a very good standard throughout the term. Keep up the good work.',
+      'The learner’s performance has remained fairly steady. More effort can lead to better results.',
+      'The learner’s performance remains below expectation. More effort and support are required.',
+      'The learner’s performance is weak and requires immediate improvement.',
+    };
+
+    if (comparisonComments.contains(normalized)) return true;
+
+    return RegExp(
+      r'^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|end-of-term assessment)\.$',
+    ).hasMatch(normalized);
   }
 }

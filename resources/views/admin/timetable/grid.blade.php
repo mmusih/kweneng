@@ -284,6 +284,7 @@
             updateLesson: '{{ route('admin.timetable.grid.lesson.update') }}',
             duplicateLesson: '{{ route('admin.timetable.grid.lesson.duplicate') }}',
             destroyLesson: '{{ route('admin.timetable.grid.lesson.destroy') }}',
+            requiredCount: '{{ route('admin.timetable.grid.required-count') }}',
             storeDivisions: '{{ route('admin.timetable.grid.divisions.store') }}',
             updateDivision: '{{ route('admin.timetable.grid.divisions.update', ['division' => '__DIVISION__']) }}',
             destroyDivision: '{{ route('admin.timetable.grid.divisions.destroy', ['division' => '__DIVISION__']) }}',
@@ -744,6 +745,7 @@
                 ]"
                 class="fixed inset-x-3 bottom-3 z-40 mx-auto w-auto max-w-7xl overflow-hidden rounded-xl border p-3 shadow-2xl backdrop-blur-md transition-[max-height,background-color,border-color]">
                 <div class="flex min-h-10 flex-wrap items-center justify-between gap-3">
+                    <button type="button" x-show="countUndo" x-bind:disabled="busy" x-on:click="saveRequiredCount(true)" class="rounded border px-2 py-1 text-xs">Undo required-count change</button>
                     <button type="button" x-on:click="trayOpen = ! trayOpen"
                         x-bind:aria-expanded="trayOpen"
                         x-bind:aria-label="trayOpen ? 'Collapse unplaced lesson tray' : 'Expand unplaced lesson tray'"
@@ -803,6 +805,7 @@
                                 x-on:mouseenter="inspectCard(trayCard(item))"
                                 x-on:focus="inspectCard(trayCard(item))"
                                 x-on:keydown.enter.prevent="select(trayCard(item))"
+                                x-on:keydown.delete.prevent.stop="openRequiredCount(trayCard(item))"
                                 x-on:keydown.shift.f10.prevent="openMenu($event, trayCard(item))"
                                 x-on:dragstart="startDrag($event, trayCard(item))"
                                 x-on:dragend="endDrag()"
@@ -838,6 +841,7 @@
                             <p class="mt-1 text-xs text-slate-300" x-text="(inspected.day ? dayLabel(inspected.day) + ' · P' + inspected.period + ' · ' : 'Unplaced · ') + inspected.span + (inspected.span === 1 ? ' period' : ' periods')"></p>
                             <p x-show="inspected.split_key" class="mt-1 text-xs">Split lesson · moves together</p>
                             <p x-show="inspected.locked" class="mt-1 text-xs">Locked</p>
+                            <button type="button" x-bind:disabled="busy" x-on:click="openRequiredCount(inspected)" class="mt-2 rounded border border-slate-400 px-2 py-1 text-xs disabled:opacity-50">Change required count…</button>
                         </div>
                     </template>
                     <p x-show="! inspected" class="text-xs text-slate-300">Hover over or focus a card to see its subject, class, teacher and room here.</p>
@@ -882,7 +886,8 @@
                 <div class="my-1 border-t border-slate-100 dark:border-brand-700"></div>
                 <button type="button" role="menuitem" x-on:click="duplicateLesson(context.subject)"
                     class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:text-brand-100 dark:hover:bg-brand-700">Duplicate lesson</button>
-                <button type="button" role="menuitem" x-on:click="deleteLesson(context.subject)"
+                <button type="button" role="menuitem" x-bind:disabled="busy" x-on:click="openRequiredCount(context.subject)" class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-brand-700">Change required count…</button>
+                <button type="button" role="menuitem" x-show="context.subject?.card_id" x-on:click="deleteLesson(context.subject)"
                     class="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-900/30">Delete lesson…</button>
             </div>
 
@@ -908,6 +913,25 @@
                 </button>
                 <p class="px-3 py-2 text-[11px] text-slate-500 dark:text-brand-300" x-text="context.subject?.locked ? 'Unlock this card to change its room.' : '✓ Current room · × Occupied at this time. Availability is checked when saved.'"></p>
             </div>
+
+            <template x-if="countEditor">
+                <div class="fixed inset-0 flex items-center justify-center bg-slate-950/60 p-4" style="z-index:115" role="dialog" aria-modal="true" aria-label="Change required lesson count">
+                    <section class="w-full max-w-lg rounded-xl bg-white p-5 shadow-xl dark:bg-brand-800">
+                        <h2 class="text-lg font-bold">Change required count</h2>
+                        <p class="mt-1 text-sm" x-text="countEditor.subject + ' · ' + countEditor.class_names"></p>
+                        <p class="mt-3 text-sm" x-text="countEditor.required + ' required · ' + countEditor.placed + ' placed · ' + countEditor.unplaced + ' remaining'"></p>
+                        <p class="mt-1 text-xs text-slate-500" x-text="'Each card uses ' + countEditor.span + ' period(s). This changes timetable demand, not teacher–subject assignments.'"></p>
+                        <label class="mt-4 block text-sm font-semibold">Required cards per cycle
+                            <input type="number" x-model.number="countEditor.value" x-bind:min="countEditor.placed" max="40" step="1" class="mt-1 w-full rounded border-slate-300 dark:bg-brand-900">
+                        </label>
+                        <p class="mt-3 text-sm font-semibold" x-text="'Required periods: ' + (countEditor.required * countEditor.span) + ' → ' + (Number(countEditor.value) * countEditor.span) + '. Remaining cards: ' + Math.max(0, Number(countEditor.value) - countEditor.placed)"></p>
+                        <p class="mt-2 text-xs">Placed cards stay on the grid. You can undo this count change after saving.</p>
+                        <p x-show="message?.kind === 'error'" x-text="message?.text" class="mt-2 text-sm text-red-600" role="alert"></p>
+                        <div class="mt-4 flex justify-end gap-2"><button type="button" x-on:click="countEditor = null" x-bind:disabled="busy" class="rounded border px-3 py-2">Cancel</button><button type="button" x-on:click="saveRequiredCount()" x-bind:disabled="busy || Number(countEditor.value) < countEditor.placed || Number(countEditor.value) === countEditor.required || !!countEditor.split_key" class="rounded bg-[#124E66] px-3 py-2 text-white disabled:opacity-40">Confirm required count</button></div>
+                        <p x-show="countEditor.split_key" class="mt-2 text-xs">Adjust linked split counts together in the assignment editor.</p>
+                    </section>
+                </div>
+            </template>
 
             <template x-if="preparationPayload">
                 <div class="fixed inset-0 overflow-y-auto bg-slate-950/60 p-2 sm:p-5" style="z-index:110" role="dialog" aria-modal="true" aria-label="Lessons from teacher assignments"
@@ -1158,6 +1182,8 @@
                     dragToken: 0,
                     selected: null,
                     inspected: null,
+                    countEditor: null,
+                    countUndo: null,
                     preparationPayload: null,
                     preparationLoading: false,
                     preparationClassId: '',
@@ -1621,6 +1647,7 @@
 
                     closeOverlays() {
                         if (this.preparationPayload) return;
+                        if (this.countEditor) { this.countEditor = null; return; }
                         if (this.editor.open) {
                             // Creation is deliberately persistent: Escape and outside
                             // clicks must not discard a partially completed card setup.
@@ -2238,6 +2265,34 @@
                             this.applyGrid(data.grid);
                             this.say('success', data.message);
                         }
+                    },
+
+                    openRequiredCount(subject) {
+                        const stack = this.grid.requirements.find(item => item.lesson_ids.includes(subject.lesson_id));
+                        if (!stack) return;
+                        this.closeMenu();
+                        this.message = null;
+                        this.countEditor = { ...stack, value: stack.required, version: this.grid.setting.preparation_version };
+                    },
+
+                    async saveRequiredCount(undo = false) {
+                        if (this.busy) return;
+                        const change = undo ? this.countUndo : this.countEditor;
+                        if (!change) return;
+                        const value = Number(change.value);
+                        if (!Number.isInteger(value) || value < change.placed || value > 40) {
+                            this.say('error', 'Choose a whole number at least as large as the placed count.'); return;
+                        }
+                        const data = await this.post(this.endpoints.requiredCount, {
+                            setting_id: this.grid.setting.id, lesson_id: change.lesson_id,
+                            required: value, expected_required: change.required, expected_placed: change.placed, version: change.version,
+                        }, 'PUT');
+                        if (!data) return;
+                        this.applyGrid(data.grid);
+                        this.countUndo = undo ? null : { ...change, required: value, value: change.required, version: data.grid.setting.preparation_version };
+                        this.countEditor = null;
+                        this.clearSelection();
+                        this.say('success', data.message);
                     },
 
                     async deleteLesson(subject) {

@@ -1,11 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="mt-16 p-6 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-lg shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h2 class="font-semibold text-2xl text-white leading-tight">Update Student Information</h2>
-                <p class="text-blue-100 text-sm mt-1">{{ $student->user->name ?? 'Student' }} · {{ $student->currentClass->name ?? 'No class assigned' }}</p>
+                <p class="text-white/80 text-sm mt-1">{{ $student->user->name ?? 'Student' }} · {{ $student->currentClass->name ?? 'No class assigned' }}</p>
             </div>
-            <a href="{{ route('parent.dashboard') }}" class="text-white hover:text-blue-100 text-sm font-medium">Back to Dashboard</a>
+            <a href="{{ route('parent.dashboard') }}" class="text-white hover:text-white/80 text-sm font-medium">Back to Dashboard</a>
         </div>
     </x-slot>
 
@@ -22,6 +22,7 @@
                     </div>
                 @endif
 
+                <div class="mb-6 flex items-center gap-4"><x-student-photo :student="$student" /><p class="text-sm text-gray-500">Student photos are managed by school staff.</p></div>
                 <form method="POST" action="{{ route('parent.children.profile.update', $student) }}" class="space-y-8">
                     @csrf
                     @method('PUT')

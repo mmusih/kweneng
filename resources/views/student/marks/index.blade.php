@@ -12,6 +12,7 @@
                     </svg>
                     Back to Dashboard
                 </a>
+                <a href="{{ route('student.academic-record.show') }}" class="inline-flex items-center px-4 py-2 rounded-md bg-emerald-600 text-xs font-semibold uppercase tracking-widest text-white hover:bg-emerald-700">Full Academic Record</a>
             </div>
         </div>
     </x-slot>

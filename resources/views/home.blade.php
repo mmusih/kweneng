@@ -15,6 +15,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
+        .home-whatsapp-button {
+            position: fixed;
+            right: calc(1.25rem + env(safe-area-inset-right, 0px));
+            bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: #15803d;
+            color: #fff;
+            font-size: 1.75rem;
+            text-decoration: none;
+            box-shadow: 0 4px 16px rgb(0 0 0 / 22%);
+        }
+
+        .home-whatsapp-button:hover {
+            background: #166534;
+            color: #fff;
+        }
+
+        .home-whatsapp-button:focus-visible {
+            outline: 3px solid #0f172a;
+            outline-offset: 4px;
+        }
+
         [x-cloak] {
             display: none !important;
         }
@@ -39,6 +67,74 @@
 
         #navbar-spacer {
             transition: height .3s ease;
+        }
+
+        .admissions-alert {
+            background: linear-gradient(90deg, #0f172a, #123f59 52%, #0f172a);
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .admissions-alert-inner {
+            min-height: 4.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .admissions-alert-copy {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .admissions-alert-label {
+            flex: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 9999px;
+            background: #facc15;
+            color: #713f12;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .admissions-alert-text {
+            margin: 0;
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .admissions-alert-text strong {
+            color: #ffffff;
+        }
+
+        .admissions-alert-link {
+            flex: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.75rem;
+            background: #55c360;
+            color: #ffffff;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-decoration: none;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .admissions-alert-link:hover {
+            background: #44af50;
+            color: #ffffff;
+            transform: translateY(-1px);
         }
 
         .page-section {
@@ -87,6 +183,14 @@
             font-weight: 700;
             font-size: 0.9rem;
             margin-bottom: 1rem;
+        }
+
+        .hero-kicker .admissions-live-dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 9999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 0.3rem rgba(34, 197, 94, 0.14);
         }
 
         .hero-title {
@@ -205,6 +309,116 @@
             font-size: 0.88rem;
             font-weight: 700;
             backdrop-filter: blur(6px);
+        }
+
+        html.dark .hero-shell {
+            background:
+                radial-gradient(circle at top left, rgba(43, 175, 252, 0.18), transparent 38%),
+                radial-gradient(circle at bottom right, rgba(85, 195, 96, 0.14), transparent 36%),
+                linear-gradient(135deg, #0b1117, #17252d 52%, #101a20);
+            border-bottom: 1px solid #2e4650;
+        }
+
+        html.dark .hero-kicker {
+            background: rgba(56, 189, 248, 0.14);
+            border: 1px solid rgba(125, 211, 252, 0.28);
+            color: #bae6fd;
+        }
+
+        html.dark .hero-school-name {
+            color: #f8fafc !important;
+        }
+
+        html.dark .hero-school-type {
+            color: #7dd3fc !important;
+        }
+
+        html.dark .hero-tagline {
+            color: #dbe7ea !important;
+        }
+
+        html.dark .hero-text {
+            color: #cbd5e1;
+        }
+
+        html.dark .hero-feature {
+            background: rgba(33, 42, 49, 0.9);
+            border-color: #3d5d69;
+            color: #f1f5f9;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+        }
+
+        html.dark .hero-feature i {
+            color: #86efac;
+        }
+
+        html.dark .btn-outline {
+            background: #212a31;
+            border-color: #526b75;
+            color: #f8fafc;
+        }
+
+        html.dark .btn-outline:hover {
+            background: #2e3944;
+            border-color: #38bdf8;
+            color: #bae6fd;
+        }
+
+        html.dark .hero-image-frame {
+            background: #212a31;
+            border: 1px solid #3d5d69;
+            box-shadow: 0 25px 55px rgba(0, 0, 0, 0.38);
+        }
+
+        html.dark .home-light-section {
+            background: #182026 !important;
+        }
+
+        html.dark .home-section-intro {
+            background: #212a31;
+            border: 1px solid #3d5d69;
+            border-radius: 1.5rem;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+            padding: 2rem;
+        }
+
+        html.dark .home-section-intro .section-heading {
+            color: #f8fafc !important;
+        }
+
+        html.dark .home-section-intro .section-subtext {
+            color: #d3d9d4 !important;
+        }
+
+        html.dark .feature-card {
+            background: #212a31;
+            border-color: #3d5d69;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.24);
+        }
+
+        html.dark .feature-card:hover {
+            background: #26333c;
+            border-color: #5e7b86;
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.30);
+        }
+
+        html.dark .feature-card h3 {
+            color: #f8fafc !important;
+        }
+
+        html.dark .feature-card p {
+            color: #cbd5e1 !important;
+        }
+
+        html.dark .feature-icon {
+            background: #2e3944;
+        }
+
+        html.dark .transport-pill {
+            background: #212a31;
+            border-color: #3d5d69;
+            color: #f8fafc;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
         }
 
         .trust-band {
@@ -371,6 +585,28 @@
         }
 
         @media (max-width: 640px) {
+            .admissions-alert-inner,
+            .admissions-alert-copy {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .admissions-alert-inner {
+                gap: 0.75rem;
+            }
+
+            .admissions-alert-copy {
+                gap: 0.6rem;
+            }
+
+            .admissions-alert-label {
+                align-self: flex-start;
+            }
+
+            .admissions-alert-link {
+                justify-content: center;
+            }
+
             .hero-shell {
                 padding-top: 2rem;
             }
@@ -391,33 +627,55 @@
     @include('layouts.navigation')
     <div id="navbar-spacer"></div>
 
+    <aside class="admissions-alert" aria-label="2027 admissions notice">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="admissions-alert-inner">
+                <div class="admissions-alert-copy">
+                    <span class="admissions-alert-label">
+                        <i class="bi bi-megaphone-fill" aria-hidden="true"></i>
+                        Now open
+                    </span>
+                    <p class="admissions-alert-text">
+                        <strong>2027 admissions:</strong> Register your child’s interest early while places are available.
+                    </p>
+                </div>
+                <a href="https://wa.me/26777738838?text=Hello%2C%20I%20would%20like%20to%20register%20my%20child%27s%20interest%20for%202027%20admission%20at%20Kweneng%20International%20Secondary%20School."
+                    class="admissions-alert-link" target="_blank" rel="noopener">
+                    Register interest
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
     <section class="hero-shell">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="hero-grid">
                 <div>
                     <div class="hero-kicker">
-                        <i class="bi bi-stars"></i>
-                        Cambridge Excellence Since 2005
+                        <span class="admissions-live-dot" aria-hidden="true"></span>
+                        2027 admissions now open
                     </div>
 
                     <h1 class="hero-title">
                         <span
-                            class="block text-slate-900 text-[clamp(2.4rem,6vw,5rem)] font-extrabold tracking-tight leading-none">
+                            class="hero-school-name block text-slate-900 text-[clamp(2.4rem,6vw,5rem)] font-extrabold tracking-tight leading-none">
                             Kweneng International
                         </span>
-                        <span class="block text-sky-600 text-[clamp(1.05rem,2.2vw,1.75rem)] font-bold mt-2">
+                        <span
+                            class="hero-school-type block text-sky-600 text-[clamp(1.05rem,2.2vw,1.75rem)] font-bold mt-2">
                             Secondary School
                         </span>
                         <span
-                            class="block text-slate-700 text-[clamp(1.35rem,3vw,2.2rem)] font-semibold mt-5 leading-tight">
-                            Shaping confident learners for a global future
+                            class="hero-tagline block text-slate-700 text-[clamp(1.35rem,3vw,2.2rem)] font-semibold mt-5 leading-tight">
+                            Secure your child’s place for 2027
                         </span>
                     </h1>
 
                     <p class="hero-text mt-5">
-                        Kweneng International Secondary School offers a strong Cambridge IGCSE learning environment,
-                        experienced teachers, disciplined academic culture, and the support students need to grow in
-                        knowledge, character, and confidence.
+                        Give your child a strong Cambridge IGCSE learning environment, experienced teachers, and a
+                        disciplined academic culture. Applications for 2027 are open now, with a limited number of
+                        places available.
                     </p>
 
                     <div class="hero-features">
@@ -432,13 +690,20 @@
                     </div>
 
                     <div class="hero-buttons">
-                        <a href="{{ route('admissions') }}" class="btn-main btn-green">
-                            Apply Now
+                        <a href="https://wa.me/26777738838?text=Hello%2C%20I%20would%20like%20to%20register%20my%20child%27s%20interest%20for%202027%20admission%20at%20Kweneng%20International%20Secondary%20School."
+                            class="btn-main btn-green" target="_blank" rel="noopener">
+                            <i class="bi bi-whatsapp"></i>
+                            Register for 2027
                         </a>
 
-                        <a href="{{ asset('documents/Prospectus-2026.pdf') }}" class="btn-main btn-blue"
-                            target="_blank">
-                            Download Prospectus (PDF)
+                        <a href="{{ route('admissions') }}" class="btn-main btn-blue">
+                            View admission details
+                        </a>
+
+                        <a href="{{ asset('documents/KISS-Student-Application-Form.pdf') }}"
+                            class="btn-main btn-outline" target="_blank">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            Application form
                         </a>
 
                         <a href="{{ route('login') }}" class="btn-main btn-outline">
@@ -447,8 +712,9 @@
 
                         <a href="{{ asset('documents/KISS-2025-Yearbook.pdf') }}" class="btn-main btn-outline"
                             target="_blank">
-                            Download KISS 2025 Yearbook
+                            KISS 2025 Yearbook
                         </a>
+
                     </div>
                 </div>
 
@@ -477,9 +743,9 @@
         </div>
     </section>
 
-    <section class="page-section bg-white">
+    <section class="page-section bg-white home-light-section">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
+            <div class="home-section-intro text-center mb-12">
                 <h2 class="section-heading">Why choose Kweneng International</h2>
                 <p class="section-subtext">
                     A school environment built around academic quality, student support, discipline, and preparation
@@ -634,34 +900,35 @@
         <div class="admission-overlay"></div>
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 admission-content text-center py-10">
             <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-5">
-                Join a leading Cambridge IGCSE secondary school
+                2027 admissions are now open
             </h2>
             <p class="text-lg md:text-xl text-slate-200 mb-10">
-                Begin your child’s journey in a school community focused on academic excellence, discipline, and
-                opportunity.
+                Give your child the opportunity to learn in a school community focused on academic excellence,
+                discipline, and growth. Register early—places are limited.
             </p>
 
             <div class="flex flex-wrap justify-center gap-4">
-                <a href="{{ route('admissions') }}" class="btn-main btn-green">
-                    Apply Now
+                <a href="https://wa.me/26777738838?text=Hello%2C%20I%20would%20like%20to%20register%20my%20child%27s%20interest%20for%202027%20admission%20at%20Kweneng%20International%20Secondary%20School."
+                    class="btn-main btn-green" target="_blank" rel="noopener">
+                    <i class="bi bi-whatsapp"></i>
+                    Register interest for 2027
                 </a>
 
-                <a href="{{ asset('documents/Prospectus-2026.pdf') }}"
-                    class="btn-main bg-yellow-500 text-white hover:text-white" target="_blank">
-                    Download Prospectus
+                <a href="{{ route('admissions') }}"
+                    class="btn-main bg-yellow-500 text-white hover:text-white">
+                    View admission details
                 </a>
 
-                <a href="https://wa.me/26777738838" class="btn-main bg-white text-green-700 hover:text-green-700"
-                    target="_blank">
+                <a href="{{ route('contact') }}" class="btn-main bg-white text-green-700 hover:text-green-700">
                     Speak to Admissions
                 </a>
             </div>
         </div>
     </section>
 
-    <section class="page-section bg-white">
+    <section class="page-section bg-white home-light-section">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-10">
+            <div class="home-section-intro text-center mb-10">
                 <h2 class="section-heading">School accessibility</h2>
                 <p class="section-subtext">
                     Families can access the school through reliable public transportation from major surrounding
@@ -680,6 +947,11 @@
     </section>
 
     @include('layouts.footer')
+
+    <a href="https://wa.me/26777738838" class="home-whatsapp-button" target="_blank" rel="noopener noreferrer"
+        aria-label="Chat with Kweneng International on WhatsApp (opens in a new tab)">
+        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+    </a>
 </body>
 
 </html>

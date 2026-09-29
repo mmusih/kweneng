@@ -8,18 +8,19 @@ use App\Models\Announcement;
 use App\Models\Attendance;
 use App\Models\BehaviourRecord;
 use App\Models\Event;
-use App\Models\Homework;
 use App\Models\HomeworkMark;
 use App\Models\LibraryBorrowing;
 use App\Models\Mark;
 use App\Models\Term;
 use App\Services\StudentPerformanceService;
+use App\Services\Timetable\TimetableDayService;
 use Illuminate\Http\Request;
 
 class ParentDashboardController extends Controller
 {
     public function __construct(
-        protected StudentPerformanceService $studentPerformanceService
+        protected StudentPerformanceService $studentPerformanceService,
+        protected TimetableDayService $days,
     ) {}
 
     /**
@@ -28,10 +29,10 @@ class ParentDashboardController extends Controller
      */
     public function index(Request $request)
     {
-        $user   = $request->user();
+        $user = $request->user();
         $parent = $user->parent;
 
-        if (!$parent) {
+        if (! $parent) {
             return response()->json(['message' => 'Parent profile not found.'], 404);
         }
 
@@ -41,6 +42,9 @@ class ParentDashboardController extends Controller
             'studentSubjects',
             'latestFeeBalance.academicYear',
             'latestFeeBalance.term',
+            'awards' => fn ($query) => $query->whereHas('run', fn ($run) => $run->where('status', 'published')->where('parent_visible', true))
+                ->with(['run.category', 'run.academicYear', 'run.term'])->latest(),
+            'prefectAppointments' => fn ($query) => $query->where('status', '!=', 'revoked')->with('academicYear')->latest('appointed_on'),
         ])->get();
 
         $currentAcademicYear = AcademicYear::where(function ($q) {
@@ -49,13 +53,13 @@ class ParentDashboardController extends Controller
 
         $currentTerm = $currentAcademicYear
             ? Term::where('academic_year_id', $currentAcademicYear->id)
-            ->where('status', 'active')
-            ->orderBy('start_date')
-            ->first()
+                ->where('status', 'active')
+                ->orderBy('start_date')
+                ->first()
             : null;
 
-        $blockedChildren    = $children->filter(fn($c) => (bool) $c->fees_blocked)->values();
-        $accessibleChildren = $children->filter(fn($c) => !(bool) $c->fees_blocked)->values();
+        $blockedChildren = $children->filter(fn ($c) => (bool) $c->fees_blocked)->values();
+        $accessibleChildren = $children->filter(fn ($c) => ! (bool) $c->fees_blocked)->values();
         $studentIds = $children->pluck('id')->map(fn ($id) => (int) $id)->values();
         $unreadHomeworkTotal = $this->unreadHomeworkCount($parent->id, $studentIds);
 
@@ -67,7 +71,7 @@ class ParentDashboardController extends Controller
             ->unreadByParent($parent->id)
             ->recent(5)
             ->get()
-            ->filter(fn($a) => $a->isRelevantToParent($parent))
+            ->filter(fn ($a) => $a->isRelevantToParent($parent))
             ->values();
 
         $importantAnnouncements = Announcement::with(['author', 'targets'])
@@ -77,7 +81,7 @@ class ParentDashboardController extends Controller
             ->whereIn('type', ['urgent', 'event'])
             ->recent(3)
             ->get()
-            ->filter(fn($a) => $a->isRelevantToParent($parent))
+            ->filter(fn ($a) => $a->isRelevantToParent($parent))
             ->values();
 
         // Upcoming events
@@ -104,18 +108,18 @@ class ParentDashboardController extends Controller
                 ->get();
 
             $overdueCount = $activeBorrowings
-                ->filter(fn($b) => $b->due_at && $b->due_at->isPast())
+                ->filter(fn ($b) => $b->due_at && $b->due_at->isPast())
                 ->count();
 
             $marks = ($currentAcademicYear && $currentTerm)
                 ? Mark::where('student_id', $child->id)
-                ->where('academic_year_id', $currentAcademicYear->id)
-                ->where('term_id', $currentTerm->id)
-                ->get()
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->get()
                 : collect();
 
-            $midtermAvg = $marks->pluck('midterm_score')->filter(fn($s) => $s !== null)->avg();
-            $endtermAvg = $marks->pluck('endterm_score')->filter(fn($s) => $s !== null)->avg();
+            $midtermAvg = $marks->pluck('midterm_score')->filter(fn ($s) => $s !== null)->avg();
+            $endtermAvg = $marks->pluck('endterm_score')->filter(fn ($s) => $s !== null)->avg();
 
             $performance = ($currentAcademicYear && $currentTerm)
                 ? $this->studentPerformanceService->getStudentTermPerformance(
@@ -144,9 +148,9 @@ class ParentDashboardController extends Controller
 
             $behaviourRecords = ($currentAcademicYear && $currentTerm)
                 ? BehaviourRecord::where('student_id', $child->id)
-                ->where('academic_year_id', $currentAcademicYear->id)
-                ->where('term_id', $currentTerm->id)
-                ->get()
+                    ->where('academic_year_id', $currentAcademicYear->id)
+                    ->where('term_id', $currentTerm->id)
+                    ->get()
                 : collect();
 
             $homeworkCount = HomeworkMark::query()
@@ -155,14 +159,16 @@ class ParentDashboardController extends Controller
                 ->count();
 
             $unreadHomeworkCount = $this->unreadHomeworkCount($parent->id, collect([$child->id]));
+            $financeAccount = \App\Models\StudentFinanceAccount::where('student_id', $child->id)->first();
+            $ledgerBalance = $financeAccount ? $financeAccount->balanceMinor() / 100 : null;
 
             return [
-                'id'           => $child->id,
-                'name'         => $child->user->name ?? 'Unknown',
+                'id' => $child->id,
+                'name' => $child->user->name ?? 'Unknown',
                 'admission_no' => $child->admission_no,
-                'class'        => $child->currentClass->name ?? null,
-                'photo'        => $child->photo ? asset('storage/' . $child->photo) : null,
-                'is_blocked'   => $isBlocked,
+                'class' => $child->currentClass->name ?? null,
+                'photo' => $child->photo ? asset('storage/'.$child->photo) : null,
+                'is_blocked' => $isBlocked,
                 'identity' => [
                     'nationality' => $child->nationality,
                     'document_type' => $child->identity_document_type,
@@ -183,23 +189,23 @@ class ParentDashboardController extends Controller
                     'address' => $child->emergency_contact_address,
                     'medical_notes' => $child->medical_notes,
                 ],
-                'fees'        => [
-                    'closing_balance' => $child->latestFeeBalance ? (float) $child->latestFeeBalance->closing_balance : null,
-                    'status'          => $child->latestFeeBalance ? $child->latestFeeBalance->status : 'Not Available',
-                    'last_updated'    => $child->latestFeeBalance?->updated_at?->toDateTimeString(),
-                    'academic_year'   => $child->latestFeeBalance?->academicYear?->year_name,
-                    'term'            => $child->latestFeeBalance?->term?->name,
+                'fees' => [
+                    'closing_balance' => $financeAccount ? $ledgerBalance : ($child->latestFeeBalance ? (float) $child->latestFeeBalance->closing_balance : null),
+                    'status' => $financeAccount ? ($ledgerBalance > 0 ? 'Outstanding' : 'Clear') : ($child->latestFeeBalance ? $child->latestFeeBalance->status : 'Not Available'),
+                    'last_updated' => $financeAccount ? now()->toDateTimeString() : $child->latestFeeBalance?->updated_at?->toDateTimeString(),
+                    'academic_year' => $child->latestFeeBalance?->academicYear?->year_name,
+                    'term' => $child->latestFeeBalance?->term?->name,
                 ],
-                'marks'        => $isBlocked ? null : [
-                    'midterm_average'  => $midtermAvg !== null ? round($midtermAvg, 1) : null,
-                    'endterm_average'  => $endtermAvg !== null ? round($endtermAvg, 1) : null,
+                'marks' => $isBlocked ? null : [
+                    'midterm_average' => $midtermAvg !== null ? round($midtermAvg, 1) : null,
+                    'endterm_average' => $endtermAvg !== null ? round($endtermAvg, 1) : null,
                     'midterm_position' => $performance['midterm_position'] ?? null,
                     'endterm_position' => $performance['endterm_position'] ?? null,
-                    'trend'            => ($performance['trend'] ?? 'N/A') !== 'N/A' ? $performance['trend'] : null,
+                    'trend' => ($performance['trend'] ?? 'N/A') !== 'N/A' ? $performance['trend'] : null,
                     'performance_label' => $performance['performance_label'] ?? null,
                 ],
                 'attendance_rate' => $attendanceRate,
-                'behaviour'       => [
+                'behaviour' => [
                     'label' => $this->behaviourLabel($behaviourRecords),
                     'total' => $behaviourRecords->count(),
                 ],
@@ -209,47 +215,70 @@ class ParentDashboardController extends Controller
                 ],
                 'library' => [
                     'borrowed' => $activeBorrowings->count(),
-                    'overdue'  => $overdueCount,
-                    'books'    => $activeBorrowings->take(5)->map(fn($b) => [
-                        'title'    => $b->bookCopy->book->title ?? 'Unknown',
-                        'due_at'   => $b->due_at?->toDateString(),
-                        'overdue'  => $b->due_at && $b->due_at->isPast(),
+                    'overdue' => $overdueCount,
+                    'books' => $activeBorrowings->take(5)->map(fn ($b) => [
+                        'title' => $b->bookCopy->book->title ?? 'Unknown',
+                        'due_at' => $b->due_at?->toDateString(),
+                        'overdue' => $b->due_at && $b->due_at->isPast(),
                     ])->values(),
                 ],
+                'awards' => $child->awards->map(fn ($award) => [
+                    'id' => $award->id,
+                    'title' => $award->award_title,
+                    'position' => $award->position,
+                    'percentage' => $award->main_score !== null ? (float) $award->main_score : null,
+                    'academic_year' => $award->run->academicYear?->year_name,
+                    'term' => $award->run->term?->name,
+                    'award_date' => $award->run->award_date?->toDateString(),
+                    'citation' => $award->citation,
+                    'badge' => ['icon' => $award->run->category?->badge_icon ?? 'trophy', 'color' => $award->run->category?->badge_color ?? '#D4AF37'],
+                    'certificate_download_url' => url("/api/parent/children/{$child->id}/awards/{$award->id}/certificate"),
+                ])->values(),
+                'prefect_appointments' => $child->prefectAppointments->map(fn ($prefect) => [
+                    'id' => $prefect->id,
+                    'title' => $prefect->title,
+                    'duties' => $prefect->duties,
+                    'status' => $prefect->status,
+                    'academic_year' => $prefect->academicYear?->year_name,
+                    'appointed_on' => $prefect->appointed_on?->toDateString(),
+                    'service_ends_on' => $prefect->service_ends_on?->toDateString(),
+                    'certificate_reference' => $prefect->certificate_reference,
+                    'certificate_download_url' => url("/api/parent/children/{$child->id}/prefects/{$prefect->id}/certificate"),
+                ])->values(),
             ];
         });
 
         return response()->json([
+            'day_label' => $this->days->label(),
             'user' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
+                'id' => $user->id,
+                'name' => $user->name,
                 'email' => $user->email,
             ],
             'academic_year' => $currentAcademicYear ? [
-                'id'        => $currentAcademicYear->id,
+                'id' => $currentAcademicYear->id,
                 'year_name' => $currentAcademicYear->year_name,
             ] : null,
             'current_term' => $currentTerm ? [
-                'id'         => $currentTerm->id,
-                'name'       => $currentTerm->name,
+                'id' => $currentTerm->id,
+                'name' => $currentTerm->name,
                 'start_date' => $currentTerm->start_date->toDateString(),
-                'end_date'   => $currentTerm->end_date->toDateString(),
-                'days_left'  => max(0, (int) now()->copy()->startOfDay()->diffInDays($currentTerm->end_date->copy()->startOfDay(), false)),
+                'end_date' => $currentTerm->end_date->toDateString(),
+                'days_left' => max(0, (int) now()->copy()->startOfDay()->diffInDays($currentTerm->end_date->copy()->startOfDay(), false)),
             ] : null,
             'stats' => [
-                'total_children'      => $children->count(),
-                'blocked_children'    => $blockedChildren->count(),
+                'total_children' => $children->count(),
+                'blocked_children' => $blockedChildren->count(),
                 'accessible_children' => $accessibleChildren->count(),
                 'unread_homework' => $unreadHomeworkTotal,
                 'incomplete_profiles' => $children->filter(fn ($child) => ! $child->isProfileComplete())->count(),
             ],
-            'important_announcements' => $importantAnnouncements->map(fn($a) => $this->formatAnnouncement($a)),
-            'announcements'           => $announcements->map(fn($a) => $this->formatAnnouncement($a)),
-            'upcoming_events'         => $upcomingEvents->map(fn($e) => $this->formatEvent($e)),
-            'children'                => $childrenData,
+            'important_announcements' => $importantAnnouncements->map(fn ($a) => $this->formatAnnouncement($a)),
+            'announcements' => $announcements->map(fn ($a) => $this->formatAnnouncement($a)),
+            'upcoming_events' => $upcomingEvents->map(fn ($e) => $this->formatEvent($e)),
+            'children' => $childrenData,
         ]);
     }
-
 
     private function unreadHomeworkCount(int $parentId, $studentIds): int
     {
@@ -279,14 +308,14 @@ class ParentDashboardController extends Controller
     private function formatAnnouncement($a): array
     {
         return [
-            'id'         => $a->id,
-            'title'      => $a->title,
-            'message'    => $a->message,
-            'type'       => $a->type,
-            'audience'   => $a->audience,
+            'id' => $a->id,
+            'title' => $a->title,
+            'message' => $a->message,
+            'type' => $a->type,
+            'audience' => $a->audience,
             'publish_at' => $a->publish_at?->toDateTimeString(),
             'created_at' => $a->created_at->toDateTimeString(),
-            'author'     => $a->author->name ?? 'Admin',
+            'author' => $a->author->name ?? 'Admin',
             'requires_acknowledgement' => method_exists($a, 'requiresAcknowledgement') ? $a->requiresAcknowledgement() : false,
         ];
     }
@@ -297,17 +326,17 @@ class ParentDashboardController extends Controller
         $end = $e->end_datetime?->copy()->timezone(config('app.timezone'));
 
         return [
-            'id'             => $e->id,
-            'title'          => $e->title,
-            'description'    => $e->description,
-            'type'           => $e->type,
-            'start_date'     => $start->toDateString(),
-            'end_date'       => $end?->toDateString(),
+            'id' => $e->id,
+            'title' => $e->title,
+            'description' => $e->description,
+            'type' => $e->type,
+            'start_date' => $start->toDateString(),
+            'end_date' => $end?->toDateString(),
             'start_datetime' => $e->is_all_day ? $start->toDateString() : $start->toDateTimeString(),
-            'end_datetime'   => $e->is_all_day ? $end?->toDateString() : $end?->toDateTimeString(),
-            'is_all_day'     => $e->is_all_day,
-            'visibility'     => $e->visibility,
-            'days_until'     => $this->calendarDaysUntil($start),
+            'end_datetime' => $e->is_all_day ? $end?->toDateString() : $end?->toDateTimeString(),
+            'is_all_day' => $e->is_all_day,
+            'visibility' => $e->visibility,
+            'days_until' => $this->calendarDaysUntil($start),
         ];
     }
 
@@ -324,10 +353,15 @@ class ParentDashboardController extends Controller
 
     private function behaviourLabel($records): string
     {
-        if ($records->count() === 0) return 'Good';
-        $major    = $records->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
+        if ($records->count() === 0) {
+            return 'Good';
+        }
+        $major = $records->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
         $moderate = $records->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count();
-        if ($major > 0 || $moderate >= 3) return 'Needs attention';
+        if ($major > 0 || $moderate >= 3) {
+            return 'Needs attention';
+        }
+
         return 'Fair';
     }
 }

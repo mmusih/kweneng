@@ -9,190 +9,61 @@ use App\Models\Mark;
 use App\Models\StudentSubject;
 use App\Models\Subject;
 use App\Models\Teacher;
-use App\Models\TeacherSubject;
 use App\Models\Term;
+use App\Services\MarksMonitoringService;
 use Illuminate\Http\Request;
 
 class MarksMonitorController extends Controller
 {
+    public function __construct(private readonly MarksMonitoringService $marksMonitoring) {}
+
     public function index(Request $request)
     {
-        $academicYearId = $request->input('academic_year_id');
-        $termId = $request->input('term_id');
+        $currentAcademicYear = AcademicYear::current();
+        $academicYearId = (int) ($request->input('academic_year_id') ?: $currentAcademicYear?->id);
+        $terms = $academicYearId
+            ? Term::where('academic_year_id', $academicYearId)->orderBy('start_date')->get()
+            : collect();
+        $requestedTermId = (int) $request->input('term_id');
+        $termId = $terms->contains('id', $requestedTermId)
+            ? $requestedTermId
+            : ($academicYearId
+                ? (Term::current($academicYearId)?->id ?? $terms->sortByDesc('start_date')->first()?->id)
+                : null);
         $classId = $request->input('class_id');
         $subjectId = $request->input('subject_id');
         $teacherId = $request->input('teacher_id');
-        $assessment = $request->input('assessment', 'endterm'); // midterm | endterm
         $search = trim((string) $request->input('search', ''));
+        $requestedAssessment = $request->input('assessment');
+        $assessment = in_array($requestedAssessment, ['midterm', 'endterm'], true)
+            ? $requestedAssessment
+            : ($academicYearId && $termId
+                ? $this->marksMonitoring->defaultAssessment($academicYearId, $termId)
+                : 'midterm');
 
         $academicYears = AcademicYear::orderByDesc('id')->get();
-        $classes = ClassModel::orderBy('level')->orderBy('name')->get();
+        $classes = ClassModel::query()
+            ->when($academicYearId, fn ($query) => $query->where('academic_year_id', $academicYearId))
+            ->orderBy('level')
+            ->orderBy('name')
+            ->get();
         $subjects = Subject::orderBy('name')->get();
-        $teachers = Teacher::with('user')->get();
-        $terms = collect();
-
-        if ($academicYearId) {
-            $terms = Term::where('academic_year_id', $academicYearId)
-                ->orderBy('start_date')
-                ->get();
-        }
-
-        $teacherSubjects = TeacherSubject::with(['teacher.user', 'subject', 'class', 'academicYear'])
-            ->when($academicYearId, fn($q) => $q->where('academic_year_id', $academicYearId))
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->when($subjectId, fn($q) => $q->where('subject_id', $subjectId))
-            ->when($teacherId, fn($q) => $q->where('teacher_id', $teacherId))
+        $teachers = Teacher::with('user')
+            ->whereHas('teacherSubjects', fn ($query) => $query->where('academic_year_id', $academicYearId))
             ->get()
-            ->filter(function ($row) use ($search) {
-                if ($search === '') {
-                    return true;
-                }
+            ->sortBy(fn ($teacher) => $teacher->user?->name)
+            ->values();
 
-                $teacherName = strtolower($row->teacher?->user?->name ?? '');
-                $subjectName = strtolower($row->subject?->name ?? '');
-                $className = strtolower($row->class?->name ?? '');
-
-                return str_contains($teacherName, strtolower($search))
-                    || str_contains($subjectName, strtolower($search))
-                    || str_contains($className, strtolower($search));
-            })
-            ->groupBy('teacher_id');
-
-        $teachersData = [];
-        $totalExpected = 0;
-        $totalCompleted = 0;
-        $totalMissing = 0;
-
-        foreach ($teacherSubjects as $groupTeacherId => $assignments) {
-            $teacherName = optional($assignments->first()->teacher?->user)->name ?? 'N/A';
-
-            $subjectRows = [];
-            $teacherExpected = 0;
-            $teacherCompleted = 0;
-            $teacherMissing = 0;
-
-            foreach ($assignments as $assignment) {
-                $studentSubjects = StudentSubject::with('student.user')
-                    ->where('class_id', $assignment->class_id)
-                    ->where('subject_id', $assignment->subject_id)
-                    ->where('academic_year_id', $assignment->academic_year_id)
-                    ->get();
-
-                $expected = $studentSubjects->count();
-
-                $marks = collect();
-                if ($termId) {
-                    $marks = Mark::where('class_id', $assignment->class_id)
-                        ->where('subject_id', $assignment->subject_id)
-                        ->where('teacher_id', $assignment->teacher_id)
-                        ->where('academic_year_id', $assignment->academic_year_id)
-                        ->where('term_id', $termId)
-                        ->get()
-                        ->keyBy('student_id');
-                }
-
-                $completed = 0;
-                $missingStudentNames = [];
-
-                foreach ($studentSubjects as $studentSubject) {
-                    $mark = $marks->get($studentSubject->student_id);
-
-                    $hasValue = false;
-                    if ($assessment === 'midterm') {
-                        $hasValue = $mark && $mark->midterm_score !== null;
-                    } else {
-                        $hasValue = $mark && $mark->endterm_score !== null;
-                    }
-
-                    if ($hasValue) {
-                        $completed++;
-                    } else {
-                        $missingStudentNames[] = $studentSubject->student?->user?->name ?? 'Unknown Student';
-                    }
-                }
-
-                $missing = max($expected - $completed, 0);
-                $progress = $expected > 0 ? (int) round(($completed / $expected) * 100) : 0;
-
-                $status = 'critical';
-                if ($progress >= 100) {
-                    $status = 'complete';
-                } elseif ($progress >= 80) {
-                    $status = 'good';
-                } elseif ($progress >= 50) {
-                    $status = 'pending';
-                }
-
-                $subjectRows[] = [
-                    'teacher' => $teacherName,
-                    'class' => $assignment->class?->name ?? 'N/A',
-                    'subject' => $assignment->subject?->name ?? 'N/A',
-                    'expected' => $expected,
-                    'completed' => $completed,
-                    'missing' => $missing,
-                    'progress' => $progress,
-                    'status' => $status,
-                    'class_id' => $assignment->class_id,
-                    'subject_id' => $assignment->subject_id,
-                    'teacher_id' => $assignment->teacher_id,
-                    'academic_year_id' => $assignment->academic_year_id,
-                    'term_id' => $termId,
-                    'assessment' => $assessment,
-                    'missing_student_names' => $missingStudentNames,
-                ];
-
-                $teacherExpected += $expected;
-                $teacherCompleted += $completed;
-                $teacherMissing += $missing;
-            }
-
-            usort($subjectRows, function ($a, $b) {
-                if ($a['progress'] === $b['progress']) {
-                    return $b['missing'] <=> $a['missing'];
-                }
-                return $a['progress'] <=> $b['progress'];
-            });
-
-            $teacherProgress = $teacherExpected > 0
-                ? (int) round(($teacherCompleted / $teacherExpected) * 100)
-                : 0;
-
-            $teachersData[] = [
-                'teacher' => $teacherName,
-                'teacher_id' => $groupTeacherId,
-                'expected' => $teacherExpected,
-                'completed' => $teacherCompleted,
-                'missing' => $teacherMissing,
-                'progress' => $teacherProgress,
-                'status' => $this->statusFromProgress($teacherProgress),
-                'subjects' => $subjectRows,
-            ];
-
-            $totalExpected += $teacherExpected;
-            $totalCompleted += $teacherCompleted;
-            $totalMissing += $teacherMissing;
-        }
-
-        usort($teachersData, function ($a, $b) {
-            if ($a['progress'] === $b['progress']) {
-                return $b['missing'] <=> $a['missing'];
-            }
-            return $a['progress'] <=> $b['progress'];
-        });
-
-        $overallProgress = $totalExpected > 0
-            ? (int) round(($totalCompleted / $totalExpected) * 100)
-            : 0;
-
-        $summary = [
-            'teachers' => count($teachersData),
-            'assignments' => collect($teachersData)->sum(fn($t) => count($t['subjects'])),
-            'expected' => $totalExpected,
-            'completed' => $totalCompleted,
-            'missing' => $totalMissing,
-            'progress' => $overallProgress,
-            'critical_teachers' => collect($teachersData)->filter(fn($t) => $t['progress'] < 50)->count(),
-        ];
+        $monitor = $academicYearId && $termId
+            ? $this->marksMonitoring->build($academicYearId, $termId, $assessment, [
+                'class_id' => $classId,
+                'subject_id' => $subjectId,
+                'teacher_id' => $teacherId,
+                'search' => $search,
+            ])
+            : ['teachersData' => [], 'summary' => $this->emptySummary()];
+        $teachersData = $monitor['teachersData'];
+        $summary = $monitor['summary'];
 
         return view('headmaster.marks.index', compact(
             'teachersData',
@@ -214,12 +85,20 @@ class MarksMonitorController extends Controller
 
     public function show(Request $request)
     {
-        $classId = $request->input('class_id');
-        $subjectId = $request->input('subject_id');
-        $teacherId = $request->input('teacher_id');
-        $academicYearId = $request->input('academic_year_id');
-        $termId = $request->input('term_id');
-        $assessment = $request->input('assessment', 'endterm');
+        $validated = $request->validate([
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'teacher_id' => ['required', 'integer', 'exists:teachers,id'],
+            'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'assessment' => ['required', 'in:midterm,endterm'],
+        ]);
+        $classId = $validated['class_id'];
+        $subjectId = $validated['subject_id'];
+        $teacherId = $validated['teacher_id'];
+        $academicYearId = $validated['academic_year_id'];
+        $termId = $validated['term_id'];
+        $assessment = $validated['assessment'];
 
         $studentSubjects = StudentSubject::with([
             'student.user',
@@ -230,12 +109,18 @@ class MarksMonitorController extends Controller
         ])
             ->where('class_id', $classId)
             ->where('subject_id', $subjectId)
+            ->where('teacher_id', $teacherId)
             ->where('academic_year_id', $academicYearId)
+            ->whereHas('student.classHistory', function ($query) use ($classId, $academicYearId) {
+                $query->where('class_id', $classId)
+                    ->where('academic_year_id', $academicYearId)
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
             ->get();
 
         $marks = Mark::where('class_id', $classId)
             ->where('subject_id', $subjectId)
-            ->where('teacher_id', $teacherId)
             ->where('academic_year_id', $academicYearId)
             ->where('term_id', $termId)
             ->get()
@@ -259,27 +144,34 @@ class MarksMonitorController extends Controller
         $meta = [
             'class' => optional($studentSubjects->first()?->class)->name ?? 'N/A',
             'subject' => optional($studentSubjects->first()?->subject)->name ?? 'N/A',
-            'teacher' => optional($studentSubjects->first()?->teacher?->user)->name ?? 'N/A',
+            'teacher' => Teacher::with('user')->find($teacherId)?->user?->name ?? 'N/A',
             'assessment' => ucfirst($assessment),
         ];
+        $backUrl = route('headmaster.marks.index', [
+            'academic_year_id' => $academicYearId,
+            'term_id' => $termId,
+            'assessment' => $assessment,
+            'class_id' => $classId,
+            'subject_id' => $subjectId,
+            'teacher_id' => $teacherId,
+        ]);
 
-        return view('headmaster.marks.show', compact('detailRows', 'meta'));
+        return view('headmaster.marks.show', compact('detailRows', 'meta', 'backUrl'));
     }
 
-    protected function statusFromProgress(int $progress): string
+    private function emptySummary(): array
     {
-        if ($progress >= 100) {
-            return 'complete';
-        }
-
-        if ($progress >= 80) {
-            return 'good';
-        }
-
-        if ($progress >= 50) {
-            return 'pending';
-        }
-
-        return 'critical';
+        return [
+            'teachers' => 0,
+            'complete_teachers' => 0,
+            'incomplete_teachers' => 0,
+            'assignments' => 0,
+            'complete_assignments' => 0,
+            'expected' => 0,
+            'completed' => 0,
+            'missing' => 0,
+            'progress' => null,
+            'critical_teachers' => 0,
+        ];
     }
 }

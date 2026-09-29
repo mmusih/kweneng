@@ -18,14 +18,14 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'       => 'required|email',
-            'password'    => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string',
             'device_name' => 'required|string|max:255',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -37,7 +37,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if (!$user->isActive()) {
+        if (! $user->isActive()) {
             return response()->json([
                 'message' => 'Your account is inactive. Please contact the school.',
             ], 403);
@@ -50,11 +50,11 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => [
-                'id'                  => $user->id,
-                'name'                => $user->name,
-                'email'               => $user->email,
-                'role'                => $user->role,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
                 'must_change_password' => $user->must_change_password,
             ],
         ]);
@@ -71,7 +71,9 @@ class AuthController extends Controller
             'device_name' => ['required', 'string', 'max:255'],
         ]);
 
-        $user = User::with('teacher')->where('email', $validated['email'])->first();
+        $user = User::with('teacher')
+            ->where('email', strtolower(trim($validated['email'])))
+            ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -85,11 +87,17 @@ class AuthController extends Controller
             ], 403);
         }
 
-        if (! in_array($user->role, UserRoles::teacherAccessible(), true) || ! $user->teacher) {
+        if (! in_array($user->role, UserRoles::teacherAccessible(), true)) {
             return response()->json([
-                'message' => 'This app is available only to staff accounts that have a linked teacher profile.',
+                'message' => 'This app is available only to teacher and headmaster accounts.',
             ], 403);
         }
+
+        // Some staff accounts predate automatic role-profile synchronization.
+        // A teacher/headmaster role is authoritative, so safely repair the
+        // required one-to-one profile instead of rejecting valid credentials.
+        $teacher = $user->teacher()->firstOrCreate([]);
+        $user->setRelation('teacher', $teacher);
 
         $user->tokens()->where('name', $validated['device_name'])->delete();
         $token = $user->createToken($validated['device_name'], ['teacher-mobile'])->plainTextToken;
@@ -98,7 +106,7 @@ class AuthController extends Controller
             'token' => $token,
             'user' => [
                 'id' => $user->id,
-                'teacher_id' => $user->teacher->id,
+                'teacher_id' => $teacher->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
@@ -125,12 +133,12 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'id'                  => $user->id,
-            'name'                => $user->name,
-            'email'               => $user->email,
-            'role'                => $user->role,
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
             'must_change_password' => $user->must_change_password,
-            'status'              => $user->status,
+            'status' => $user->status,
         ]);
     }
 
@@ -141,19 +149,19 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'password'         => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['Current password is incorrect.'],
             ]);
         }
 
         $user->update([
-            'password'             => $request->password,
+            'password' => $request->password,
             'must_change_password' => false,
         ]);
 

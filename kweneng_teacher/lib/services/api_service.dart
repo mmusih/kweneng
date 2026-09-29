@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../core/constants.dart';
 
@@ -51,19 +52,51 @@ class ApiService {
 
   String _messageFromError(Object error) {
     if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map) {
-        if (data['message'] != null) return data['message'].toString();
-        final errors = data['errors'];
-        if (errors is Map && errors.isNotEmpty) {
-          final first = errors.values.first;
-          if (first is List && first.isNotEmpty) return first.first.toString();
-          return first.toString();
-        }
-      }
+      final response = error.response;
+      final responseMessage = _messageFromResponse(
+        response?.statusCode,
+        response?.data,
+      );
+      if (responseMessage != null) return responseMessage;
       return error.message ?? 'Network request failed.';
     }
     return error.toString();
+  }
+
+  String? _messageFromResponse(int? statusCode, Object? responseData) {
+    Object? data = responseData;
+
+    if (data is String && data.trim().isNotEmpty) {
+      final rawData = data.trim();
+      try {
+        data = jsonDecode(rawData);
+      } catch (_) {
+        if (!rawData.startsWith('<')) {
+          return rawData;
+        }
+      }
+    }
+
+    if (data is Map) {
+      if (data['message'] != null) return data['message'].toString();
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final first = errors.values.first;
+        if (first is List && first.isNotEmpty) return first.first.toString();
+        return first.toString();
+      }
+    }
+
+    if (statusCode == 403) {
+      return 'This teacher account is not active or is not authorised for the '
+          'Teacher Portal. Please contact the school administrator.';
+    }
+
+    if (statusCode == 422) {
+      return 'The email address or password is incorrect.';
+    }
+
+    return null;
   }
 
   Future<T> guard<T>(Future<T> Function() run) async {
@@ -83,10 +116,20 @@ class ApiService {
         '/auth/teacher-login',
         data: {
           'email': email.trim(),
-          'password': password.trim(),
+          'password': password,
           'device_name': 'kweneng-teacher-android',
         },
+        options: Options(validateStatus: (status) => status != null),
       );
+
+      if (res.statusCode != null &&
+          (res.statusCode! < 200 || res.statusCode! >= 300)) {
+        throw ApiException(
+          _messageFromResponse(res.statusCode, res.data) ??
+              'Teacher login failed (${res.statusCode}).',
+        );
+      }
+
       return Map<String, dynamic>.from(res.data as Map);
     });
   }
@@ -100,6 +143,34 @@ class ApiService {
       final data = Map<String, dynamic>.from(res.data as Map);
       return data['message']?.toString() ??
           'If an account matches that email address, a password reset link has been sent.';
+    });
+  }
+
+  Future<Map<String, dynamic>> currentUser() async {
+    return guard(() async {
+      final response = await dio.get('/auth/me');
+      return Map<String, dynamic>.from(response.data as Map);
+    });
+  }
+
+  Future<String> changePassword({
+    required String currentPassword,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    return guard(() async {
+      final response = await dio.post(
+        '/auth/change-password',
+        data: {
+          'current_password': currentPassword,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+      final data = response.data;
+      return data is Map && data['message'] != null
+          ? data['message'].toString()
+          : 'Password changed successfully.';
     });
   }
 
@@ -152,6 +223,22 @@ class ApiService {
     return guard(() async {
       final res = await dio.get('/teacher/timetable');
       return Map<String, dynamic>.from(res.data as Map);
+    });
+  }
+
+  Future<File> downloadTeachingLoad() async {
+    return guard(() async {
+      final response = await dio.get<List<int>>(
+        '/teacher/teaching-load/download',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.data == null) {
+        throw const ApiException('The server returned an empty PDF.');
+      }
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/my_teaching_load.pdf');
+      await file.writeAsBytes(response.data!);
+      return file;
     });
   }
 

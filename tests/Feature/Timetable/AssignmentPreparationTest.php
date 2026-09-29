@@ -49,7 +49,10 @@ class AssignmentPreparationTest extends TestCase
 
     public function test_preparation_page_renders_and_requires_admin_access(): void
     {
-        $this->get(route('admin.timetable.prepare', $this->setting))->assertOk()->assertSee('Prepare class lessons')->assertSee('Splits');
+        $this->get(route('admin.timetable.prepare', $this->setting))->assertOk()
+            ->assertSee('Prepare class lessons')->assertSee('Select joint classes')
+            ->assertDontSee('Splits &amp; joint classes', false)->assertDontSee('New split from selection')
+            ->assertDontSee('Drop here to choose another class');
         $this->actingAs(User::factory()->create(['role' => 'teacher', 'status' => 'active']))
             ->get(route('admin.timetable.prepare', $this->setting))->assertForbidden();
     }
@@ -209,6 +212,35 @@ class AssignmentPreparationTest extends TestCase
         $this->assertSame($source, $this->source());
         $this->saveUnits([$unit], 1)->assertOk();
         $this->assertDatabaseCount('tt_lessons', 1);
+    }
+
+    public function test_prepared_required_count_can_be_reduced_and_restored_without_changing_assignments(): void
+    {
+        $source = $this->source();
+        $units = [$this->unit($source), $this->unit($source), $this->unit($source)];
+        $saved = $this->saveUnits($units)->assertOk()->json();
+        $placed = Lesson::first();
+        $this->moveLesson($placed)->assertOk();
+        $cards = Card::get()->toArray();
+        $assignments = TeacherSubject::get()->toArray();
+        $spare = Lesson::whereKeyNot($placed->id)->first();
+        $response = $this->putJson(route('admin.timetable.grid.required-count'), [
+            'setting_id' => $this->setting->id, 'lesson_id' => $spare->id, 'required' => 1, 'expected_required' => 3, 'expected_placed' => 1, 'version' => $saved['version'],
+        ])->assertOk()->assertJsonCount(0, 'grid.tray');
+        $this->assertDatabaseCount('tt_lessons', 3);
+        $this->assertSame($cards, Card::get()->toArray());
+        $this->assertSame($assignments, TeacherSubject::get()->toArray());
+        $this->saveUnits($saved['units'], $saved['version'])->assertUnprocessable();
+        $fresh = $this->getJson(route('admin.timetable.prepare', $this->setting))->assertOk()->json();
+        $this->assertCount(1, $fresh['units']);
+        $this->putJson(route('admin.timetable.grid.required-count'), [
+            'setting_id' => $this->setting->id, 'lesson_id' => $spare->id, 'required' => 3,
+            'expected_required' => 1, 'expected_placed' => 1, 'version' => $fresh['version'],
+        ])->assertOk()->assertJsonPath('grid.tray.0.unplaced', 2);
+        $this->assertDatabaseCount('tt_lessons', 3);
+        $this->assertSame($cards, Card::get()->toArray());
+        $fresh = $this->getJson(route('admin.timetable.prepare', $this->setting))->assertOk()->json();
+        $this->saveUnits($fresh['units'], $fresh['version'])->assertOk()->assertJsonCount(3, 'units');
     }
 
     public function test_manual_lesson_overlap_is_not_duplicated(): void

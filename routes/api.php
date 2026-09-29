@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ParentAbsenceNoticeController;
+use App\Http\Controllers\Api\ParentAcademicRecordController;
+use App\Http\Controllers\Api\ParentAwardsController;
 use App\Http\Controllers\Api\ParentDashboardController;
 use App\Http\Controllers\Api\ParentDeviceTokenController;
 use App\Http\Controllers\Api\ParentDocumentsController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Api\PasswordResetLinkController;
 use App\Http\Controllers\Api\TeacherAttendanceController;
 use App\Http\Controllers\Api\TeacherDashboardController;
 use App\Http\Controllers\Api\TeacherHomeworkController;
+use App\Http\Controllers\Api\TeacherLoadController;
 use App\Http\Controllers\Api\TeacherMarksController;
 use App\Http\Controllers\Api\TeacherSchemeController;
 use App\Http\Controllers\Api\TimetableController;
@@ -54,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [ParentDashboardController::class, 'index']);
+        Route::get('/awards', [ParentAwardsController::class, 'index']);
+        Route::get('/children/{student}/awards', [ParentAwardsController::class, 'index']);
+        Route::get('/children/{student}/awards/{studentAward}/certificate', [ParentAwardsController::class, 'certificate']);
+        Route::get('/children/{student}/prefects/{prefect}/certificate', [ParentAwardsController::class, 'prefectCertificate']);
         Route::get('/timetable', [TimetableController::class, 'parent']);
 
         // Parent absence notices
@@ -61,6 +68,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/absence-notices', [ParentAbsenceNoticeController::class, 'store']);
 
         // Fees
+        Route::get('/receipts', [\App\Http\Controllers\Parent\ReceiptController::class, 'index']);
+        Route::get('/receipts/{payment}/download', [\App\Http\Controllers\Parent\ReceiptController::class, 'download']);
         Route::get('/fees', [ParentFeesController::class, 'index']);
 
         // Homework
@@ -82,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Announcements
         Route::get('/announcements', [ParentEventsController::class, 'announcements']);
-        Route::post('/announcements/{announcement}/read', [ParentEventsController::class, 'markAnnouncementRead']);
+        Route::post('/announcements/{announcement}/read', [ParentEventsController::class, 'readAnnouncement']);
         Route::post('/announcements/{announcement}/dismiss', [ParentEventsController::class, 'dismissAnnouncement']);
         Route::post('/announcements/{announcement}/acknowledge', [ParentEventsController::class, 'acknowledgeAnnouncement']);
         Route::get('/announcements/{announcement}', [ParentEventsController::class, 'showAnnouncement']);
@@ -93,6 +102,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Report Cards
         Route::get('/report-card/{studentId}/{termId}', [ParentReportCardController::class, 'download']);
+        Route::get('/children/{student}/academic-record', [ParentAcademicRecordController::class, 'show']);
+        Route::get('/children/{student}/academic-record/download', [ParentAcademicRecordController::class, 'download']);
 
         // Library
         Route::get('/library', [ParentLibraryController::class, 'index']);
@@ -113,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:teacher,headmaster')->prefix('teacher')->group(function () {
         Route::get('/dashboard', [TeacherDashboardController::class, 'index']);
         Route::get('/timetable', [TimetableController::class, 'teacher']);
+        Route::get('/teaching-load/download', [TeacherLoadController::class, 'download']);
 
         Route::get('/attendance/register', [TeacherAttendanceController::class, 'show']);
         Route::post('/attendance/register', [TeacherAttendanceController::class, 'store']);

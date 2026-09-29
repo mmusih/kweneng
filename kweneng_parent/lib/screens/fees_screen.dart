@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../models/flutter_models.dart';
 import '../providers/flutter_providers.dart';
+import 'receipts_screen.dart';
 
 class FeesScreen extends ConsumerWidget {
   const FeesScreen({super.key});
@@ -16,6 +17,13 @@ class FeesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Fees'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long_outlined),
+            tooltip: 'Payments & receipts',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ReceiptsScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -155,7 +163,7 @@ class _InfoNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Balances are shown from the latest school fee record. If you recently made a payment, it may only reflect after the accounts office updates the record.',
+              'Balances use the school fee ledger where available, or the latest imported record. Pending payments appear after Accounts confirms them. Use the receipt icon above to download receipts for fees and other payments.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,

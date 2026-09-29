@@ -12,7 +12,7 @@
                     </p>
                 </div>
 
-                <a href="{{ route('headmaster.marks.index') }}"
+                <a href="{{ $backUrl }}"
                     class="inline-flex items-center text-white hover:text-orange-100 text-sm font-medium">
                     Back to Monitor
                 </a>

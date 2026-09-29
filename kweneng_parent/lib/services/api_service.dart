@@ -53,7 +53,7 @@ class ApiService {
           debugPrint('┌─ API REQUEST ───────────────────────────────────');
           debugPrint('│ URL   : ${options.uri}');
           debugPrint('│ METHOD: ${options.method}');
-          debugPrint('│ TOKEN : ${token ?? "⚠️  NO TOKEN"}');
+          debugPrint('│ AUTH  : ${token == null ? "not signed in" : "signed in"}');
           debugPrint('└─────────────────────────────────────────────────');
           // ──────────────────────────────────────────────────────────────────
           if (token != null) {
@@ -287,6 +287,72 @@ class ApiService {
     final file = File('${dir.path}/report_card_${studentId}_term_$termId.pdf');
     await file.writeAsBytes(response.data!);
     return file;
+  }
+
+  Future<File> downloadAcademicRecord(int studentId) async {
+    final response = await _dio.get<List<int>>(
+      '/parent/children/$studentId/academic-record/download',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    if (response.data == null) throw Exception('Empty response from server.');
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/academic_record_$studentId.pdf');
+    await file.writeAsBytes(response.data!);
+    return file;
+  }
+
+  Future<Map<String, dynamic>> getAcademicRecord(int studentId) async {
+    final response = await _dio.get(
+      '/parent/children/$studentId/academic-record',
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<File> downloadAwardCertificate({
+    required int studentId,
+    required int awardId,
+  }) async {
+    return _downloadCertificate(
+      '/parent/children/$studentId/awards/$awardId/certificate',
+      'award_certificate_$awardId.pdf',
+    );
+  }
+
+  Future<File> downloadPrefectCertificate({
+    required int studentId,
+    required int prefectId,
+  }) async {
+    return _downloadCertificate(
+      '/parent/children/$studentId/prefects/$prefectId/certificate',
+      'prefect_certificate_$prefectId.pdf',
+    );
+  }
+
+  Future<File> _downloadCertificate(String path, String filename) async {
+    final response = await _dio.get<List<int>>(
+      path,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    if (response.data == null) throw Exception('Empty response from server.');
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(response.data!);
+    return file;
+  }
+
+  Future<Map<String, dynamic>> getReceipts({int page = 1}) async {
+    final response = await _dio.get(
+      '/parent/receipts',
+      queryParameters: {'page': page},
+    );
+    return Map<String, dynamic>.from(response.data['receipts']);
+  }
+
+  Future<File> downloadReceipt(int paymentId) {
+    return _downloadCertificate(
+      '/parent/receipts/$paymentId/download',
+      'kweneng-receipt-$paymentId.pdf',
+    );
   }
 
   // ── Announcements – dismiss ───────────────────────────────────────────────

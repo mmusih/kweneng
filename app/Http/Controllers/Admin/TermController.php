@@ -226,6 +226,25 @@ class TermController extends Controller
         return redirect()->back()->withErrors(['term' => $result['message']]);
     }
 
+    public function unlock(Term $term)
+    {
+        $result = $this->structureService->unlockTerm($term->id);
+
+        if ($result['success']) {
+            $this->activityLogService->log(
+                'term.unlocked',
+                "Term unlocked: {$term->name}",
+                $term,
+                ['term_id' => $term->id],
+                request()
+            );
+
+            return redirect()->back()->with('success', $result['message']);
+        }
+
+        return redirect()->back()->withErrors(['term' => $result['message']]);
+    }
+
     public function activate(Term $term)
     {
         $result = $this->structureService->activateTerm($term->id);

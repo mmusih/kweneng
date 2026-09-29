@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    @page { margin: 14mm; } body { font-family: DejaVu Sans, sans-serif; color:#1e293b; font-size:10px; }
+    .header { border-bottom:2px solid #124E66; padding-bottom:8px; margin-bottom:14px; }
+    .logo { width:52px; float:left; margin-right:12px; } h1 { margin:3px 0; font-size:20px; color:#124E66; } p { margin:2px 0; color:#64748b; }
+    table { width:100%; border-collapse:collapse; } th { background:#124E66; color:white; padding:7px; text-align:left; } td { padding:7px; border-bottom:1px solid #cbd5e1; }
+    .draft { position:fixed; top:40%; left:17%; font-size:72px; color:rgba(190,24,93,.10); transform:rotate(-25deg); }
+    .footer { margin-top:14px; font-size:8px; color:#64748b; }
+</style></head><body>@if($run->status!=='published')<div class="draft">DRAFT - NOT PUBLISHED</div>@endif<div class="header">@if(is_file($logoPath))<img class="logo" src="{{ $logoPath }}">@endif<h1>Kweneng International Secondary School</h1><strong>{{ $run->title }}</strong><p>{{ $run->academicYear?->year_name }}{{ $run->term?' | '.$run->term->name:'' }} | {{ $run->award_date?->format('j F Y') }} | {{ ucfirst($run->status) }}</p><div style="clear:both"></div></div>
+<table><thead><tr><th>Position</th><th>Student</th><th>Admission No.</th><th>Class</th><th>Score</th><th>Certificate Reference</th></tr></thead><tbody>@foreach($run->awards->sortBy(fn($a)=>[$a->position??999,$a->student_name_snapshot]) as $award)<tr><td>{{ $award->position??'-' }}</td><td>{{ $award->student_name_snapshot }}</td><td>{{ $award->admission_no_snapshot }}</td><td>{{ $award->class_name_snapshot }}</td><td>{{ $award->main_score!==null?number_format((float)$award->main_score,2).'%':'-' }}</td><td>{{ $award->certificate_reference }}</td></tr>@endforeach</tbody></table><div class="footer">Generated {{ now()->format('j F Y H:i') }}. Recipient count: {{ $run->awards->count() }}.</div></body></html>

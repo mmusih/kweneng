@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\BehaviourRecord;
+use App\Models\ClassModel;
 use App\Models\HeadmasterComment;
 use App\Models\Punctuality;
 use App\Models\Student;
 use App\Models\Term;
-use App\Models\ClassModel;
 use App\Services\ExamSummaryService;
 use App\Services\MarksService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -107,7 +107,7 @@ class ReportCardController extends Controller
             'logoPath' => public_path('images/logo.png'),
         ]))->setPaper('a4', 'landscape');
 
-        $filename = str_replace(' ', '_', $student->user->name) . '_report_card.pdf';
+        $filename = str_replace(' ', '_', $student->user->name).'_report_card.pdf';
 
         return $pdf->download($filename);
     }
@@ -139,7 +139,7 @@ class ReportCardController extends Controller
             'logoPath' => public_path('images/logo.png'),
         ])->setPaper('a4', 'landscape');
 
-        $filename = str_replace(' ', '_', $class->name) . '_' . str_replace(' ', '_', $term->name) . '_report_cards.pdf';
+        $filename = str_replace(' ', '_', $class->name).'_'.str_replace(' ', '_', $term->name).'_report_cards.pdf';
 
         return $pdf->download($filename);
     }
@@ -189,11 +189,16 @@ class ReportCardController extends Controller
             ];
         });
 
-        $averages = $subjects->pluck('average')->filter(fn($value) => $value !== null);
+        $formFivePoints = $this->marksService->calculateFormFiveReportPoints(
+            $student->currentClass,
+            $subjects
+        );
+
+        $averages = $subjects->pluck('average')->filter(fn ($value) => $value !== null);
         $overallAverage = $averages->count() ? round($averages->avg(), 2) : null;
 
-        $midtermScores = $subjects->pluck('midterm_score')->filter(fn($value) => $value !== null);
-        $endtermScores = $subjects->pluck('endterm_score')->filter(fn($value) => $value !== null);
+        $midtermScores = $subjects->pluck('midterm_score')->filter(fn ($value) => $value !== null);
+        $endtermScores = $subjects->pluck('endterm_score')->filter(fn ($value) => $value !== null);
 
         $midtermAverage = $midtermScores->count() ? round($midtermScores->avg(), 2) : null;
         $midtermTotal = $midtermScores->count() ? round($midtermScores->sum(), 2) : null;
@@ -235,7 +240,7 @@ class ReportCardController extends Controller
             'late' => $attendanceRecords->where('status', Attendance::STATUS_LATE)->count(),
             'excused' => $attendanceRecords->where('status', Attendance::STATUS_EXCUSED)->count(),
             'rate' => $attendanceTotal > 0 ? round(($attendancePresentEquivalent / $attendanceTotal) * 100, 1) : null,
-            'display' => $attendancePresentEquivalent . '/' . $attendanceTotal,
+            'display' => $attendancePresentEquivalent.'/'.$attendanceTotal,
         ];
 
         $punctualityRecords = Punctuality::where('student_id', $student->id)
@@ -295,7 +300,8 @@ class ReportCardController extends Controller
             'punctualitySummary',
             'behaviourSummary',
             'headmasterComment',
-            'classTeacherName'
+            'classTeacherName',
+            'formFivePoints'
         );
     }
 

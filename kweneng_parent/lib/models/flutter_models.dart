@@ -158,6 +158,8 @@ class ChildModel {
   final StudentProfileInfo profile;
   final EmergencyContactInfo emergencyContact;
   final HomeworkSummary homework;
+  final List<StudentAward> awards;
+  final List<PrefectAppointment> prefectAppointments;
 
   const ChildModel({
     required this.id,
@@ -174,6 +176,8 @@ class ChildModel {
     required this.profile,
     required this.emergencyContact,
     required this.homework,
+    required this.awards,
+    required this.prefectAppointments,
   });
 
   factory ChildModel.fromJson(Map<String, dynamic> j) => ChildModel(
@@ -226,7 +230,238 @@ class ChildModel {
     homework: HomeworkSummary.fromJson(
       Map<String, dynamic>.from((j['homework'] as Map?) ?? const {}),
     ),
+    awards: (j['awards'] as List? ?? [])
+        .map(
+          (item) => StudentAward.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList(),
+    prefectAppointments: (j['prefect_appointments'] as List? ?? [])
+        .map(
+          (item) => PrefectAppointment.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList(),
   );
+}
+
+class StudentAward {
+  final int id;
+  final String title;
+  final int? position;
+  final double? percentage;
+  final String? academicYear;
+  final String? term;
+  final DateTime? awardDate;
+  final String? citation;
+  final String badgeIcon;
+  final String badgeColor;
+
+  const StudentAward({
+    required this.id,
+    required this.title,
+    this.position,
+    this.percentage,
+    this.academicYear,
+    this.term,
+    this.awardDate,
+    this.citation,
+    required this.badgeIcon,
+    required this.badgeColor,
+  });
+
+  factory StudentAward.fromJson(Map<String, dynamic> j) {
+    final badge = Map<String, dynamic>.from(
+      (j['badge'] as Map?) ?? const {},
+    );
+    return StudentAward(
+      id: _intOrZero(j['id']),
+      title: j['title']?.toString() ?? 'Achievement',
+      position: j['position'] == null ? null : _intOrZero(j['position']),
+      percentage: _doubleOrNull(j['percentage']),
+      academicYear: _stringOrNull(j['academic_year']),
+      term: _stringOrNull(j['term']),
+      awardDate: _dateOnlyAsLocal(j['award_date']),
+      citation: _stringOrNull(j['citation']),
+      badgeIcon: badge['icon']?.toString() ?? 'trophy',
+      badgeColor: badge['color']?.toString() ?? '#D4AF37',
+    );
+  }
+}
+
+class PrefectAppointment {
+  final int id;
+  final String title;
+  final String? duties;
+  final String status;
+  final String? academicYear;
+  final DateTime? appointedOn;
+  final DateTime? serviceEndsOn;
+  final String? certificateReference;
+
+  const PrefectAppointment({
+    required this.id,
+    required this.title,
+    this.duties,
+    required this.status,
+    this.academicYear,
+    this.appointedOn,
+    this.serviceEndsOn,
+    this.certificateReference,
+  });
+
+  factory PrefectAppointment.fromJson(Map<String, dynamic> j) =>
+      PrefectAppointment(
+        id: _intOrZero(j['id']),
+        title: j['title']?.toString() ?? 'Prefect',
+        duties: _stringOrNull(j['duties']),
+        status: j['status']?.toString() ?? 'active',
+        academicYear: _stringOrNull(j['academic_year']),
+        appointedOn: _dateOnlyAsLocal(j['appointed_on']),
+        serviceEndsOn: _dateOnlyAsLocal(j['service_ends_on']),
+        certificateReference: _stringOrNull(j['certificate_reference']),
+      );
+}
+
+class StudentAcademicRecord {
+  final AcademicRecordStudent student;
+  final List<AcademicRecordYear> years;
+  final DateTime? generatedAt;
+
+  const StudentAcademicRecord({
+    required this.student,
+    required this.years,
+    this.generatedAt,
+  });
+
+  factory StudentAcademicRecord.fromJson(Map<String, dynamic> j) =>
+      StudentAcademicRecord(
+        student: AcademicRecordStudent.fromJson(
+          Map<String, dynamic>.from((j['student'] as Map?) ?? const {}),
+        ),
+        years: (j['years'] as List? ?? [])
+            .map(
+              (item) => AcademicRecordYear.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
+        generatedAt: DateTime.tryParse(j['generated_at']?.toString() ?? ''),
+      );
+}
+
+class AcademicRecordStudent {
+  final int id;
+  final String name;
+  final String admissionNo;
+  final String? currentClass;
+
+  const AcademicRecordStudent({
+    required this.id,
+    required this.name,
+    required this.admissionNo,
+    this.currentClass,
+  });
+
+  factory AcademicRecordStudent.fromJson(Map<String, dynamic> j) =>
+      AcademicRecordStudent(
+        id: _intOrZero(j['id']),
+        name: j['name']?.toString() ?? 'Student',
+        admissionNo: j['admission_no']?.toString() ?? '',
+        currentClass: _stringOrNull(j['current_class']),
+      );
+}
+
+class AcademicRecordYear {
+  final int id;
+  final String name;
+  final String? className;
+  final String? status;
+  final List<AcademicRecordTerm> terms;
+
+  const AcademicRecordYear({
+    required this.id,
+    required this.name,
+    this.className,
+    this.status,
+    required this.terms,
+  });
+
+  factory AcademicRecordYear.fromJson(Map<String, dynamic> j) =>
+      AcademicRecordYear(
+        id: _intOrZero(j['id']),
+        name: j['name']?.toString() ?? 'Academic year',
+        className: _stringOrNull(j['class']),
+        status: _stringOrNull(j['status']),
+        terms: (j['terms'] as List? ?? [])
+            .map(
+              (item) => AcademicRecordTerm.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
+      );
+}
+
+class AcademicRecordTerm {
+  final int id;
+  final String name;
+  final double? average;
+  final List<AcademicRecordSubject> subjects;
+
+  const AcademicRecordTerm({
+    required this.id,
+    required this.name,
+    this.average,
+    required this.subjects,
+  });
+
+  factory AcademicRecordTerm.fromJson(Map<String, dynamic> j) =>
+      AcademicRecordTerm(
+        id: _intOrZero(j['id']),
+        name: j['name']?.toString() ?? 'Term',
+        average: _doubleOrNull(j['average']),
+        subjects: (j['subjects'] as List? ?? [])
+            .map(
+              (item) => AcademicRecordSubject.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
+      );
+}
+
+class AcademicRecordSubject {
+  final String subject;
+  final String? code;
+  final double? midtermScore;
+  final double? endtermScore;
+  final double? average;
+  final String? grade;
+  final String? remarks;
+
+  const AcademicRecordSubject({
+    required this.subject,
+    this.code,
+    this.midtermScore,
+    this.endtermScore,
+    this.average,
+    this.grade,
+    this.remarks,
+  });
+
+  factory AcademicRecordSubject.fromJson(Map<String, dynamic> j) =>
+      AcademicRecordSubject(
+        subject: j['subject']?.toString() ?? 'Subject',
+        code: _stringOrNull(j['code']),
+        midtermScore: _doubleOrNull(j['midterm_score']),
+        endtermScore: _doubleOrNull(j['endterm_score']),
+        average: _doubleOrNull(j['average']),
+        grade: _stringOrNull(j['grade']),
+        remarks: _stringOrNull(j['remarks']),
+      );
 }
 
 class StudentIdentity {
@@ -539,6 +774,7 @@ class DashboardData {
   final List<AnnouncementModel> announcements;
   final List<EventModel> upcomingEvents;
   final List<ChildModel> children;
+  final String dayLabel;
 
   const DashboardData({
     required this.user,
@@ -549,6 +785,7 @@ class DashboardData {
     required this.announcements,
     required this.upcomingEvents,
     required this.children,
+    required this.dayLabel,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> j) => DashboardData(
@@ -572,6 +809,7 @@ class DashboardData {
     children: (j['children'] as List? ?? [])
         .map((c) => ChildModel.fromJson(c))
         .toList(),
+    dayLabel: j['day_label']?.toString() ?? '',
   );
 }
 
@@ -996,12 +1234,18 @@ class TimetableData {
   final String? academicYear;
   final int? selectedDayNumber;
   final List<TimetableDayData> days;
+  final String? scheduleLabel;
+  final String? dayLabel;
+  final List<TimetableData> schedules;
 
   const TimetableData({
     this.templateName,
     this.academicYear,
     this.selectedDayNumber,
     required this.days,
+    this.scheduleLabel,
+    this.dayLabel,
+    this.schedules = const [],
   });
 
   bool get isPublished => templateName != null;
@@ -1011,6 +1255,12 @@ class TimetableData {
         ? Map<String, dynamic>.from(j['template'] as Map)
         : null;
 
+    final schedules = (j['schedules'] as List? ?? [])
+        .map(
+          (item) =>
+              TimetableData._schedule(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
     return TimetableData(
       templateName: template?['name']?.toString(),
       academicYear: template?['academic_year']?.toString(),
@@ -1024,6 +1274,31 @@ class TimetableData {
             ),
           )
           .toList(),
+      scheduleLabel: template?['schedule_label']?.toString(),
+      dayLabel: j['day_label']?.toString(),
+      schedules: schedules,
+    );
+  }
+
+  factory TimetableData._schedule(Map<String, dynamic> j) {
+    final template = j['template'] is Map
+        ? Map<String, dynamic>.from(j['template'] as Map)
+        : null;
+    return TimetableData(
+      templateName: template?['name']?.toString(),
+      academicYear: template?['academic_year']?.toString(),
+      selectedDayNumber: j['selected_day_number'] == null
+          ? null
+          : _intOrZero(j['selected_day_number']),
+      days: (j['days'] as List? ?? [])
+          .map(
+            (item) => TimetableDayData.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(),
+      scheduleLabel: template?['schedule_label']?.toString(),
+      dayLabel: j['day_label']?.toString(),
     );
   }
 }

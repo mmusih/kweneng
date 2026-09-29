@@ -62,8 +62,8 @@
                             <div>
                                 <x-input-label for="grade" :value="__('Grade')" />
                                 <x-text-input id="grade" class="block mt-1 w-full" type="text" 
-                                             name="grade" :value="old('grade', $mark->grade)" maxlength="2" />
-                                <x-input-error :messages="$errors->get('grade')" class="mt-2" />
+                                             :value="$mark->grade" maxlength="2" readonly />
+                                <p class="mt-1 text-xs text-gray-500">Calculated automatically from the scores.</p>
                             </div>
                             
                             <div class="md:col-span-2">

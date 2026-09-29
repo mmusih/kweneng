@@ -9,8 +9,9 @@ use App\Models\Alumni;
 use App\Models\AlumniInterest;
 use App\Models\Announcement;
 use App\Models\Attendance;
-use App\Models\ClassSubject;
+use App\Models\AwardRun;
 use App\Models\ClassModel;
+use App\Models\ClassSubject;
 use App\Models\Department;
 use App\Models\DepartmentUser;
 use App\Models\Event;
@@ -20,8 +21,8 @@ use App\Models\ParentAbsenceNotice;
 use App\Models\ParentMessage;
 use App\Models\ParentModel;
 use App\Models\Requisition;
-use App\Models\SchoolDocument;
 use App\Models\Scheme;
+use App\Models\SchoolDocument;
 use App\Models\Student;
 use App\Models\StudentSubject;
 use App\Models\Subject;
@@ -55,6 +56,15 @@ class DashboardController extends Controller
 
         $activeAcademicYear = AcademicYear::where('active', true)->first();
         $currentTerm = null;
+
+        $awardRuns = AwardRun::query()
+            ->when($activeAcademicYear, fn ($query) => $query->where('academic_year_id', $activeAcademicYear->id));
+        $awardOverview = [
+            'drafts' => (clone $awardRuns)->where('status', 'draft')->count(),
+            'published' => (clone $awardRuns)->where('status', 'published')->count(),
+            'recipients' => (clone $awardRuns)->withCount('awards')->get()->sum('awards_count'),
+            'recent' => (clone $awardRuns)->with(['academicYear', 'term'])->withCount('awards')->latest()->limit(4)->get(),
+        ];
 
         $schoolOverview = [
             'schoolAverage' => null,
@@ -111,6 +121,15 @@ class DashboardController extends Controller
         $departmentOverview = [
             'totalDepartments' => Department::count(),
             'hodAssignments' => DepartmentUser::where('role_in_department', DepartmentUser::ROLE_HOD)->count(),
+        ];
+
+        // The tt_* grid editor. "Placements" is deliberately the row count and not the
+        // number of cards the grid draws — a double is two rows shown as one card, and
+        // telling them apart means walking the placement service per lesson, which is the
+        // grid page's job, not the dashboard's.
+        $timetableOverview = [
+            'lessons' => DB::table('tt_lessons')->count(),
+            'placements' => DB::table('tt_cards')->count(),
         ];
 
         $schemeQuery = Scheme::query();
@@ -181,8 +200,8 @@ class DashboardController extends Controller
             $schoolOverview['totalMarks'] = $marks->count();
 
             $schoolOverview['schoolAverage'] = $marks
-                ->map(fn($mark) => $mark->average)
-                ->filter(fn($value) => $value !== null)
+                ->map(fn ($mark) => $mark->average)
+                ->filter(fn ($value) => $value !== null)
                 ->avg();
 
             $classPerformance = ClassModel::query()
@@ -208,7 +227,7 @@ class DashboardController extends Controller
                 ->groupBy('classes.id', 'classes.name')
                 ->orderByDesc('average_score')
                 ->get()
-                ->filter(fn($row) => $row->average_score !== null)
+                ->filter(fn ($row) => $row->average_score !== null)
                 ->values();
 
             $schoolOverview['bestClass'] = $classPerformance->first();
@@ -236,7 +255,7 @@ class DashboardController extends Controller
                 ->groupBy('subjects.id', 'subjects.name')
                 ->orderByDesc('average_score')
                 ->get()
-                ->filter(fn($row) => $row->average_score !== null)
+                ->filter(fn ($row) => $row->average_score !== null)
                 ->values();
 
             $schoolOverview['topSubject'] = $subjectPerformance->first();
@@ -261,7 +280,7 @@ class DashboardController extends Controller
                 ->get();
 
             $schoolOverview['atRiskStudentsCount'] = $studentAverages
-                ->filter(fn($student) => $student->average_score !== null && $student->average_score < 40)
+                ->filter(fn ($student) => $student->average_score !== null && $student->average_score < 40)
                 ->count();
 
             $completionRows = ClassModel::query()
@@ -288,7 +307,7 @@ class DashboardController extends Controller
                         ? round(($actualMarks / $expectedMarks) * 100, 1)
                         : null;
                 })
-                ->filter(fn($value) => $value !== null)
+                ->filter(fn ($value) => $value !== null)
                 ->values();
 
             $schoolOverview['averageMarksCompletion'] = $completionRows->count()
@@ -311,7 +330,9 @@ class DashboardController extends Controller
             'recentInterests',
             'schemeOverview',
             'subjectOverview',
+            'timetableOverview',
             'todayRegisterMissingCount',
+            'awardOverview',
         ));
     }
 }

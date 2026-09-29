@@ -36,4 +36,22 @@ class DarkModeCoverageTest extends TestCase
         $this->assertStringContainsString('<x-theme-toggle />', $navigation);
         $this->assertStringContainsString('xl:hidden', $navigation);
     }
+
+    public function test_landing_page_hero_has_a_dedicated_readable_dark_palette(): void
+    {
+        $home = File::get(resource_path('views/home.blade.php'));
+        $this->assertStringContainsString('html.dark .hero-shell', $home);
+        $this->assertStringContainsString('linear-gradient(135deg, #0b1117', $home);
+        $this->assertStringContainsString('html.dark .hero-school-name', $home);
+        $this->assertStringContainsString('html.dark .hero-tagline', $home);
+        $this->assertStringContainsString('html.dark .hero-text', $home);
+        $this->assertStringContainsString('html.dark .hero-feature', $home);
+        $this->assertStringContainsString('html.dark .btn-outline', $home);
+        $this->assertStringContainsString('html.dark .home-light-section', $home);
+        $this->assertStringContainsString('html.dark .home-section-intro .section-heading', $home);
+        $this->assertStringContainsString('html.dark .home-section-intro .section-subtext', $home);
+        $this->assertStringContainsString('html.dark .feature-card', $home);
+        $this->assertStringContainsString('html.dark .transport-pill', $home);
+        $this->assertSame(2, substr_count($home, 'class="home-section-intro text-center'));
+    }
 }

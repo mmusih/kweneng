@@ -4,16 +4,16 @@ namespace App\Http\Controllers\Parent;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\Announcement;
 use App\Models\Attendance;
 use App\Models\BehaviourRecord;
+use App\Models\Event;
+use App\Models\HomeworkMark;
 use App\Models\LibraryBorrowing;
 use App\Models\Mark;
 use App\Models\ParentMessage;
 use App\Models\Punctuality;
 use App\Models\Term;
-use App\Models\Announcement;
-use App\Models\Event;
-use App\Models\HomeworkMark;
 use App\Services\StudentPerformanceService;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,7 +27,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user || $user->role !== 'parent') {
+        if (! $user || $user->role !== 'parent') {
             return redirect()->route('login')->withErrors([
                 'error' => 'Unauthorized access',
             ]);
@@ -62,13 +62,16 @@ class DashboardController extends Controller
 
             $parent = $user->parent;
 
-            if (!$parent) {
+            if (! $parent) {
                 return $data;
             }
 
             $children = $parent->students()->with([
                 'user',
                 'currentClass',
+                'awards' => fn ($query) => $query->whereHas('run', fn ($run) => $run->where('status', 'published')->where('parent_visible', true))
+                    ->with(['run.category', 'run.academicYear', 'run.term'])->latest(),
+                'prefectAppointments' => fn ($query) => $query->where('status', '!=', 'revoked')->with('academicYear')->latest('appointed_on'),
             ])->get();
 
             $currentAcademicYear = AcademicYear::where(function ($query) {
@@ -87,8 +90,8 @@ class DashboardController extends Controller
                     ->first();
             }
 
-            $blockedChildren = $children->filter(fn($child) => (bool) $child->fees_blocked)->values();
-            $accessibleChildren = $children->filter(fn($child) => !(bool) $child->fees_blocked)->values();
+            $blockedChildren = $children->filter(fn ($child) => (bool) $child->fees_blocked)->values();
+            $accessibleChildren = $children->filter(fn ($child) => ! (bool) $child->fees_blocked)->values();
 
             $data['children'] = $children;
             $data['blockedChildren'] = $blockedChildren;
@@ -158,7 +161,7 @@ class DashboardController extends Controller
                     ->get();
 
                 $childOverdueBooks = $activeBorrowings
-                    ->filter(fn($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
+                    ->filter(fn ($borrowing) => $borrowing->due_at && $borrowing->due_at->isPast())
                     ->count();
 
                 $borrowedBooks += $activeBorrowings->count();
@@ -173,7 +176,7 @@ class DashboardController extends Controller
                     'borrowings' => $activeBorrowings->take(5),
                 ];
 
-                if (!$currentAcademicYear || !$currentTerm) {
+                if (! $currentAcademicYear || ! $currentTerm) {
                     $marksOverview[] = [
                         'student_name' => $child->user->name ?? 'Unknown Student',
                         'admission_no' => $child->admission_no ?? 'N/A',
@@ -192,6 +195,7 @@ class DashboardController extends Controller
                         'behaviour_total' => 0,
                         'behaviour_label' => 'Good',
                     ];
+
                     continue;
                 }
 
@@ -204,8 +208,8 @@ class DashboardController extends Controller
                     $childrenWithMarks++;
                 }
 
-                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
-                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
+                $midtermScores = $marks->pluck('midterm_score')->filter(fn ($score) => $score !== null);
+                $endtermScores = $marks->pluck('endterm_score')->filter(fn ($score) => $score !== null);
 
                 $performance = $this->studentPerformanceService
                     ->getStudentTermPerformance($child, $currentAcademicYear->id, $currentTerm->id);
@@ -293,7 +297,6 @@ class DashboardController extends Controller
         ]);
     }
 
-
     private function unreadHomeworkCount(int $parentId, $studentIds): int
     {
         $studentIds = collect($studentIds)->filter()->values();
@@ -329,7 +332,8 @@ class DashboardController extends Controller
             ->get()
             ->sortByDesc(function (HomeworkMark $record) {
                 $date = optional($record->homework?->assigned_date)->format('Y-m-d') ?? '0000-00-00';
-                return $date . '-' . str_pad((string) ($record->homework_id ?? 0), 12, '0', STR_PAD_LEFT);
+
+                return $date.'-'.str_pad((string) ($record->homework_id ?? 0), 12, '0', STR_PAD_LEFT);
             })
             ->take(3)
             ->values();

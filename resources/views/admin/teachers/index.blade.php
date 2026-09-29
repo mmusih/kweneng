@@ -19,6 +19,11 @@
                         </a>
                     </div>
 
+                    <nav aria-label="Subject assignments" class="mb-6 flex flex-wrap gap-3">
+                        <a href="{{ route('admin.subjects.manage-classes') }}" class="rounded-md border border-indigo-300 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-brand-700">Assign Subjects to Classes</a>
+                        <a href="{{ route('admin.subjects.manage-teachers') }}" class="rounded-md border border-indigo-300 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-brand-700">Assign Teachers to Subjects</a>
+                    </nav>
+
                     @if(session('success'))
                         <div class="mb-4 rounded-lg bg-green-50 p-4 text-green-800">
                             {{ session('success') }}

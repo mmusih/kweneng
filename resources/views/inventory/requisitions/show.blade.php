@@ -3,6 +3,7 @@
     <div class="py-8 kw-soft-section min-h-screen"><div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-5">
         @if(session('success'))<div class="p-4 rounded bg-green-50 text-green-800 border">{{ session('success') }}</div>@endif
         <div class="bg-white kw-panel p-6">
+            <a class="underline font-semibold" href="{{ route('finance.purchasing.index') }}">View purchasing and linked orders</a>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div><span class="text-gray-500">Requested by:</span> {{ $requisition->requester->name ?? 'Unknown' }}</div>
                 <div><span class="text-gray-500">Created:</span> {{ $requisition->created_at->format('d M Y H:i') }}</div>

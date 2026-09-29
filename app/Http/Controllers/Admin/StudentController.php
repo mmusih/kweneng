@@ -69,12 +69,12 @@ class StudentController extends Controller
             $temporaryPassword = $this->generateTemporaryPassword();
 
             $user = User::create([
-                'name'                 => $validated['name'],
-                'email'                => $validated['email'],
-                'password'             => Hash::make($temporaryPassword),
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($temporaryPassword),
                 'must_change_password' => true,
-                'role'                 => 'student',
-                'status'               => 'active',
+                'role' => 'student',
+                'status' => 'active',
             ]);
 
             $photoPath = null;
@@ -84,23 +84,23 @@ class StudentController extends Controller
             }
 
             $student = Student::create([
-                'user_id'                        => $user->id,
-                'admission_no'                   => $validated['admission_no'] ?? $this->generateLegacyAdmissionNo($validated),
-                'gender'                         => $validated['gender'],
-                'date_of_birth'                  => $validated['date_of_birth'],
-                'nationality'                    => $validated['nationality'],
-                'identity_document_type'         => $validated['identity_document_type'],
-                'identity_document_number'       => $this->normalizeDocumentNumber($validated['identity_document_number']),
-                'current_class_id'               => $validated['current_class_id'] ?? null,
-                'photo'                          => $photoPath,
-                'emergency_contact_name'         => $validated['emergency_contact_name'] ?? null,
+                'user_id' => $user->id,
+                'admission_no' => $validated['admission_no'] ?? $this->generateLegacyAdmissionNo($validated),
+                'gender' => $validated['gender'],
+                'date_of_birth' => $validated['date_of_birth'],
+                'nationality' => $validated['nationality'],
+                'identity_document_type' => $validated['identity_document_type'],
+                'identity_document_number' => $this->normalizeDocumentNumber($validated['identity_document_number']),
+                'current_class_id' => $validated['current_class_id'] ?? null,
+                'photo' => $photoPath,
+                'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
                 'emergency_contact_relationship' => $validated['emergency_contact_relationship'] ?? null,
-                'emergency_contact_phone'        => $validated['emergency_contact_phone'] ?? null,
-                'emergency_contact_alt_phone'    => $validated['emergency_contact_alt_phone'] ?? null,
-                'emergency_contact_address'      => $validated['emergency_contact_address'] ?? null,
-                'medical_notes'                  => $validated['medical_notes'] ?? null,
-                'results_access'                 => $request->has('results_access'),
-                'fees_blocked'                   => $request->has('fees_blocked'),
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'emergency_contact_alt_phone' => $validated['emergency_contact_alt_phone'] ?? null,
+                'emergency_contact_address' => $validated['emergency_contact_address'] ?? null,
+                'medical_notes' => $validated['medical_notes'] ?? null,
+                'results_access' => $request->has('results_access'),
+                'fees_blocked' => $request->has('fees_blocked'),
             ]);
 
             if (! empty($validated['current_class_id'])) {
@@ -112,21 +112,21 @@ class StudentController extends Controller
             return redirect()->route('admin.students.index')
                 ->with(
                     'success',
-                    'Student created successfully' .
-                        (! empty($validated['current_class_id']) ? ' and enrolled in class.' : '.') .
-                        ' Temporary password: ' . $temporaryPassword .
+                    'Student created successfully'.
+                        (! empty($validated['current_class_id']) ? ' and enrolled in class.' : '.').
+                        ' Temporary password: '.$temporaryPassword.
                         ' (Student must change it on first login.)'
                 );
         } catch (\Exception $e) {
             DB::rollBack();
 
             return redirect()->back()
-                ->withErrors(['error' => 'Failed to create student: ' . $e->getMessage()])
+                ->withErrors(['error' => 'Failed to create student: '.$e->getMessage()])
                 ->withInput();
         }
     }
 
-    public function show(Student $student)
+    public function show(Request $request, Student $student)
     {
         $student->load([
             'user',
@@ -135,9 +135,12 @@ class StudentController extends Controller
             'classHistory.academicYear',
             'parents.user',
             'studentSubjects.subject',
+            'awards' => fn ($query) => $query->whereHas('run', fn ($run) => $run->where('status', 'published'))
+                ->with(['run.category', 'run.academicYear', 'run.term'])->latest(),
+            'prefectAppointments' => fn ($query) => $query->with('academicYear')->latest('appointed_on'),
         ]);
 
-        return view('admin.students.show', compact('student'));
+        return view('admin.students.show', array_merge(compact('student'), app(\App\Services\StudentProfileService::class)->overview($request, $student)));
     }
 
     public function edit(Student $student)
@@ -156,7 +159,7 @@ class StudentController extends Controller
             DB::beginTransaction();
 
             $student->user->update([
-                'name'  => $validated['name'],
+                'name' => $validated['name'],
                 'email' => $validated['email'],
             ]);
 
@@ -178,22 +181,22 @@ class StudentController extends Controller
             }
 
             $student->update([
-                'admission_no'                   => $admissionNo,
-                'gender'                         => $validated['gender'],
-                'date_of_birth'                  => $validated['date_of_birth'],
-                'nationality'                    => $validated['nationality'],
-                'identity_document_type'         => $validated['identity_document_type'],
-                'identity_document_number'       => $this->normalizeDocumentNumber($validated['identity_document_number']),
-                'current_class_id'               => $validated['current_class_id'] ?? null,
-                'photo'                          => $photoPath,
-                'emergency_contact_name'         => $validated['emergency_contact_name'] ?? null,
+                'admission_no' => $admissionNo,
+                'gender' => $validated['gender'],
+                'date_of_birth' => $validated['date_of_birth'],
+                'nationality' => $validated['nationality'],
+                'identity_document_type' => $validated['identity_document_type'],
+                'identity_document_number' => $this->normalizeDocumentNumber($validated['identity_document_number']),
+                'current_class_id' => $validated['current_class_id'] ?? null,
+                'photo' => $photoPath,
+                'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
                 'emergency_contact_relationship' => $validated['emergency_contact_relationship'] ?? null,
-                'emergency_contact_phone'        => $validated['emergency_contact_phone'] ?? null,
-                'emergency_contact_alt_phone'    => $validated['emergency_contact_alt_phone'] ?? null,
-                'emergency_contact_address'      => $validated['emergency_contact_address'] ?? null,
-                'medical_notes'                  => $validated['medical_notes'] ?? null,
-                'results_access'                 => $request->has('results_access'),
-                'fees_blocked'                   => $request->has('fees_blocked'),
+                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+                'emergency_contact_alt_phone' => $validated['emergency_contact_alt_phone'] ?? null,
+                'emergency_contact_address' => $validated['emergency_contact_address'] ?? null,
+                'medical_notes' => $validated['medical_notes'] ?? null,
+                'results_access' => $request->has('results_access'),
+                'fees_blocked' => $request->has('fees_blocked'),
             ]);
 
             if (! empty($validated['current_class_id']) && (int) $validated['current_class_id'] !== (int) $originalClassId) {
@@ -202,15 +205,47 @@ class StudentController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.students.index')
+            return redirect()->route('admin.students.show', array_merge(['student' => $student], $request->only(['search', 'class_id', 'page', 'term_id'])))
                 ->with('success', 'Student updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
 
             return redirect()->back()
-                ->withErrors(['error' => 'Failed to update student: ' . $e->getMessage()])
+                ->withErrors(['error' => 'Failed to update student: '.$e->getMessage()])
                 ->withInput();
         }
+    }
+
+    public function updatePhoto(Request $request, Student $student)
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $previousPhoto = $student->photo;
+        $photoPath = $request->file('photo')->store('students', 'public');
+
+        if (! $photoPath) {
+            return back()->withErrors(['photo' => 'The photo could not be saved. Please try again.']);
+        }
+
+        try {
+            $student->update(['photo' => $photoPath]);
+        } catch (\Throwable $exception) {
+            Storage::disk('public')->delete($photoPath);
+            report($exception);
+
+            return back()->withErrors(['photo' => 'The photo could not be saved. Please try again.']);
+        }
+
+        if ($previousPhoto) {
+            Storage::disk('public')->delete($previousPhoto);
+        }
+
+        return redirect()->route('admin.students.edit', array_merge(
+            ['student' => $student],
+            $request->only(['search', 'class_id', 'page', 'term_id'])
+        ))->with('success', 'Student photo updated successfully.');
     }
 
     public function resetPassword(Student $student)
@@ -218,13 +253,13 @@ class StudentController extends Controller
         $temporaryPassword = $this->generateTemporaryPassword();
 
         $student->user->update([
-            'password'             => Hash::make($temporaryPassword),
+            'password' => Hash::make($temporaryPassword),
             'must_change_password' => true,
         ]);
 
         return redirect()->back()->with(
             'success',
-            'Password reset successfully. Temporary password: ' . $temporaryPassword . ' (Student must change it on first login.)'
+            'Password reset successfully. Temporary password: '.$temporaryPassword.' (Student must change it on first login.)'
         );
     }
 
@@ -234,11 +269,11 @@ class StudentController extends Controller
     public function printLogins(Request $request)
     {
         $validated = $request->validate([
-            'student_ids'   => ['required', 'array', 'min:1'],
+            'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ], [
             'student_ids.required' => 'Please select at least one student.',
-            'student_ids.min'      => 'Please select at least one student.',
+            'student_ids.min' => 'Please select at least one student.',
         ]);
 
         $students = Student::with(['user', 'currentClass'])
@@ -264,7 +299,7 @@ class StudentController extends Controller
             return view('admin.students.print-logins', compact('logins'));
         } catch (\Exception $e) {
             return redirect()->back()
-                ->withErrors(['error' => 'Failed to generate login slips: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Failed to generate login slips: '.$e->getMessage()]);
         }
     }
 
@@ -286,18 +321,18 @@ class StudentController extends Controller
             DB::rollBack();
 
             return redirect()->back()
-                ->withErrors(['error' => 'Failed to delete student: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Failed to delete student: '.$e->getMessage()]);
         }
     }
 
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([
-            'student_ids'   => ['required', 'array', 'min:1'],
+            'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:students,id'],
         ], [
             'student_ids.required' => 'Please select at least one student.',
-            'student_ids.min'      => 'Please select at least one student.',
+            'student_ids.min' => 'Please select at least one student.',
         ]);
 
         try {
@@ -322,12 +357,12 @@ class StudentController extends Controller
                 'search',
                 'class_id',
                 'page',
-            ]))->with('success', $students->count() . ' student(s) deleted successfully');
+            ]))->with('success', $students->count().' student(s) deleted successfully');
         } catch (\Exception $e) {
             DB::rollBack();
 
             return redirect()->back()
-                ->withErrors(['error' => 'Bulk delete failed: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Bulk delete failed: '.$e->getMessage()]);
         }
     }
 
@@ -336,14 +371,14 @@ class StudentController extends Controller
         $documentType = $request->input('identity_document_type');
 
         return [
-            'name'                           => ['required', 'string', 'max:255'],
-            'email'                          => ['required', 'email', Rule::unique('users', 'email')->ignore($student?->user_id)],
-            'admission_no'                   => ['nullable', 'string', 'max:255', Rule::unique('students', 'admission_no')->ignore($student?->id)],
-            'gender'                         => ['required', Rule::in(['male', 'female'])],
-            'date_of_birth'                  => ['required', 'date'],
-            'nationality'                    => ['required', 'string', 'max:100'],
-            'identity_document_type'         => ['required', Rule::in(array_keys(Student::identityDocumentTypes()))],
-            'identity_document_number'       => [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($student?->user_id)],
+            'admission_no' => ['nullable', 'string', 'max:255', Rule::unique('students', 'admission_no')->ignore($student?->id)],
+            'gender' => ['required', Rule::in(['male', 'female'])],
+            'date_of_birth' => ['required', 'date'],
+            'nationality' => ['required', 'string', 'max:100'],
+            'identity_document_type' => ['required', Rule::in(array_keys(Student::identityDocumentTypes()))],
+            'identity_document_number' => [
                 'required',
                 'string',
                 'max:100',
@@ -351,16 +386,16 @@ class StudentController extends Controller
                     ->where(fn ($query) => $query->where('identity_document_type', $documentType))
                     ->ignore($student?->id),
             ],
-            'current_class_id'               => ['nullable', 'exists:classes,id'],
-            'photo'                          => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
-            'emergency_contact_name'         => ['nullable', 'string', 'max:255'],
+            'current_class_id' => ['nullable', 'exists:classes,id'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_relationship' => ['nullable', 'string', 'max:100'],
-            'emergency_contact_phone'        => ['nullable', 'string', 'max:50'],
-            'emergency_contact_alt_phone'    => ['nullable', 'string', 'max:50'],
-            'emergency_contact_address'      => ['nullable', 'string', 'max:1000'],
-            'medical_notes'                  => ['nullable', 'string', 'max:2000'],
-            'results_access'                 => ['nullable'],
-            'fees_blocked'                   => ['nullable'],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
+            'emergency_contact_alt_phone' => ['nullable', 'string', 'max:50'],
+            'emergency_contact_address' => ['nullable', 'string', 'max:1000'],
+            'medical_notes' => ['nullable', 'string', 'max:2000'],
+            'results_access' => ['nullable'],
+            'fees_blocked' => ['nullable'],
         ];
     }
 
@@ -374,12 +409,12 @@ class StudentController extends Controller
 
         StudentClassHistory::updateOrCreate(
             [
-                'student_id'       => $student->id,
+                'student_id' => $student->id,
                 'academic_year_id' => $currentAcademicYear->id,
             ],
             [
-                'class_id'   => $classId,
-                'status'     => 'active',
+                'class_id' => $classId,
+                'status' => 'active',
                 'updated_at' => now(),
             ]
         );
@@ -406,13 +441,13 @@ class StudentController extends Controller
     {
         $type = strtoupper(str_replace('_', '', (string) ($validated['identity_document_type'] ?? 'DOC')));
         $number = $this->normalizeDocumentNumber((string) ($validated['identity_document_number'] ?? Str::random(8)));
-        $base = 'ID-' . $type . '-' . preg_replace('/[^A-Za-z0-9]/', '', $number);
+        $base = 'ID-'.$type.'-'.preg_replace('/[^A-Za-z0-9]/', '', $number);
         $base = Str::limit($base, 230, '');
         $candidate = $base;
         $counter = 1;
 
         while (Student::where('admission_no', $candidate)->exists()) {
-            $candidate = $base . '-' . $counter;
+            $candidate = $base.'-'.$counter;
             $counter++;
         }
 

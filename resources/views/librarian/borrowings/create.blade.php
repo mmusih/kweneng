@@ -7,7 +7,7 @@
                         Library Issue / Return
                     </h2>
                     <p class="text-emerald-100 text-sm mt-1">
-                        Scan barcode or type it manually. Select class, then student for student borrowing.
+                        Scan a barcode or enter an accession number. Select class, then student for student borrowing.
                     </p>
                 </div>
 
@@ -46,7 +46,7 @@
                     <div class="mb-6 border-b border-gray-200 pb-3">
                         <h3 class="text-xl font-semibold text-gray-800">Issue Book</h3>
                         <p class="text-sm text-gray-500 mt-1">
-                            Choose borrower, scan barcode, confirm dates, then issue.
+                            Choose borrower, identify the copy, confirm dates, then issue.
                         </p>
                     </div>
 
@@ -120,11 +120,12 @@
 
                         <div>
                             <label for="issue_barcode" class="block text-sm font-medium text-gray-700 mb-1">
-                                Book Barcode
+                                Accession Number or Barcode
                             </label>
                             <input type="text" id="issue_barcode" name="barcode" value="{{ old('barcode') }}"
-                                placeholder="Scan or type barcode"
+                                placeholder="Scan barcode or type accession number"
                                 class="w-full border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                            <p id="issue_lookup_message" class="hidden text-sm mt-2" role="status"></p>
                         </div>
 
                         <div id="book-copy-preview" class="hidden rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -182,7 +183,7 @@
                     <div class="mb-6 border-b border-gray-200 pb-3">
                         <h3 class="text-xl font-semibold text-gray-800">Return Book</h3>
                         <p class="text-sm text-gray-500 mt-1">
-                            Scan or type the barcode to return a book.
+                            Scan the barcode or enter the accession number to return a book.
                         </p>
                     </div>
 
@@ -191,17 +192,20 @@
 
                         <div>
                             <label for="return_barcode" class="block text-sm font-medium text-gray-700 mb-1">
-                                Book Barcode
+                                Accession Number or Barcode
                             </label>
                             <input type="text" id="return_barcode" name="barcode"
-                                placeholder="Scan or type barcode"
+                                placeholder="Scan barcode or type accession number"
                                 class="w-full border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                            <p id="return_lookup_message" class="hidden text-sm mt-2" role="status"></p>
                         </div>
 
                         <div id="return-copy-preview" class="hidden rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <h4 class="text-sm font-semibold text-gray-800 mb-2">Current Borrowing</h4>
                             <div class="text-sm text-gray-700 space-y-1">
                                 <p><span class="font-medium">Title:</span> <span id="return_copy_title"></span></p>
+                                <p><span class="font-medium">Accession No:</span> <span id="return_copy_accession"></span></p>
+                                <p><span class="font-medium">Barcode:</span> <span id="return_copy_barcode"></span></p>
                                 <p><span class="font-medium">Borrower:</span> <span id="return_borrower_name"></span>
                                 </p>
                                 <p><span class="font-medium">Borrower Type:</span> <span
@@ -268,6 +272,8 @@
 
             const issuePreview = document.getElementById('book-copy-preview');
             const returnPreview = document.getElementById('return-copy-preview');
+            const issueLookupMessage = document.getElementById('issue_lookup_message');
+            const returnLookupMessage = document.getElementById('return_lookup_message');
 
             let teacherSearchTimeout = null;
 
@@ -379,6 +385,8 @@
                 returnPreview.classList.remove('hidden');
 
                 document.getElementById('return_copy_title').textContent = copy.book.title || 'N/A';
+                document.getElementById('return_copy_accession').textContent = copy.accession_no || 'N/A';
+                document.getElementById('return_copy_barcode').textContent = copy.barcode || 'N/A';
                 document.getElementById('return_borrower_name').textContent = copy.active_borrowing
                     ?.borrower_name || 'N/A';
                 document.getElementById('return_borrower_type').textContent = copy.active_borrowing
@@ -389,10 +397,20 @@
                     .status || 'N/A';
             }
 
+            function setLookupMessage(mode, message = '', isError = false) {
+                const element = mode === 'issue' ? issueLookupMessage : returnLookupMessage;
+
+                element.textContent = message;
+                element.classList.toggle('hidden', message === '');
+                element.classList.toggle('text-red-600', isError);
+                element.classList.toggle('text-emerald-700', !isError && message !== '');
+            }
+
             async function lookupBarcode(barcode, mode = 'issue') {
                 if (!barcode || barcode.trim() === '') {
                     if (mode === 'issue') issuePreview.classList.add('hidden');
                     if (mode === 'return') returnPreview.classList.add('hidden');
+                    setLookupMessage(mode);
                     return;
                 }
 
@@ -403,17 +421,20 @@
                     const response = await fetch(url.toString());
                     const data = await response.json();
 
-                    if (!data.found) {
+                    if (!response.ok || !data.found) {
                         if (mode === 'issue') issuePreview.classList.add('hidden');
                         if (mode === 'return') returnPreview.classList.add('hidden');
+                        setLookupMessage(mode, data.message || 'No matching book copy was found.', true);
                         return;
                     }
 
                     if (mode === 'issue') populateIssuePreview(data);
                     if (mode === 'return') populateReturnPreview(data);
+                    setLookupMessage(mode, 'Book copy found.');
                 } catch (error) {
                     if (mode === 'issue') issuePreview.classList.add('hidden');
                     if (mode === 'return') returnPreview.classList.add('hidden');
+                    setLookupMessage(mode, 'Unable to look up the book copy. Please try again.', true);
                 }
             }
 

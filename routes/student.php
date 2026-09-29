@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Student\AcademicRecordController;
 use App\Http\Controllers\Student\DashboardController;
 use App\Http\Controllers\Student\MarksController;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\PrefectController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')->group(function () {
@@ -10,8 +12,11 @@ Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')
         ->middleware('results.access')
         ->name('dashboard');
     Route::get('/timetable', [TimetableController::class, 'student'])->name('timetable');
+    Route::get('/prefects/{prefect}/certificate', [PrefectController::class, 'certificate'])->name('prefects.certificate');
 
     Route::middleware('results.access')->group(function () {
+        Route::get('/academic-record', [AcademicRecordController::class, 'show'])->name('academic-record.show');
+        Route::get('/academic-record/download', [AcademicRecordController::class, 'download'])->name('academic-record.download');
         Route::get('/marks', [MarksController::class, 'index'])->name('marks.index');
         Route::get('/marks/{academicYearId}/{termId}', [MarksController::class, 'show'])->name('marks.show');
     });

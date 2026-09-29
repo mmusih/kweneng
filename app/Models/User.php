@@ -27,6 +27,7 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
+        'hr_access' => 'boolean',
         'email_verified_at'    => 'datetime',
         'password'             => 'hashed',
         'must_change_password' => 'boolean',
@@ -35,6 +36,11 @@ class User extends Authenticatable
     public function hasRole($role)
     {
         return $this->role === $role;
+    }
+
+    public function canManageHr(): bool
+    {
+        return $this->isActive() && ($this->isAdmin() || $this->hr_access);
     }
 
     public function hasAnyRole($roles)

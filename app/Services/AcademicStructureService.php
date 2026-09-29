@@ -198,6 +198,38 @@ class AcademicStructureService
         }
     }
 
+    /** Reopen a fully locked term without making it the current active term. */
+    public function unlockTerm(int $termId): array
+    {
+        try {
+            return DB::transaction(function () use ($termId) {
+                $term = Term::findOrFail($termId);
+
+                if (! $term->isLocked()) {
+                    return [
+                        'success' => false,
+                        'message' => 'Term is already unlocked.',
+                    ];
+                }
+
+                $term->update([
+                    'status' => Term::STATUS_FINALIZED,
+                    'locked' => false,
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Term unlocked successfully. It is finalized and can now be edited or activated.',
+                ];
+            });
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to unlock term: '.$e->getMessage(),
+            ];
+        }
+    }
+
     /**
      * Activate one term and finalize every other active term.
      */

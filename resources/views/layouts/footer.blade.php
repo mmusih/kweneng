@@ -31,10 +31,9 @@
                         <i class="fab fa-whatsapp"></i>
                     </a>
 
-                    <!-- Contact Page instead of mailto -->
-                    <a href="{{ route('contact') }}"
+                    <a href="mailto:info@kwenenginternational.com"
                         class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-800 hover:bg-indigo-600 transition"
-                        aria-label="Contact">
+                        aria-label="Email info@kwenenginternational.com">
                         <i class="fas fa-envelope"></i>
                     </a>
 
@@ -68,8 +67,8 @@
                     <p><span class="text-white font-medium">Address:</span> P O Box 586, Molepolole</p>
                     <p><span class="text-white font-medium">Tel:</span> 5915015 / 5915016</p>
                     <p><span class="text-white font-medium">WhatsApp:</span> 77738838</p>
-                    <p><span class="text-white font-medium">Email:</span> kwenenginternational@gmail.com</p>
-                    <p><span class="text-white font-medium">Email:</span> info@kwenenginternational.com</p>
+                    <p><span class="text-white font-medium">Email:</span> <a href="mailto:info@kwenenginternational.com" class="break-words hover:text-white transition">info@kwenenginternational.com</a></p>
+                    <p><a href="mailto:kweneng.international@gmail.com" class="break-words hover:text-white transition">kweneng.international@gmail.com</a></p>
                     <p><span class="text-white font-medium">Hours:</span> Mon-Fri, 7:30 AM - 4:00 PM</p>
                 </div>
             </div>
@@ -94,10 +93,13 @@
                 </div>
 
                 <!-- Cambridge logo on far right -->
-                <div class="flex items-center gap-3">
-                    <span class="text-xs uppercase tracking-wider text-slate-500">Cambridge Pathway</span>
-                    <img src="{{ asset('images/cambridge-logo.png') }}" alt="Cambridge Logo"
-                        class="h-10 w-auto bg-white rounded px-2 py-1">
+                <div class="flex flex-col items-center gap-3 lg:items-end">
+                    <span class="text-xs uppercase tracking-wider text-slate-300">Cambridge Pathway</span>
+                    {{-- Preserve a white brand panel in both themes and keep the lettering readable. --}}
+                    <div class="bg-[#ffffff] rounded-lg p-3 max-w-full">
+                        <img src="{{ asset('images/cambridge-logo.png') }}" alt="Cambridge Assessment International Education — Cambridge International School"
+                            class="block w-60 max-w-full h-auto">
+                    </div>
                 </div>
 
             </div>

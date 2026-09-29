@@ -39,10 +39,16 @@
                             </p>
                         </div>
 
-                        <a href="{{ route('admin.terms.create') }}"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                            Add New Term
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{{ route('admin.study-retention.index') }}"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded">
+                                Study List
+                            </a>
+                            <a href="{{ route('admin.terms.create') }}"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Add New Term
+                            </a>
+                        </div>
                     </div>
 
                     @if (session('success'))
@@ -237,6 +243,15 @@
                                                         <button type="submit" class="text-gray-600 hover:text-gray-900"
                                                             onclick="return confirm('Lock this term fully? Any remaining homework photos/files for this term will be deleted from storage.')">
                                                             Lock Term
+                                                        </button>
+                                                    </form>
+                                                @elseif($term->status === 'locked')
+                                                    <form action="{{ route('admin.terms.unlock', $term) }}"
+                                                        method="POST" class="inline">
+                                                        @csrf
+                                                        <button type="submit" class="text-emerald-600 hover:text-emerald-900"
+                                                            onclick="return confirm('Unlock this term? It will return to finalized status.')">
+                                                            Unlock Term
                                                         </button>
                                                     </form>
                                                 @endif

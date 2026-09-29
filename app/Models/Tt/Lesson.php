@@ -108,7 +108,7 @@ class Lesson extends Model
     public function cardsRequired(): int
     {
         if ($this->cards_per_cycle !== null) {
-            return max(1, (int) $this->cards_per_cycle);
+            return max(0, (int) $this->cards_per_cycle);
         }
 
         return (int) ceil((float) $this->periods_per_week / max(1, (int) $this->periods_per_card));

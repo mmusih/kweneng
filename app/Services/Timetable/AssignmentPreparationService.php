@@ -77,7 +77,7 @@ class AssignmentPreparationService
                 'existing' => $manual->contains(fn ($l) => $l->subject_id == $a->subject_id
                     && $l->classes->contains('id', $a->class_id) && $l->teachers->contains('id', $a->teacher_id)),
             ])->values(),
-            'units' => $lessons->whereNotNull('preparation_key')->map(fn ($l) => [
+            'units' => $lessons->whereNotNull('preparation_key')->filter(fn ($l) => $l->cardsRequired() > 0)->map(fn ($l) => [
                 'key' => $l->preparation_key, 'span' => (int) $l->periods_per_card,
                 'sources' => $l->assignment_sources, 'split_key' => $l->split_key,
                 'placed' => $l->cards->isNotEmpty(),

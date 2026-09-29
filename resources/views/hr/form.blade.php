@@ -1,0 +1,12 @@
+<x-app-layout><x-slot name="header"><h1 class="text-2xl font-bold">{{ $staff->exists ? 'Edit staff member' : 'Add staff member' }}</h1></x-slot><x-erp-panel>
+<form method="post" action="{{ $staff->exists ? route('hr.staff.update',$staff) : route('hr.staff.store') }}" class="kw-panel bg-white p-6 grid md:grid-cols-2 gap-5">@csrf @if($staff->exists) @method('put') @endif
+@foreach(['name'=>'Full name','employee_number'=>'Employee number','position'=>'Position','department'=>'Department','citizenship'=>'Citizenship','email'=>'Email','phone'=>'Phone','started_on'=>'Start date','contract_ends_on'=>'Contract end date'] as $field=>$label)
+<label class="block">{{ $label }}<input class="block w-full rounded border-gray-300" name="{{ $field }}" type="{{ str_ends_with($field,'_on') ? 'date' : ($field==='email' ? 'email' : 'text') }}" value="{{ old($field, str_ends_with($field,'_on') ? $staff->$field?->format('Y-m-d') : $staff->$field) }}" @required(in_array($field,['name','employee_number','position','citizenship']))></label>
+@endforeach
+<label>Linked ERP account (optional)<select name="user_id" class="block w-full rounded border-gray-300"><option value="">No login account</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected(old('user_id',$staff->user_id)==$user->id)>{{ $user->name }} — {{ $user->role }}</option>@endforeach</select></label>
+@foreach(['is_citizen'=>'Botswana citizen','is_teacher'=>'Teaching employee'] as $field=>$label)<label>{{ $label }}<select name="{{ $field }}" class="block w-full rounded border-gray-300"><option value="0" @selected(!old($field,$staff->$field))>No</option><option value="1" @selected(old($field,$staff->$field))>Yes</option></select></label>@endforeach
+<label>Status<select name="status" class="block w-full rounded border-gray-300">@foreach(['active','inactive'] as $status)<option @selected(old('status',$staff->status)===$status)>{{ $status }}</option>@endforeach</select></label>
+@if(auth()->user()->isAdmin())<label><input type="hidden" name="hr_access" value="0"><input type="checkbox" name="hr_access" value="1" @checked(old('hr_access',$staff->user?->hr_access))> Give the linked account access to confidential HR records</label>@endif
+<p class="text-sm md:col-span-2">Citizenship and teaching role suggest a checklist. Review applicability after saving, especially when these details change.</p>
+<button class="rounded bg-indigo-700 text-white px-5 py-3">Save staff member</button>
+</form></x-erp-panel></x-app-layout>

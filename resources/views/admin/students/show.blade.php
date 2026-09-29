@@ -1,25 +1,29 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            class="p-6 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-xl shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h2 class="font-semibold text-2xl text-white leading-tight">
                     Student Profile
                 </h2>
-                <p class="text-blue-100 text-sm mt-1">
+                <p class="text-white/80 text-sm mt-1">
                     Full student overview, academic placement, and access status
                 </p>
             </div>
 
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.students.index') }}"
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
                     class="inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition text-sm font-medium">
                     ← Back to List
                 </a>
 
-                <a href="{{ route('admin.students.edit', $student) }}"
+                <a href="{{ route('admin.students.edit', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}"
                     class="inline-flex items-center px-4 py-2 rounded-lg bg-white text-indigo-700 hover:bg-blue-50 transition text-sm font-semibold">
                     Edit Student
+                </a>
+                <a href="{{ route('admin.students.academic-record.show', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}"
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition text-sm font-semibold">
+                    Academic Record
                 </a>
             </div>
         </div>
@@ -28,11 +32,9 @@
     @php
         $studentName = $student->user->name ?? 'N/A';
         $studentEmail = $student->user->email ?? 'N/A';
-        $studentInitial = strtoupper(substr($studentName, 0, 1));
 
         $currentClass = $student->currentClass;
         $currentAcademicYear = $currentClass?->academicYear?->year_name;
-        $historyCount = $student->classHistory?->count() ?? 0;
 
         $parents = collect();
         try {
@@ -59,11 +61,10 @@
             $age = null;
         }
 
-        $currentHistory = $student->classHistory?->firstWhere('is_current', true);
     @endphp
 
     <div class="py-10">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+        <div class="student-profile max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             @if (session('success'))
                 <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
@@ -81,135 +82,17 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-gray-100">
-                <div class="p-6 md:p-8">
-                    <div class="flex flex-col lg:flex-row lg:items-start gap-8">
+            @include('admin.students.partials.profile-summary')
 
-                        <div class="flex-shrink-0">
-                            @if ($student->photo)
-                                <img src="{{ Storage::url($student->photo) }}" alt="{{ $studentName }}"
-                                    class="h-28 w-28 rounded-full object-cover border-4 border-white shadow-lg ring-2 ring-indigo-100">
-                            @else
-                                <div
-                                    class="h-28 w-28 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center border-4 border-white shadow-lg ring-2 ring-indigo-100">
-                                    <span class="text-3xl font-bold text-indigo-600">{{ $studentInitial }}</span>
-                                </div>
-                            @endif
-                        </div>
+            <nav class="student-profile-nav" aria-label="Student profile sections">
+                <a href="#personal-details">Personal &amp; emergency</a>
+                <a href="#family-enrollment">Family &amp; enrollment</a>
+                <a href="#academic-progress">Academic progress</a>
+                <a href="#class-history">Class history</a>
+                <a href="#achievements">Achievements</a>
+            </nav>
 
-                        <div class="flex-1">
-                            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
-                                <div>
-                                    <h3 class="text-3xl font-bold text-gray-900">
-                                        {{ $studentName }}
-                                    </h3>
-                                    <p class="text-gray-600 mt-1">
-                                        {{ $studentEmail }}
-                                    </p>
-
-                                    <div class="mt-4 flex flex-wrap gap-2">
-                                        <span
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                                            {{ $student->identityDisplay() }}
-                                        </span>
-
-                                        <span
-                                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 capitalize">
-                                            {{ $student->gender }}
-                                        </span>
-
-                                        @if ($age)
-                                            <span
-                                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                                                {{ $age }} years old
-                                            </span>
-                                        @endif
-
-                                        @if ($currentClass)
-                                            <span
-                                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                                {{ $currentClass->name }}
-                                            </span>
-                                        @else
-                                            <span
-                                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                                                No Class Assigned
-                                            </span>
-                                        @endif
-
-                                        @if ($student->user?->must_change_password)
-                                            <span
-                                                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                                                Must Change Password
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-[260px]">
-                                    <div
-                                        class="rounded-xl border p-4 {{ $student->results_access ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' }}">
-                                        <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">
-                                            Results Access
-                                        </p>
-                                        <p
-                                            class="mt-2 font-bold {{ $student->results_access ? 'text-green-700' : 'text-red-700' }}">
-                                            {{ $student->results_access ? 'Enabled' : 'Blocked' }}
-                                        </p>
-                                    </div>
-
-                                    <div
-                                        class="rounded-xl border p-4 {{ $student->fees_blocked ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50' }}">
-                                        <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">
-                                            Fees Status
-                                        </p>
-                                        <p
-                                            class="mt-2 font-bold {{ $student->fees_blocked ? 'text-red-700' : 'text-green-700' }}">
-                                            {{ $student->fees_blocked ? 'Blocked' : 'Clear' }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                <div class="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                                    <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">Date of Birth
-                                    </p>
-                                    <p class="mt-2 text-sm font-semibold text-gray-900">
-                                        {{ $student->date_of_birth ? $student->date_of_birth->format('M j, Y') : 'N/A' }}
-                                    </p>
-                                </div>
-
-                                <div class="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                                    <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">Current Class
-                                    </p>
-                                    <p class="mt-2 text-sm font-semibold text-gray-900">
-                                        {{ $currentClass?->name ?? 'Not Assigned' }}
-                                    </p>
-                                </div>
-
-                                <div class="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                                    <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">Academic Year
-                                    </p>
-                                    <p class="mt-2 text-sm font-semibold text-gray-900">
-                                        {{ $currentAcademicYear ?? 'N/A' }}
-                                    </p>
-                                </div>
-
-                                <div class="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                                    <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">History
-                                        Records</p>
-                                    <p class="mt-2 text-sm font-semibold text-gray-900">
-                                        {{ $historyCount }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="personal-details" class="profile-section grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div class="mb-5 border-b border-gray-200 pb-3">
                         <h4 class="text-lg font-semibold text-gray-800">Identity Information</h4>
@@ -222,7 +105,7 @@
                         </div>
                         <div>
                             <dt class="text-gray-500">Document Type</dt>
-                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->identityDocumentLabel() }}</dd>
+                            <dd class="mt-1 font-semibold text-gray-900">{{ $student->identity_document_type ? $student->identityDocumentLabel() : 'Not provided' }}</dd>
                         </div>
                         <div class="sm:col-span-2">
                             <dt class="text-gray-500">Document Number</dt>
@@ -253,6 +136,10 @@
                             <dt class="text-gray-500">Alternative Phone</dt>
                             <dd class="mt-1 font-semibold text-gray-900">{{ $student->emergency_contact_alt_phone ?: 'Not provided' }}</dd>
                         </div>
+                        <div>
+                            <dt class="text-sm text-gray-500">Emergency address</dt>
+                            <dd class="mt-1 font-semibold whitespace-pre-line">{{ $student->emergency_contact_address ?: 'Not provided' }}</dd>
+                        </div>
                         <div class="sm:col-span-2">
                             <dt class="text-gray-500">Medical Notes / Allergies</dt>
                             <dd class="mt-1 font-semibold text-gray-900 whitespace-pre-line">{{ $student->medical_notes ?: 'None recorded' }}</dd>
@@ -261,49 +148,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <p class="text-sm text-gray-500">Enrollment Status</p>
-                    <h4 class="text-2xl font-bold mt-2 {{ $currentClass ? 'text-emerald-600' : 'text-yellow-600' }}">
-                        {{ $currentClass ? 'Active' : 'Unassigned' }}
-                    </h4>
-                    <p class="text-sm mt-2 text-gray-500">
-                        {{ $currentClass ? 'Student is currently enrolled in a class' : 'Student has no current class allocation' }}
-                    </p>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <p class="text-sm text-gray-500">Parent / Guardian Links</p>
-                    <h4 class="text-2xl font-bold mt-2 text-blue-600">
-                        {{ $parents->count() }}
-                    </h4>
-                    <p class="text-sm mt-2 text-gray-500">
-                        Linked parent or guardian records
-                    </p>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <p class="text-sm text-gray-500">Subjects</p>
-                    <h4 class="text-2xl font-bold mt-2 text-indigo-600">
-                        {{ $studentSubjects->count() }}
-                    </h4>
-                    <p class="text-sm mt-2 text-gray-500">
-                        Assigned student subject records
-                    </p>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <p class="text-sm text-gray-500">Current History Status</p>
-                    <h4 class="text-2xl font-bold mt-2 text-purple-600">
-                        {{ $currentHistory ? ucfirst($currentHistory->status ?? 'active') : 'N/A' }}
-                    </h4>
-                    <p class="text-sm mt-2 text-gray-500">
-                        From student class history
-                    </p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div id="family-enrollment" class="profile-section grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div class="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div class="mb-5 border-b border-gray-200 pb-3">
                         <h4 class="text-lg font-semibold text-gray-800">Current Enrollment</h4>
@@ -398,6 +243,10 @@
                 </div>
             </div>
 
+            <div id="academic-progress" class="profile-section space-y-6">
+                @include('students.profile-performance')
+            </div>
+
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div class="mb-5 border-b border-gray-200 pb-3">
                     <h4 class="text-lg font-semibold text-gray-800">Subject Overview</h4>
@@ -423,7 +272,7 @@
                 @endif
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div id="class-history" class="profile-section bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div class="mb-5 border-b border-gray-200 pb-3">
                     <h4 class="text-lg font-semibold text-gray-800">Academic History</h4>
                     <p class="text-sm text-gray-500 mt-1">Class placement history across academic years</p>
@@ -517,6 +366,26 @@
                 @endif
             </div>
 
+            <div id="achievements" class="profile-section rounded-2xl border border-amber-200 bg-amber-50/60 p-6 dark:border-amber-800 dark:bg-amber-950/20">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Awards &amp; Achievements</h3>
+                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                    @forelse($student->awards as $award)
+                        <div class="rounded-xl border border-amber-200 bg-white p-4 dark:border-amber-800 dark:bg-brand-800">
+                            <div class="flex items-center gap-3"><span class="flex h-10 w-10 items-center justify-center rounded-full font-bold text-white" style="background:{{ $award->run->category?->badge_color ?? '#D4AF37' }}">★</span><div><div class="font-bold">{{ $award->award_title }}</div><div class="text-xs text-slate-500">{{ $award->run->academicYear?->year_name }}{{ $award->run->term ? ' · '.$award->run->term->name : '' }}</div></div></div>
+                            @if($award->position || $award->main_score !== null)<div class="mt-2 text-sm font-semibold text-amber-700">@if($award->position)Position {{ $award->position }}@endif @if($award->main_score !== null) · {{ $award->main_score }}%@endif</div>@endif
+                            <a target="_blank" class="mt-2 inline-block text-sm font-semibold text-sky-700" href="{{ route('admin.awards.certificate', [$award->run, $award]) }}">Print certificate</a>
+                        </div>
+                    @empty<p class="text-sm text-slate-500">No published awards recorded.</p>@endforelse
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-violet-200 bg-violet-50/60 p-6 dark:border-violet-800 dark:bg-violet-950/20">
+                <div class="flex items-center justify-between gap-3"><h3 class="text-lg font-bold text-slate-900 dark:text-white">Prefect Leadership</h3><a href="{{ route('admin.prefects.create', ['student_id' => $student->id]) }}" class="text-sm font-semibold text-violet-700">Appoint as prefect</a></div>
+                <div class="mt-4 grid gap-3 md:grid-cols-2">@forelse($student->prefectAppointments as $prefect)<div class="rounded-xl border border-violet-200 bg-white p-4 dark:border-violet-800 dark:bg-brand-800"><div class="flex items-center justify-between"><strong>{{ $prefect->title }}</strong><span class="text-xs font-bold uppercase text-violet-700">{{ $prefect->status }}</span></div><div class="mt-1 text-xs text-slate-500">{{ $prefect->academicYear?->year_name }} · Appointed {{ $prefect->appointed_on?->format('j M Y') }}</div><p class="mt-2 whitespace-pre-line text-sm text-slate-600 dark:text-brand-200">{{ $prefect->duties }}</p><div class="mt-3 flex gap-3"><a class="text-sm font-semibold text-amber-700" href="{{ route('admin.prefects.certificate', $prefect) }}">Certificate</a><a class="text-sm font-semibold text-sky-700" href="{{ route('admin.prefects.edit', $prefect) }}">Edit</a></div></div>@empty<p class="text-sm text-slate-500">No prefect appointments recorded.</p>@endforelse</div>
+            </div>
+
+
+
             <div class="flex flex-wrap justify-end gap-3">
                 <form action="{{ route('admin.students.reset-password', $student) }}" method="POST"
                     onsubmit="return confirm('Reset password for this student?');">
@@ -527,12 +396,12 @@
                     </button>
                 </form>
 
-                <a href="{{ route('admin.students.edit', $student) }}"
+                <a href="{{ route('admin.students.edit', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}"
                     class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-sm transition">
                     Edit Student
                 </a>
 
-                <a href="{{ route('admin.students.index') }}"
+                <a href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
                     class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-sm transition">
                     Back to List
                 </a>

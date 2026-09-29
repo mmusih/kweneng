@@ -8,6 +8,7 @@ use App\Models\ClassModel;
 use App\Models\LibraryBorrowing;
 use App\Models\Student;
 use App\Models\Teacher;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -91,17 +92,29 @@ class BorrowingController extends Controller
     public function lookupBookCopy(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'barcode' => ['required', 'string'],
+            'barcode' => ['required', 'string', 'max:255'],
         ]);
 
-        $bookCopy = BookCopy::with(['book', 'activeBorrowing.student.user', 'activeBorrowing.teacher.user'])
-            ->where('barcode', $validated['barcode'])
-            ->first();
+        $identifier = trim($validated['barcode']);
+        $matches = $this->bookCopiesMatchingIdentifier($identifier, [
+            'book',
+            'activeBorrowing.student.user',
+            'activeBorrowing.teacher.user',
+        ]);
+
+        if ($matches->count() > 1) {
+            return response()->json([
+                'found' => false,
+                'message' => 'That identifier matches more than one copy. Use the copy barcode or correct the duplicate identifiers.',
+            ], 409);
+        }
+
+        $bookCopy = $matches->first();
 
         if (!$bookCopy) {
             return response()->json([
                 'found' => false,
-                'message' => 'No book copy found for that barcode.',
+                'message' => 'No book copy found for that accession number or barcode.',
             ], 404);
         }
 
@@ -137,7 +150,7 @@ class BorrowingController extends Controller
     public function issue(Request $request)
     {
         $validated = $request->validate([
-            'barcode' => ['required', 'string'],
+            'barcode' => ['required', 'string', 'max:255'],
             'borrower_type' => ['required', Rule::in(['student', 'teacher'])],
             'student_id' => ['nullable', 'exists:students,id'],
             'teacher_id' => ['nullable', 'exists:teachers,id'],
@@ -171,14 +184,20 @@ class BorrowingController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $request) {
-            $bookCopy = BookCopy::with('book')
-                ->where('barcode', $validated['barcode'])
-                ->lockForUpdate()
-                ->first();
+            $identifier = trim($validated['barcode']);
+            $matches = $this->bookCopiesMatchingIdentifier($identifier, ['book'], true);
+
+            if ($matches->count() > 1) {
+                return back()->withErrors([
+                    'barcode' => 'That identifier matches more than one copy. Use the copy barcode or correct the duplicate identifiers.',
+                ])->withInput();
+            }
+
+            $bookCopy = $matches->first();
 
             if (!$bookCopy) {
                 return back()->withErrors([
-                    'barcode' => 'No book copy found for that barcode.',
+                    'barcode' => 'No book copy found for that accession number or barcode.',
                 ])->withInput();
             }
 
@@ -221,18 +240,25 @@ class BorrowingController extends Controller
     public function returnBook(Request $request)
     {
         $validated = $request->validate([
-            'barcode' => ['required', 'string'],
+            'barcode' => ['required', 'string', 'max:255'],
             'returned_at' => ['required', 'date'],
         ]);
 
         return DB::transaction(function () use ($validated) {
-            $bookCopy = BookCopy::where('barcode', $validated['barcode'])
-                ->lockForUpdate()
-                ->first();
+            $identifier = trim($validated['barcode']);
+            $matches = $this->bookCopiesMatchingIdentifier($identifier, lockForUpdate: true);
+
+            if ($matches->count() > 1) {
+                return back()->withErrors([
+                    'barcode' => 'That identifier matches more than one copy. Use the copy barcode or correct the duplicate identifiers.',
+                ])->withInput();
+            }
+
+            $bookCopy = $matches->first();
 
             if (!$bookCopy) {
                 return back()->withErrors([
-                    'barcode' => 'No book copy found for that barcode.',
+                    'barcode' => 'No book copy found for that accession number or barcode.',
                 ])->withInput();
             }
 
@@ -244,7 +270,7 @@ class BorrowingController extends Controller
 
             if (!$borrowing) {
                 return back()->withErrors([
-                    'barcode' => 'No active borrowing record was found for this barcode.',
+                    'barcode' => 'No active borrowing record was found for this accession number or barcode.',
                 ])->withInput();
             }
 
@@ -272,5 +298,22 @@ class BorrowingController extends Controller
             ->update(['status' => 'overdue']);
 
         return back()->with('success', "{$updated} borrowing record(s) marked as overdue.");
+    }
+
+    private function bookCopiesMatchingIdentifier(
+        string $identifier,
+        array $relations = [],
+        bool $lockForUpdate = false
+    ): Collection {
+        $query = BookCopy::query()
+            ->with($relations)
+            ->whereIdentifier($identifier)
+            ->limit(2);
+
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        return $query->get();
     }
 }

@@ -36,7 +36,7 @@ class TeacherLoadService
         $lessons = $settings->isEmpty()
             ? collect()
             : \App\Models\Tt\Lesson::query()
-                ->with(['subject:id,name,code', 'teachers:id'])
+                ->with(['subject:id,name,code', 'teachers:id', 'cards'])
                 ->whereIn('tt_setting_id', $settings->pluck('id'))
                 ->get()
                 ->groupBy('tt_setting_id');
@@ -79,7 +79,8 @@ class TeacherLoadService
                 ->map(fn (Collection $rows) => [
                     'subject' => $rows->first()?->subject?->name ?? 'Unknown subject',
                     'code' => $rows->first()?->subject?->code,
-                    'periods' => round((float) $rows->sum(fn ($lesson) => (float) $lesson->periods_per_week), 1),
+                    'periods' => $rows->sum(fn ($lesson) => $lesson->cardsRequired() * $lesson->periods_per_card),
+                    'scheduled_periods' => $rows->sum(fn ($lesson) => $lesson->cards->sum(fn ($card) => substr_count($card->days, '1'))),
                 ])
                 ->sortBy('subject')
                 ->values();
@@ -90,6 +91,7 @@ class TeacherLoadService
                 'setting_id' => (int) $setting->id,
                 'subjects' => $subjects->all(),
                 'total' => round((float) $subjects->sum('periods'), 1),
+                'scheduled_total' => (int) $subjects->sum('scheduled_periods'),
             ];
         })->values();
 
@@ -98,6 +100,7 @@ class TeacherLoadService
             'teacher_name' => $teacher->user?->name ?? 'Teacher',
             'schedules' => $scheduleRows->all(),
             'grand_total' => round((float) $scheduleRows->sum('total'), 1),
+            'grand_scheduled' => (int) $scheduleRows->sum('scheduled_total'),
         ];
     }
 }

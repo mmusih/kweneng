@@ -17,6 +17,11 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
+                This page shows imported balance snapshots. Students moved to a fee ledger use their ledger balance instead.
+                <a class="underline font-semibold" href="{{ route('finance.accounts.index') }}">Open fee ledgers</a>
+                or <a class="underline font-semibold" href="{{ route('finance.payments.index') }}">record payments and issue receipts</a>.
+            </div>
             @if (session('success'))
                 <div class="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3">
                     {{ session('success') }}

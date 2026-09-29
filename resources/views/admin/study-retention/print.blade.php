@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Study List - {{ $term->name }}</title><style>
+body{font-family:Arial,sans-serif;color:#111;margin:24px}h1{margin:0 0 4px;font-size:22px}.meta{color:#555;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #777;padding:7px;text-align:left;vertical-align:top}th{background:#eee}.no-print{margin-bottom:16px}@media print{.no-print{display:none}body{margin:10mm}}
+</style></head><body>
+<button class="no-print" onclick="window.print()">Print</button>
+<h1>Students Remaining for Study</h1><div class="meta">{{ $term->academicYear?->year_name }} · {{ $term->name }} · Printed {{ now()->format('d M Y H:i') }}</div>
+<table><thead><tr><th>#</th><th>Student</th><th>Admission No.</th><th>Class</th><th>Average</th><th>Reason / subjects to attend</th></tr></thead><tbody>
+@forelse($rows as $index => $row)<tr><td>{{ $index + 1 }}</td><td>{{ $row['student']?->user?->name ?? 'Student' }}</td><td>{{ $row['student']?->admission_no }}</td><td>{{ $row['class']?->name }}</td><td>{{ $row['average'] }}%</td><td>@if($row['overall'])Overall average below {{ floatval($row['overall_threshold']) }}%. @endif @if($row['subjects']->isNotEmpty())Attend: {{ $row['subjects']->map(fn($subject) => $subject['name'].' ('.$subject['score'].'%)')->implode(', ') }}.@endif</td></tr>@empty<tr><td colspan="6">No students meet the configured conditions.</td></tr>@endforelse
+</tbody></table></body></html>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+        <div class="mt-16 p-3 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">Edit Student</h2>
         </div>
     </x-slot>
@@ -23,11 +23,29 @@
                         </div>
                     @endif
 
+                    <form id="student-photo-form" method="POST" action="{{ route('admin.students.photo.update', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}" enctype="multipart/form-data" class="profile-section mb-8 rounded-xl border border-gray-200 bg-gray-50 p-5" x-data="{ preview: null }">
+                        @csrf
+                        @method('PUT')
+                        <h3 class="text-lg font-semibold text-gray-900">Profile photo</h3>
+                        <p id="photo-help" class="mt-1 text-sm text-gray-600">Upload or replace the photo independently. Nationality, identity details and other student information can be completed later.</p>
+                        <div class="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
+                            <div x-show="!preview"><x-student-photo :student="$student" :portrait="true" /></div>
+                            <img x-cloak x-show="preview" x-bind:src="preview" alt="Selected student photo preview" class="student-portrait object-contain">
+                            <div class="min-w-0 flex-1">
+                                <x-input-label for="photo" :value="__('Choose profile photo')" />
+                                <x-text-input id="photo" class="block mt-1 w-full p-2" type="file" name="photo" accept="image/jpeg,image/png,image/webp" required aria-describedby="photo-help photo-format" x-on:change="if (preview) URL.revokeObjectURL(preview); preview = $event.target.files[0] ? URL.createObjectURL($event.target.files[0]) : null" />
+                                <p id="photo-format" class="mt-2 text-sm text-gray-600">JPEG, PNG or WebP. Maximum 2 MB.</p>
+                                <x-input-error :messages="$errors->get('photo')" class="mt-2" />
+                            </div>
+                            <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">Save Photo</button>
+                        </div>
+                    </form>
+
                     <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 text-sm">
                         Legacy admission reference: <strong>{{ $student->admission_no }}</strong>. This is kept only for older records and login-slip compatibility.
                     </div>
 
-                    <form method="POST" action="{{ route('admin.students.update', $student) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('admin.students.update', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -77,20 +95,6 @@
                                         <x-input-error :messages="$errors->get('current_class_id')" class="mt-2" />
                                     </div>
 
-                                    <div>
-                                        <x-input-label for="photo" :value="__('Passport Photo')" />
-                                        <x-text-input id="photo" class="block mt-1 w-full" type="file" name="photo" accept="image/*" />
-                                        <x-input-error :messages="$errors->get('photo')" class="mt-2" />
-                                        <p class="text-sm text-gray-500 mt-1">JPEG, PNG or WebP. Max 2MB.</p>
-
-                                        @if ($student->photo)
-                                            <div class="mt-2">
-                                                <p class="text-sm text-gray-500">Current photo:</p>
-                                                <img src="{{ Storage::url($student->photo) }}" alt="Current photo" class="mt-1 h-24 w-24 object-cover rounded-full border-2 border-gray-300">
-                                                <p class="text-sm text-gray-500 mt-1">Leave blank to keep current photo.</p>
-                                            </div>
-                                        @endif
-                                    </div>
                                 </div>
                             </section>
 
@@ -184,7 +188,7 @@
                         </div>
 
                         <div class="flex items-center justify-end mt-8 gap-3">
-                            <a href="{{ route('admin.students.index') }}" class="text-gray-600 hover:text-gray-800">Cancel</a>
+                            <a href="{{ route('admin.students.show', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}" class="text-gray-600 hover:text-gray-800">Cancel</a>
                             <x-primary-button>{{ __('Update Student') }}</x-primary-button>
                         </div>
                     </form>

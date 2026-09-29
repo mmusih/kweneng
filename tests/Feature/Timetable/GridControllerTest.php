@@ -79,6 +79,50 @@ class GridControllerTest extends TestCase
         $this->assertSame($this->rooms['Lab 1']->id, $card->fresh()->tt_room_id);
     }
 
+    public function test_required_count_changes_and_undo_preserve_placed_doubles_and_teaching_assignments(): void
+    {
+        $lesson = $this->lesson('Biology', 'Form 5A', 'BIO A', 'K Simukonda', double: true, periodsPerWeek: 8);
+        TeacherSubject::firstOrCreate(['class_id' => $this->classes['Form 5A']->id, 'subject_id' => $lesson->subject_id,
+            'teacher_id' => $this->teachers['K Simukonda']->id, 'academic_year_id' => $this->year->id]);
+        $this->placeCard($lesson, day: 1, period: 1);
+        $before = Card::orderBy('id')->get()->toArray();
+        $assignments = TeacherSubject::get()->toArray();
+        $payload = ['setting_id' => $this->setting->id, 'lesson_id' => $lesson->id, 'expected_placed' => 1];
+        $route = route('admin.timetable.grid.required-count');
+        $this->actingAs($this->admin)->putJson($route, $payload + ['required' => 3, 'expected_required' => 4, 'version' => 0])
+            ->assertOk()->assertJsonPath('grid.tray.0.unplaced', 2);
+        $this->assertSame(3, $lesson->fresh()->cardsRequired());
+        $this->putJson($route, $payload + ['required' => 1, 'expected_required' => 3, 'version' => 1])
+            ->assertOk()->assertJsonCount(0, 'grid.tray');
+        $this->putJson($route, $payload + ['required' => 0, 'expected_required' => 1, 'version' => 2])->assertUnprocessable();
+        $this->putJson($route, $payload + ['required' => 4, 'expected_required' => 1, 'version' => 2])->assertOk();
+        $this->assertSame(4, $lesson->fresh()->cardsRequired());
+        $this->assertSame($before, Card::orderBy('id')->get()->toArray());
+        $this->assertSame($assignments, TeacherSubject::get()->toArray());
+        $load = app(\App\Services\Timetable\TeacherLoadService::class)->summary($this->year->id, false);
+        $teacher = collect($load['teachers'])->firstWhere('teacher_id', $this->teachers['K Simukonda']->id);
+        $this->assertEquals(8, $teacher['grand_total']);
+        $this->assertEquals(2, $teacher['grand_scheduled']);
+        $this->putJson($route, $payload + ['required' => 21, 'expected_required' => 4, 'version' => 3])->assertUnprocessable();
+        $this->assertSame(4, $lesson->fresh()->cardsRequired());
+    }
+
+    public function test_zero_required_count_can_be_restored_and_stale_edits_are_refused(): void
+    {
+        $lesson = $this->lesson('Biology', 'Form 5A', 'BIO A', 'K Simukonda', periodsPerWeek: 4);
+        $route = route('admin.timetable.grid.required-count');
+        $payload = ['setting_id' => $this->setting->id, 'lesson_id' => $lesson->id, 'expected_placed' => 0];
+        $this->actingAs($this->admin)->putJson($route, $payload + ['required' => 0, 'expected_required' => 4, 'version' => 0])
+            ->assertOk()->assertJsonCount(0, 'grid.tray')->assertJsonPath('grid.requirements.0.required', 0);
+        $this->putJson($route, $payload + ['required' => 3, 'expected_required' => 4, 'version' => 0])->assertUnprocessable();
+        $this->assertSame(0, $lesson->fresh()->cardsRequired());
+        $this->putJson($route, $payload + ['required' => 4, 'expected_required' => 0, 'version' => 1])
+            ->assertOk()->assertJsonPath('grid.tray.0.unplaced', 4);
+        $this->placeCard($lesson->fresh(), day: 1, period: 1);
+        $this->putJson($route, $payload + ['required' => 0, 'expected_required' => 4, 'version' => 2])->assertUnprocessable();
+        $this->assertSame(4, $lesson->fresh()->cardsRequired());
+    }
+
     public function test_the_grid_payload_carries_the_day_the_classes_and_the_tray(): void
     {
         $bio = $this->lesson('Biology', 'Form 5A', 'BIO A', 'K Simukonda', periodsPerWeek: 3);

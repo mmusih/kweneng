@@ -52,7 +52,7 @@
                     <div class="md:col-span-2">
                         <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                         <input type="text" id="search" name="search" value="{{ request('search') }}"
-                            placeholder="Title, author, ISBN..."
+                            placeholder="Title, author, ISBN, accession number, or barcode..."
                             class="w-full border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
                     </div>
 
@@ -74,6 +74,7 @@
                                 <th class="px-4 py-3 text-left">Author</th>
                                 <th class="px-4 py-3 text-left">Category</th>
                                 <th class="px-4 py-3 text-left">ISBN</th>
+                                <th class="px-4 py-3 text-left">Matched Copy</th>
                                 <th class="px-4 py-3 text-center">Copies</th>
                                 <th class="px-4 py-3 text-center">Available</th>
                                 <th class="px-4 py-3 text-left">Status</th>
@@ -82,6 +83,15 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
                             @forelse($books as $book)
+                                @php
+                                    $catalogSearch = trim((string) request('search'));
+                                    $matchedCopies = $catalogSearch === ''
+                                        ? collect()
+                                        : $book->copies->filter(
+                                            fn($copy) => strcasecmp($copy->accession_no, $catalogSearch) === 0
+                                                || strcasecmp($copy->barcode, $catalogSearch) === 0,
+                                        );
+                                @endphp
                                 <tr class="{{ $loop->even ? 'bg-gray-50/40' : '' }}">
                                     <td class="px-4 py-3">
                                         <div class="font-medium text-gray-900">{{ $book->title }}</div>
@@ -97,6 +107,19 @@
                                     <td class="px-4 py-3">{{ $book->author ?? 'N/A' }}</td>
                                     <td class="px-4 py-3">{{ $book->category?->name ?? 'Uncategorized' }}</td>
                                     <td class="px-4 py-3">{{ $book->isbn ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3">
+                                        @forelse($matchedCopies as $copy)
+                                            <div class="space-y-0.5 {{ !$loop->first ? 'mt-2 border-t border-gray-100 pt-2' : '' }}">
+                                                <div class="font-medium text-gray-900">{{ $copy->accession_no }}</div>
+                                                <div class="text-xs text-gray-500">Barcode: {{ $copy->barcode }}</div>
+                                                <div class="text-xs text-gray-500">
+                                                    {{ $copy->shelf_location ?? 'Shelf not set' }} · {{ ucfirst($copy->status) }}
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <span class="text-gray-400">—</span>
+                                        @endforelse
+                                    </td>
                                     <td class="px-4 py-3 text-center">{{ $book->copies->count() }}</td>
                                     <td class="px-4 py-3 text-center">
                                         {{ $book->copies->where('is_available', true)->count() }}</td>
@@ -134,7 +157,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-6 text-center text-gray-500">
+                                    <td colspan="9" class="px-4 py-6 text-center text-gray-500">
                                         No books found.
                                     </td>
                                 </tr>

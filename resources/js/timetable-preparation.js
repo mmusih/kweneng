@@ -1,7 +1,7 @@
 export function timetablePreparation(initial, saveUrl, options = {}) {
     return {
         ...initial, saveUrl, classId: '', selected: null, dragging: null, history: [], error: '', message: '', busy: false,
-        patterns: {}, expanded: {}, joint: null, dirty: false, search: '', advanced: false, ...options,
+        patterns: {}, expanded: {}, joint: null, dirty: false, search: '', ...options,
         init() {
             this.units = JSON.parse(JSON.stringify(initial.units));
             this.assignments = [...new Map(this.assignments.map(a => [a.key, a])).values()];
@@ -37,6 +37,11 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
         title(unit) { return this.lookupAssignment(unit.sources[0].key)?.subject || 'Removed assignment'; },
         teacher(unit) { return this.lookupAssignment(unit.sources[0].key)?.teacher || 'Assignment unavailable'; },
         attendance(unit) { return unit.sources.map(s => this.lookupAssignment(s.key)?.class_name || s.key).join(' + '); },
+        joinedClasses(key) {
+            return [...new Set(this.occurrences(key).filter(u => u.sources.length > 1)
+                .flatMap(u => u.sources.filter(s => s.key !== key).map(s => this.lookupAssignment(s.key)?.class_name))
+                .filter(Boolean))].join(', ');
+        },
         groupsFor(key) { return this.classes.find(c => c.id === this.lookupAssignment(key)?.class_id)?.groups || []; },
         pattern(key) {
             if (!this.patterns[key]) {
@@ -164,6 +169,7 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
             keys.forEach(key => { const remaining = this.units.filter(u => u.split_key === key); if (remaining.length === 1) remaining[0].split_key = null; });
         },
         openJoint(payload = this.selected) {
+            if (!this.applyPendingPatterns()) return;
             const units = this.picked(payload);
             if (!units.length) { this.error = 'Select a lesson tile or occurrence first.'; return; }
             if (units.some(u => u.placed)) { this.error = 'Return these cards to the tray before joining them.'; return; }
@@ -173,14 +179,41 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
         jointOptions() {
             if (!this.joint) return [];
             const units = this.picked(this.joint.payload), a = this.lookupAssignment(units[0]?.sources[0]?.key);
-            const sourceKeys = new Set(units.flatMap(u => u.sources.map(s => s.key)));
-            const classIds = new Set([...sourceKeys].map(k => this.lookupAssignment(k)?.class_id));
-            return this.assignments.filter(b => a && b.subject_id === a.subject_id && b.teacher_id === a.teacher_id && !classIds.has(b.class_id) && !b.existing);
+            const origin = this.joint.payload.kind === 'assignment'
+                ? this.lookupAssignment(this.joint.payload.key)?.class_id : Number(this.classId);
+            return this.assignments.filter(b => a && b.subject_id === a.subject_id && b.teacher_id === a.teacher_id && b.class_id !== (origin || a.class_id))
+                .sort((a, b) => a.class_name.localeCompare(b.class_name, undefined, { numeric: true }));
+        },
+        jointOptionStatus(assignment) {
+            const units = this.joint ? this.picked(this.joint.payload) : [];
+            const needed = units.filter(u => !u.sources.some(s => this.lookupAssignment(s.key)?.class_id === assignment.class_id));
+            if (!needed.length) return { disabled: true, label: 'Already joined' };
+            const targets = this.occurrences(assignment.key).filter(u => !units.includes(u));
+            if (!targets.length && !assignment.existing) return { disabled: false, label: '' };
+            const free = [...targets.filter(u => !u.placed)];
+            for (const unit of needed) {
+                const index = free.findIndex(t => t.span === unit.span);
+                if (index < 0) return { disabled: true, label: assignment.existing && !targets.length
+                    ? 'Existing individual lessons — use their card menu'
+                    : 'Needs matching unplaced cards' };
+                free.splice(index, 1);
+            }
+            return { disabled: false, label: '' };
+        },
+        jointOptionLabel(assignment) {
+            const status = this.jointOptionStatus(assignment);
+            return assignment.class_name + ' · ' + assignment.subject + ' · ' + assignment.teacher
+                + (status.label ? ' — ' + status.label : '');
         },
         join() {
             const key = this.joint?.target;
-            if (!this.jointOptions().some(a => a.key === key)) { this.error = 'Choose a matching assignment from another class.'; return; }
-            const picked = this.picked(this.joint.payload), targets = this.occurrences(key), used = new Set(), pairs = [];
+            const assignment = this.jointOptions().find(a => a.key === key);
+            if (!assignment) { this.error = 'Choose a matching assignment from another class.'; return; }
+            const status = this.jointOptionStatus(assignment);
+            if (status.disabled) { this.error = status.label; return; }
+            const all = this.picked(this.joint.payload);
+            const picked = all.filter(u => !u.sources.some(s => this.lookupAssignment(s.key)?.class_id === assignment.class_id));
+            const targets = this.occurrences(key).filter(u => !all.includes(u)), used = new Set(), pairs = [];
             for (const unit of picked) {
                 const target = targets.find(t => t.span === unit.span && !t.placed && !used.has(t.key));
                 if (targets.length && !target) { this.error = 'The other class has no matching free occurrences. Adjust its pattern, or join individual occurrences.'; return; }
@@ -200,9 +233,11 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
         },
         unjoin(unit) {
             if (unit.placed) { this.error = 'Return the card to the tray first.'; return; }
+            if (!this.applyPendingPatterns()) return;
             this.checkpoint();
             const others = unit.sources.splice(1);
             others.forEach(source => this.units.push({ ...this.newUnit(source.key, unit.span), sources: [source], room_id: unit.room_id }));
+            this.patterns = {};
         },
         changeGroup(key, groupId) {
             if (this.occurrences(key).some(u => u.placed)) { this.error = 'Return this assignment’s cards to the tray before changing attendance.'; return; }
@@ -240,17 +275,21 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
             if (event.shiftKey && event.target === first) { event.preventDefault(); last?.focus(); }
             else if (!event.shiftKey && event.target === last) { event.preventDefault(); first?.focus(); }
         },
+        applyPendingPatterns() {
+            const before = JSON.stringify(this.units), pending = JSON.parse(JSON.stringify(this.patterns));
+            for (const key of Object.keys(pending)) {
+                if (!this.applyPattern(key, false)) { this.units = JSON.parse(before); this.patterns = pending; return false; }
+            }
+            if (JSON.stringify(this.units) !== before) { this.history.push(before); this.dirty = true; }
+            return true;
+        },
         async save(returnToGrid = false) {
             if (this.busy) return;
             this.error = ''; this.message = '';
-            const before = JSON.stringify(this.units), pending = JSON.parse(JSON.stringify(this.patterns));
-            for (const key of Object.keys(pending)) {
-                if (!this.applyPattern(key, false)) { this.units = JSON.parse(before); this.patterns = pending; return; }
-            }
-            if (JSON.stringify(this.units) !== before) { this.history.push(before); this.dirty = true; }
+            if (!this.applyPendingPatterns()) return;
             const rows = [...new Set(this.units.map(u => u.split_key).filter(Boolean))];
             if (rows.some(key => this.units.filter(u => u.split_key === key).length < 2)) {
-                this.error = 'A split row needs two lessons. Add a partner or return the lone occurrence to the lesson area.'; return;
+                this.error = 'An existing split is incomplete. Correct it in the timetable split controls before saving.'; return;
             }
             this.busy = true;
             try {

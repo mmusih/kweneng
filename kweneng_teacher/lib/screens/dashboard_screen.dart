@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../core/theme.dart';
 import '../models/models.dart';
 import '../providers/app_providers.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/powered_by_footer.dart';
 import 'attendance_screen.dart';
+import 'change_password_screen.dart';
 import 'homework_screen.dart';
 import 'marks_screen.dart';
 import 'schemes_screen.dart';
@@ -41,8 +44,12 @@ class TeacherDashboardScreen extends ConsumerWidget {
                   children: [
                     _QuickActions(data: data),
                     const SizedBox(height: 18),
+                    _TeachingLoadSummary(load: data.teachingLoad),
+                    const SizedBox(height: 18),
                     _TeachingAssignments(data: data),
-                    const SizedBox(height: 90),
+                    const SizedBox(height: 18),
+                    const PoweredByFooter(),
+                    const SizedBox(height: 64),
                   ],
                 ),
               ),
@@ -76,6 +83,10 @@ class _Header extends ConsumerWidget {
         children: [
           Row(
             children: [
+              if (data.dayLabel.isNotEmpty) ...[
+                _HeaderPill(icon: Icons.today_outlined, text: data.dayLabel),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,12 +110,34 @@ class _Header extends ConsumerWidget {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) async {
+                  if (value == 'password') {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const TeacherChangePasswordScreen(),
+                      ),
+                    );
+                  }
                   if (value == 'logout') {
                     await ref.read(authProvider.notifier).logout();
                   }
                 },
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'logout', child: Text('Log out')),
+                  PopupMenuItem(
+                    value: 'password',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.password_outlined),
+                      title: Text('Change password'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'logout',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.logout),
+                      title: Text('Log out'),
+                    ),
+                  ),
                 ],
                 child: CircleAvatar(
                   backgroundColor: Colors.white,
@@ -171,6 +204,122 @@ class _Header extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _TeachingLoadSummary extends ConsumerStatefulWidget {
+  final TeacherLoad load;
+  const _TeachingLoadSummary({required this.load});
+
+  @override
+  ConsumerState<_TeachingLoadSummary> createState() =>
+      _TeachingLoadSummaryState();
+}
+
+class _TeachingLoadSummaryState
+    extends ConsumerState<_TeachingLoadSummary> {
+  bool _downloading = false;
+
+  String _number(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(1);
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'My teaching load',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Periods by subject and schedule',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              CircleAvatar(
+                backgroundColor: AppTheme.primary,
+                child: Text(
+                  _number(widget.load.total),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (widget.load.schedules.isEmpty)
+            const Text('No published timetable load yet.')
+          else
+            ...widget.load.schedules.map(
+              (schedule) => ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  '${schedule.label}: ${_number(schedule.total)} periods',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                children: schedule.subjects
+                    .map(
+                      (subject) => ListTile(
+                        dense: true,
+                        title: Text(subject.subject),
+                        trailing: Text('${_number(subject.periods)} periods'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          if (widget.load.schedules.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _downloading ? null : _download,
+                icon: _downloading
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Download teaching load PDF'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _download() async {
+    setState(() => _downloading = true);
+    try {
+      final file = await ref.read(apiProvider).downloadTeachingLoad();
+      await OpenFilex.open(file.path);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not download teaching load. $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
   }
 }
 

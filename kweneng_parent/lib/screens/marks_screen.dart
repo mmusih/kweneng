@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../providers/flutter_providers.dart';
 import '../services/api_service.dart';
+import '../utils/grade_utils.dart';
+import '../widgets/portal_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -84,8 +87,8 @@ class MarksSubject {
     subject: j['subject'] as String? ?? 'Unknown',
     midtermScore: _toDouble(j['midterm_score']),
     endtermScore: _toDouble(j['endterm_score']),
-    midtermGrade: _toStringOrNull(j['midterm_grade']),
-    endtermGrade: _toStringOrNull(j['endterm_grade']),
+    midtermGrade: gradeForScore(_toDouble(j['midterm_score'])),
+    endtermGrade: gradeForScore(_toDouble(j['endterm_score'])),
   );
 }
 
@@ -111,6 +114,8 @@ class MarksTerm {
   final double? endtermAverage;
   final int? endtermPosition;
   final int? endtermClassSize;
+  final int? midtermPosition;
+  final int? midtermClassSize;
   final String? trend;
 
   const MarksTerm({
@@ -122,6 +127,8 @@ class MarksTerm {
     this.endtermAverage,
     this.endtermPosition,
     this.endtermClassSize,
+    this.midtermPosition,
+    this.midtermClassSize,
     this.trend,
   });
 
@@ -130,6 +137,8 @@ class MarksTerm {
 
   String? get positionDisplay => endtermPosition != null
       ? '$endtermPosition${endtermClassSize != null ? "/$endtermClassSize" : ""}'
+      : midtermPosition != null
+      ? '$midtermPosition${midtermClassSize != null ? "/$midtermClassSize" : ""}'
       : null;
 
   factory MarksTerm.fromJson(Map<String, dynamic> j) => MarksTerm(
@@ -143,6 +152,8 @@ class MarksTerm {
     endtermAverage: _toDouble(j['endterm_average']),
     endtermPosition: _parsePos(j['endterm_position']),
     endtermClassSize: _parseClassSize(j['endterm_position']),
+    midtermPosition: _parsePos(j['midterm_position']),
+    midtermClassSize: _parseClassSize(j['midterm_position']),
     trend: _toStringOrNull(j['trend']),
   );
 }
@@ -204,273 +215,195 @@ final _downloadStateProvider =
 // Root screen
 // ─────────────────────────────────────────────────────────────────────────────
 
-class MarksScreen extends ConsumerWidget {
+class MarksScreen extends ConsumerStatefulWidget {
   const MarksScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final marksAsync = ref.watch(marksProvider);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: const Text('Marks & Report Cards'),
-        backgroundColor: _kBrand,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: marksAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: _kBrand)),
-        error: (e, _) => _ErrorView(
-          message: e.toString(),
-          onRetry: () => ref.invalidate(marksProvider),
-        ),
-        data: (raw) {
-          final children = _parseChildren(raw);
-          if (children.isEmpty) {
-            return const _EmptyView(message: 'No marks data available.');
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-            itemCount: children.length,
-            itemBuilder: (_, i) => _ChildCard(child: children[i]),
-          );
-        },
-      ),
-    );
-  }
-
-  List<MarksChild> _parseChildren(Map<String, dynamic> raw) {
-    try {
-      final list = raw['children'] as List? ?? [];
-      return list
-          .whereType<Map<String, dynamic>>()
-          .map(MarksChild.fromJson)
-          .toList();
-    } catch (e) {
-      debugPrint('=== _parseChildren error: $e');
-      return [];
-    }
-  }
+  ConsumerState<MarksScreen> createState() => _MarksScreenState();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Per-child card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ChildCard extends StatelessWidget {
-  final MarksChild child;
-  const _ChildCard({required this.child});
-
+class _MarksScreenState extends ConsumerState<MarksScreen> {
+  int? _termId;
+  int? _termChildId;
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Child header
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: _kBrand,
-                  child: Text(
-                    child.name.isNotEmpty ? child.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+    final selectedId = ref.watch(selectedChildProvider);
+    final dashboard = ref.watch(dashboardProvider).asData?.value;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Academics')),
+      body: ref
+          .watch(marksProvider)
+          .when(
+            loading: () => const PortalLoading(),
+            error: (_, _) => PortalError(
+              title: 'Results could not be loaded',
+              onRetry: () => ref.invalidate(marksProvider),
+            ),
+            data: (raw) {
+              final children = (raw['children'] as List? ?? [])
+                  .map(
+                    (item) => MarksChild.fromJson(
+                      Map<String, dynamic>.from(item as Map),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        child.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                  )
+                  .toList();
+              if (children.isEmpty)
+                return const _EmptyView(
+                  message:
+                      'No academic records yet. Published results will appear here.',
+                );
+              final child =
+                  children.where((item) => item.id == selectedId).firstOrNull ??
+                  children.first;
+              final profile = dashboard?.children
+                  .where((item) => item.id == child.id)
+                  .firstOrNull;
+              final term =
+                  child.terms
+                      .where(
+                        (item) =>
+                            item.termId ==
+                            (_termChildId == child.id
+                                ? _termId
+                                : dashboard?.currentTerm?.id),
+                      )
+                      .firstOrNull ??
+                  child.terms.lastOrNull;
+              return RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(marksProvider);
+                  await ref.read(marksProvider.future);
+                },
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    if (children.length > 1) ...[
+                      ChildTabs(
+                        children: children
+                            .map(
+                              (item) => ChildTabInfo(
+                                id: item.id,
+                                name: item.name,
+                                className: item.className,
+                                photo: dashboard?.children
+                                    .where((profile) => profile.id == item.id)
+                                    .firstOrNull
+                                    ?.photo,
+                              ),
+                            )
+                            .toList(),
+                        selectedId: child.id,
+                        onSelected: ref
+                            .read(selectedChildProvider.notifier)
+                            .select,
                       ),
-                      if (child.className != null)
-                        Text(
-                          child.className!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
+                      const SizedBox(height: 18),
+                    ],
+                    PortalCard(
+                      child: Row(
+                        children: [
+                          ChildAvatar(name: child.name, photo: profile?.photo),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  child.name,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                Text(child.className ?? 'Class not assigned'),
+                              ],
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    if (child.isBlocked)
+                      _BlockedBanner()
+                    else ...[
+                      if (term == null)
+                        const PortalCard(
+                          child: Text('No results have been recorded yet.'),
+                        )
+                      else ...[
+                        DropdownButtonFormField<int>(
+                          key: ValueKey('${child.id}-${term.termId}'),
+                          initialValue: term.termId,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText:
+                                'Term · ${(raw['academic_year'] as Map?)?['year_name'] ?? ''}',
+                          ),
+                          items: child.terms
+                              .map(
+                                (item) => DropdownMenuItem(
+                                  value: item.termId,
+                                  child: Text(item.termName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (id) => setState(() {
+                            _termId = id;
+                            _termChildId = child.id;
+                          }),
                         ),
-                      Text(
-                        child.admissionNo,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                        const SizedBox(height: 18),
+                        _TermStatusBadge(
+                          status: term.termStatus,
+                          inverted: false,
+                        ),
+                        const SizedBox(height: 12),
+                        PortalCard(
+                          padding: EdgeInsets.zero,
+                          child: _TermContent(childId: child.id, term: term),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      PortalCard(
+                        padding: EdgeInsets.zero,
+                        child: PortalLink(
+                          icon: Icons.history_edu,
+                          title: 'Full academic record',
+                          subtitle: 'Results across academic years',
+                          onTap: () => context.push(
+                            '/children/${child.id}/academic-record',
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            if (child.isBlocked)
-              _BlockedBanner()
-            else if (child.terms.isEmpty)
-              const _EmptyView(message: 'No marks recorded yet.')
-            else
-              _TermList(childId: child.id, terms: child.terms),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// List of term tiles for one child
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TermList extends StatelessWidget {
-  final int childId;
-  final List<MarksTerm> terms;
-  const _TermList({required this.childId, required this.terms});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Select a Term',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...terms.map((term) => _TermTile(childId: childId, term: term)),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Term tile — taps to expand, shows subject table inline
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _TermTile extends StatefulWidget {
-  final int childId;
-  final MarksTerm term;
-  const _TermTile({required this.childId, required this.term});
-
-  @override
-  State<_TermTile> createState() => _TermTileState();
-}
-
-class _TermTileState extends State<_TermTile> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasSubjects = widget.term.subjects.isNotEmpty;
-
-    return Column(
-      children: [
-        // Header row
-        GestureDetector(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: _expanded ? _kBrand : _kBrandLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.assignment_outlined,
-                  size: 18,
-                  color: _expanded ? Colors.white : _kBrand,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.term.termName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: _expanded ? Colors.white : _kBrand,
-                    ),
-                  ),
-                ),
-                if (!hasSubjects)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _expanded ? Colors.white24 : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'No marks',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _expanded ? Colors.white : Colors.grey.shade600,
+                    const SizedBox(height: 18),
+                    PortalCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          PortalLink(
+                            icon: Icons.assignment_outlined,
+                            title: 'Homework',
+                            onTap: () => context.push('/homework'),
+                          ),
+                          PortalLink(
+                            icon: Icons.schedule_outlined,
+                            title: 'Timetable',
+                            onTap: () => context.push('/timetable'),
+                          ),
+                          PortalLink(
+                            icon: Icons.emoji_events_outlined,
+                            title: 'Awards & leadership',
+                            onTap: () => context.push('/awards'),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  _TermStatusBadge(
-                    status: widget.term.termStatus,
-                    inverted: _expanded,
-                  ),
-                const SizedBox(width: 8),
-                Icon(
-                  _expanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: _expanded ? Colors.white : _kBrand,
-                  size: 20,
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
-        ),
-
-        // Expanded content
-        if (_expanded)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade200),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: _TermContent(childId: widget.childId, term: widget.term),
-          ),
-      ],
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Term content: summary chips + subject table + download button
-// All data already available — no extra network call needed.
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _TermContent extends ConsumerWidget {
   final int childId;
@@ -488,42 +421,39 @@ class _TermContent extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary chips
-          if (term.subjects.isNotEmpty)
-            Wrap(
-              spacing: 10,
-              runSpacing: 6,
-              children: [
-                if (term.endtermAverage != null)
-                  _Chip(
-                    label: 'Avg',
-                    value: '${term.endtermAverage!.toStringAsFixed(0)}%',
-                    color: _gradeColor(term.endtermAverage!),
-                  )
-                else if (term.midtermAverage != null)
-                  _Chip(
-                    label: 'Midterm Avg',
-                    value: '${term.midtermAverage!.toStringAsFixed(0)}%',
-                    color: _gradeColor(term.midtermAverage!),
-                  ),
-                if (term.positionDisplay != null)
-                  _Chip(
-                    label: 'Position',
-                    value: term.positionDisplay!,
-                    color: _kBrand,
-                  ),
-                if (term.trend != null)
-                  _Chip(
-                    label: 'Trend',
-                    value: term.trend!,
-                    color: Colors.grey.shade700,
-                  ),
-              ],
-            ),
-
-          if (term.subjects.isNotEmpty) const SizedBox(height: 14),
-
-          // Subject table or empty note
+          Text(
+            'Academic performance',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 18,
+            children: [
+              PortalMetric(
+                label: 'Midterm average',
+                value: term.midtermAverage == null
+                    ? 'Not recorded'
+                    : '${term.midtermAverage!.toStringAsFixed(1)}%',
+              ),
+              PortalMetric(
+                label: 'End-term average',
+                value: term.endtermAverage == null
+                    ? 'Not recorded'
+                    : '${term.endtermAverage!.toStringAsFixed(1)}%',
+              ),
+              if (term.positionDisplay != null)
+                PortalMetric(
+                  label: 'Position in class',
+                  value: term.positionDisplay!,
+                ),
+              if (term.trend != null && term.trend != 'N/A')
+                PortalMetric(label: 'Performance trend', value: term.trend!),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Text('Subjects', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12), // Subject table or empty note
           if (term.subjects.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -577,12 +507,6 @@ class _TermContent extends ConsumerWidget {
     );
   }
 
-  Color _gradeColor(double avg) {
-    if (avg >= 80) return Colors.green.shade700;
-    if (avg >= 60) return Colors.orange.shade700;
-    return Colors.red.shade700;
-  }
-
   Future<void> _download(WidgetRef ref) async {
     final notifier = ref.read(_downloadStateProvider.notifier);
     notifier.set(_dlKey, const _DlState(status: _DlStatus.downloading));
@@ -608,46 +532,61 @@ class _TermContent extends ConsumerWidget {
 class _SubjectTable extends StatelessWidget {
   final List<MarksSubject> subjects;
   const _SubjectTable({required this.subjects});
-
-  static String _fmt(double? score, String? grade) {
-    if (score == null) return '—';
-    final s = score.toStringAsFixed(0);
-    return grade != null ? '$s ($grade)' : s;
-  }
-
+  String score(double? value, String? grade) => value == null
+      ? 'Not entered'
+      : '${value.toStringAsFixed(1)}%${grade == null ? "" : " · $grade"}';
   @override
-  Widget build(BuildContext context) {
-    return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(2),
-        2: FlexColumnWidth(2),
-      },
-      border: TableBorder.all(color: Colors.grey.shade200),
-      children: [
-        TableRow(
-          decoration: const BoxDecoration(color: _kBrandLight),
-          children: const [_TH('Subject'), _TH('Midterm'), _TH('Endterm')],
-        ),
-        for (var i = 0; i < subjects.length; i++)
-          TableRow(
-            decoration: BoxDecoration(
-              color: i.isEven ? Colors.white : const Color(0xFFF8FAFC),
-            ),
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final subject in subjects)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _TD(subjects[i].subject),
-              _TD(_fmt(subjects[i].midtermScore, subjects[i].midtermGrade)),
-              _TD(_fmt(subjects[i].endtermScore, subjects[i].endtermGrade)),
+              Text(
+                subject.subject,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 20,
+                runSpacing: 10,
+                children: [
+                  Text(
+                    'Midterm: ${score(subject.midtermScore, subject.midtermGrade)}',
+                  ),
+                  Text(
+                    'End-term: ${score(subject.endtermScore, subject.endtermGrade)}',
+                  ),
+                ],
+              ),
+              if ((subject.endtermScore ?? subject.midtermScore) != null) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  label: '${subject.subject} latest score',
+                  child: LinearProgressIndicator(
+                    value:
+                        ((subject.endtermScore ?? subject.midtermScore)! / 100)
+                            .clamp(0, 1),
+                    minHeight: 5,
+                    borderRadius: BorderRadius.circular(4),
+                    color: _kBrand,
+                    backgroundColor: _kBrandLight,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              const Divider(height: 1),
             ],
           ),
-      ],
-    );
-  }
+        ),
+    ],
+  );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Term status badge
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _TermStatusBadge extends StatelessWidget {
   final String? status;
@@ -787,7 +726,7 @@ class _BlockedBanner extends StatelessWidget {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'Results are restricted due to an outstanding balance. '
+              'Results access is restricted. '
               'Please contact the accounts office.',
               style: TextStyle(fontSize: 13),
             ),
@@ -812,91 +751,4 @@ class _EmptyView extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 12),
-          Text(
-            'Failed to load marks\n$message',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _Chip({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
-          children: [
-            TextSpan(
-              text: '$label  ',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            TextSpan(
-              text: value,
-              style: TextStyle(fontWeight: FontWeight.bold, color: color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TH extends StatelessWidget {
-  final String text;
-  const _TH(this.text);
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-    child: Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 12,
-        color: _kBrand,
-      ),
-    ),
-  );
-}
-
-class _TD extends StatelessWidget {
-  final String text;
-  const _TD(this.text);
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-    child: Text(text, style: const TextStyle(fontSize: 12)),
-  );
 }

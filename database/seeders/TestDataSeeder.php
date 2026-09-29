@@ -328,56 +328,56 @@ class TestDataSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
 
-$studentUsers = [
-    [
-        'name' => 'Student One',
-        'email' => 'student1@school.local',
-        'admission_no' => 'ADM001',
-        'gender' => 'male',
-        'date_of_birth' => '2011-03-15',
-        'class_id' => $form1A->id,
-    ],
-    [
-        'name' => 'Student Two',
-        'email' => 'student2@school.local',
-        'admission_no' => 'ADM002',
-        'gender' => 'female',
-        'date_of_birth' => '2011-07-20',
-        'class_id' => $form1A->id,
-    ],
-    [
-        'name' => 'Student Three',
-        'email' => 'student3@school.local',
-        'admission_no' => 'ADM003',
-        'gender' => 'male',
-        'date_of_birth' => '2011-11-05',
-        'class_id' => $form1A->id,
-    ],
-    [
-        'name' => 'Student Four',
-        'email' => 'student4@school.local',
-        'admission_no' => 'ADM004',
-        'gender' => 'female',
-        'date_of_birth' => '2010-04-12',
-        'class_id' => $form2A->id,
-    ],
-    [
-        'name' => 'Student Five',
-        'email' => 'student5@school.local',
-        'admission_no' => 'ADM005',
-        'gender' => 'male',
-        'date_of_birth' => '2010-08-19',
-        'class_id' => $form2A->id,
-    ],
-    [
-        'name' => 'Student Six',
-        'email' => 'student6@school.local',
-        'admission_no' => 'ADM006',
-        'gender' => 'female',
-        'date_of_birth' => '2010-12-01',
-        'class_id' => $form2A->id,
-    ],
-];
+        $studentUsers = [
+            [
+                'name' => 'Student One',
+                'email' => 'student1@school.local',
+                'admission_no' => 'ADM001',
+                'gender' => 'male',
+                'date_of_birth' => '2011-03-15',
+                'class_id' => $form1A->id,
+            ],
+            [
+                'name' => 'Student Two',
+                'email' => 'student2@school.local',
+                'admission_no' => 'ADM002',
+                'gender' => 'female',
+                'date_of_birth' => '2011-07-20',
+                'class_id' => $form1A->id,
+            ],
+            [
+                'name' => 'Student Three',
+                'email' => 'student3@school.local',
+                'admission_no' => 'ADM003',
+                'gender' => 'male',
+                'date_of_birth' => '2011-11-05',
+                'class_id' => $form1A->id,
+            ],
+            [
+                'name' => 'Student Four',
+                'email' => 'student4@school.local',
+                'admission_no' => 'ADM004',
+                'gender' => 'female',
+                'date_of_birth' => '2010-04-12',
+                'class_id' => $form2A->id,
+            ],
+            [
+                'name' => 'Student Five',
+                'email' => 'student5@school.local',
+                'admission_no' => 'ADM005',
+                'gender' => 'male',
+                'date_of_birth' => '2010-08-19',
+                'class_id' => $form2A->id,
+            ],
+            [
+                'name' => 'Student Six',
+                'email' => 'student6@school.local',
+                'admission_no' => 'ADM006',
+                'gender' => 'female',
+                'date_of_birth' => '2010-12-01',
+                'class_id' => $form2A->id,
+            ],
+        ];
 
         $students = [];
 
@@ -528,11 +528,14 @@ $studentUsers = [
                 $average = ($midterm + $endterm) / 2;
 
                 $grade = match (true) {
-                    $average >= 80 => 'A',
-                    $average >= 70 => 'B',
-                    $average >= 60 => 'C',
-                    $average >= 50 => 'D',
-                    default => 'E',
+                    $average > 89 => 'A*',
+                    $average > 79 => 'A',
+                    $average > 69 => 'B',
+                    $average > 59 => 'C',
+                    $average > 49 => 'D',
+                    $average > 39 => 'E',
+                    $average > 34 => 'F',
+                    default => 'G',
                 };
 
                 Mark::create([

@@ -19,8 +19,7 @@ class TeacherMarksController extends Controller
     public function __construct(
         private readonly MarksService $marksService,
         private readonly ActivityLogService $activityLogService
-    ) {
-    }
+    ) {}
 
     public function show(Request $request)
     {
@@ -62,7 +61,12 @@ class TeacherMarksController extends Controller
                     'name' => $student->user->name,
                     'midterm_score' => $mark?->midterm_score !== null ? (float) $mark->midterm_score : null,
                     'endterm_score' => $mark?->endterm_score !== null ? (float) $mark->endterm_score : null,
-                    'grade' => $mark?->grade,
+                    'grade' => $mark
+                        ? $this->marksService->calculateGradeForScores(
+                            $mark->midterm_score !== null ? (float) $mark->midterm_score : null,
+                            $mark->endterm_score !== null ? (float) $mark->endterm_score : null,
+                        )
+                        : null,
                     'remarks' => $mark?->remarks,
                 ];
             })->values(),

@@ -7,6 +7,7 @@ use App\Models\InventoryItem;
 use App\Models\Requisition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RequisitionController extends Controller
@@ -70,43 +71,47 @@ class RequisitionController extends Controller
             'linked_inventory_items.*' => ['nullable', 'integer', 'exists:inventory_items,id'],
         ]);
 
-        $oldStatus = $requisition->status;
-        $newStatus = $validated['status'];
+        return DB::transaction(function () use ($validated, $requisition) {
+            $requisition = Requisition::lockForUpdate()->findOrFail($requisition->id);
+            abort_if($validated['status'] !== $requisition->status && $requisition->purchaseOrders()->whereNotIn('status', ['rejected', 'cancelled'])->exists(), 422, 'A linked purchase order controls this requisition. Use Purchasing to approve, receive or cancel the order.');
+            $oldStatus = $requisition->status;
+            $newStatus = $validated['status'];
 
-        $updates = [
-            'status' => $newStatus,
-            'inventory_notes' => $validated['inventory_notes'] ?? null,
-            'handled_by' => Auth::id(),
-        ];
+            $updates = [
+                'status' => $newStatus,
+                'inventory_notes' => $validated['inventory_notes'] ?? null,
+                'handled_by' => Auth::id(),
+            ];
 
-        if ($oldStatus !== $newStatus) {
-            $timestampColumn = match ($newStatus) {
-                Requisition::STATUS_ACKNOWLEDGED => 'acknowledged_at',
-                Requisition::STATUS_APPROVED => 'approved_at',
-                Requisition::STATUS_ORDERED => 'ordered_at',
-                Requisition::STATUS_FULFILLED => 'fulfilled_at',
-                Requisition::STATUS_CANCELLED, Requisition::STATUS_REJECTED => 'cancelled_at',
-                default => null,
-            };
+            if ($oldStatus !== $newStatus) {
+                $timestampColumn = match ($newStatus) {
+                    Requisition::STATUS_ACKNOWLEDGED => 'acknowledged_at',
+                    Requisition::STATUS_APPROVED => 'approved_at',
+                    Requisition::STATUS_ORDERED => 'ordered_at',
+                    Requisition::STATUS_FULFILLED => 'fulfilled_at',
+                    Requisition::STATUS_CANCELLED, Requisition::STATUS_REJECTED => 'cancelled_at',
+                    default => null,
+                };
 
-            if ($timestampColumn) {
-                $updates[$timestampColumn] = now();
+                if ($timestampColumn) {
+                    $updates[$timestampColumn] = now();
+                }
             }
-        }
 
-        $requisition->update($updates);
+            $requisition->update($updates);
 
-        foreach ($validated['linked_inventory_items'] ?? [] as $itemId => $inventoryItemId) {
-            $requisitionItem = $requisition->items()->whereKey($itemId)->first();
-            if ($requisitionItem) {
-                $requisitionItem->update([
-                    'inventory_item_id' => $inventoryItemId ?: null,
-                ]);
+            foreach ($validated['linked_inventory_items'] ?? [] as $itemId => $inventoryItemId) {
+                $requisitionItem = $requisition->items()->whereKey($itemId)->first();
+                if ($requisitionItem) {
+                    $requisitionItem->update([
+                        'inventory_item_id' => $inventoryItemId ?: null,
+                    ]);
+                }
             }
-        }
 
-        return redirect()->route('inventory.requisitions.show', $requisition)
-            ->with('success', 'Requisition updated successfully.');
+            return redirect()->route('inventory.requisitions.show', $requisition)
+                ->with('success', 'Requisition updated successfully.');
+        });
     }
 
     public function csv(Request $request)
@@ -118,7 +123,7 @@ class RequisitionController extends Controller
             $query->where('status', $request->status);
         }
 
-        $fileName = 'requisitions-' . now()->format('Y-m-d-His') . '.csv';
+        $fileName = 'requisitions-'.now()->format('Y-m-d-His').'.csv';
 
         return response()->streamDownload(function () use ($query) {
             $handle = fopen('php://output', 'w');
@@ -133,7 +138,7 @@ class RequisitionController extends Controller
                         $row->priority,
                         $row->status,
                         $row->needed_by?->toDateString(),
-                        $row->items->map(fn ($item) => $item->item_name . ' x ' . $item->quantity . ' ' . $item->unit)->join('; '),
+                        $row->items->map(fn ($item) => $item->item_name.' x '.$item->quantity.' '.$item->unit)->join('; '),
                         $row->created_at?->format('Y-m-d H:i'),
                         $row->handler?->name,
                     ]);

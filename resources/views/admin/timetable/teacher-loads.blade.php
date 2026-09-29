@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] to-[#124E66] p-6 text-white shadow-md">
             <div class="flex flex-wrap items-center justify-between gap-4">
-                <div><p class="text-xs font-semibold uppercase tracking-widest text-white/70">Timetabling</p><h2 class="mt-1 text-2xl font-semibold">Teacher load summary</h2><p class="mt-1 text-sm text-white/80">Periods by subject, with day and afternoon loads kept separate.</p></div>
+                <div><p class="text-xs font-semibold uppercase tracking-widest text-white/70">Timetabling</p><h2 class="mt-1 text-2xl font-semibold">Teacher load summary</h2><p class="mt-1 text-sm text-white/80">Required and scheduled periods per cycle, with day and afternoon loads kept separate.</p></div>
                 <a target="_blank" href="{{ route('admin.timetable.teacher-loads.download', ['academic_year_id' => $selectedYearId]) }}" class="rounded-lg bg-white px-4 py-2 text-sm font-bold text-[#124E66]">Download PDF</a>
             </div>
         </div>
@@ -24,9 +24,9 @@
                     @forelse($summary['teachers'] as $teacher)
                         <tr class="align-top"><td class="px-4 py-4 font-semibold">{{ $teacher['teacher_name'] }}</td>
                             @foreach($teacher['schedules'] as $load)
-                                <td class="px-4 py-4"><div class="space-y-1">@forelse($load['subjects'] as $subject)<div class="flex min-w-56 justify-between gap-4"><span>{{ $subject['subject'] }}</span><strong>{{ number_format($subject['periods'], 1) }}</strong></div>@empty<span class="text-slate-400">No periods</span>@endforelse</div><div class="mt-2 border-t pt-2 font-bold">{{ $load['total'] }} periods</div></td>
+                                <td class="px-4 py-4"><div class="space-y-1">@forelse($load['subjects'] as $subject)<div class="flex min-w-56 justify-between gap-4"><span>{{ $subject['subject'] }}</span><span>{{ $subject['periods'] }} required · {{ $subject['scheduled_periods'] }} scheduled · {{ max(0, $subject['periods'] - $subject['scheduled_periods']) }} remaining</span></div>@empty<span class="text-slate-400">No periods</span>@endforelse</div><div class="mt-2 border-t pt-2 font-bold">{{ $load['total'] }} required · {{ $load['scheduled_total'] }} scheduled</div></td>
                             @endforeach
-                            <td class="px-4 py-4 text-right text-lg font-black text-[#124E66]">{{ $teacher['grand_total'] }}</td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-[#124E66]">{{ $teacher['grand_total'] }}<span class="block text-xs font-normal">required · {{ $teacher['grand_scheduled'] }} scheduled</span></td>
                         </tr>
                     @empty<tr><td colspan="10" class="p-8 text-center text-slate-500">No active teachers found.</td></tr>@endforelse
                 </tbody>

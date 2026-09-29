@@ -25,13 +25,13 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user || $user->role !== 'student') {
+        if (! $user || $user->role !== 'student') {
             return redirect()->route('login')->withErrors([
                 'error' => 'Unauthorized access',
             ]);
         }
 
-        $cacheKey = 'student_dashboard_v3_' . $user->id . '_' . now()->format('Y-m-d-H');
+        $cacheKey = 'student_dashboard_v3_'.$user->id.'_'.now()->format('Y-m-d-H');
 
         $dashboardData = Cache::remember($cacheKey, 300, function () use ($user) {
             $data = [
@@ -55,12 +55,16 @@ class DashboardController extends Controller
                 'overdueBorrowingsCount' => 0,
             ];
 
-            if (!$user->student) {
+            if (! $user->student) {
                 return $data;
             }
 
             $student = $user->student;
-            $student->load(['user', 'currentClass.academicYear']);
+            $student->load([
+                'user',
+                'currentClass.academicYear',
+                'prefectAppointments' => fn ($query) => $query->where('status', '!=', 'revoked')->with('academicYear')->latest('appointed_on'),
+            ]);
 
             $currentAcademicYear = AcademicYear::where(function ($query) {
                 $query->where('status', 'open')
@@ -96,15 +100,15 @@ class DashboardController extends Controller
                     ->with(['subject', 'teacher.user'])
                     ->get();
 
-                $midtermScores = $marks->pluck('midterm_score')->filter(fn($score) => $score !== null);
-                $endtermScores = $marks->pluck('endterm_score')->filter(fn($score) => $score !== null);
+                $midtermScores = $marks->pluck('midterm_score')->filter(fn ($score) => $score !== null);
+                $endtermScores = $marks->pluck('endterm_score')->filter(fn ($score) => $score !== null);
 
                 $data['stats']['subjectsWithMarks'] = $marks->count();
                 $data['stats']['midtermAverage'] = $midtermScores->isNotEmpty() ? round($midtermScores->avg(), 2) : null;
                 $data['stats']['endtermAverage'] = $endtermScores->isNotEmpty() ? round($endtermScores->avg(), 2) : null;
 
                 $data['latestMarks'] = $marks
-                    ->sortBy(fn($mark) => $mark->subject->name ?? '')
+                    ->sortBy(fn ($mark) => $mark->subject->name ?? '')
                     ->take(6)
                     ->values();
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The complete crest fits inside Android 12's 192dp circular safe area. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="288dp" android:height="288dp">
+        <shape><solid android:color="@android:color/transparent"/><size android:width="288dp" android:height="288dp"/></shape>
+    </item>
+    <item android:width="112dp" android:height="138dp" android:gravity="center">
+        <bitmap android:src="@drawable/school_crest" android:gravity="fill" android:filter="true"/>
+    </item>
+</layer-list>

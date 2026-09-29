@@ -1,7 +1,7 @@
 <style>
     @page {
         size: A4 landscape;
-        margin: 9mm;
+        margin: 7mm;
     }
 
     body {
@@ -10,7 +10,7 @@
         color: #111;
         margin: 0;
         padding: 0;
-        line-height: 1.3;
+        line-height: 1.2;
     }
 
     .page {
@@ -20,7 +20,7 @@
     .header-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .header-table td {
@@ -34,7 +34,7 @@
     }
 
     .logo {
-        width: 60px;
+        width: 54px;
         height: auto;
     }
 
@@ -44,24 +44,24 @@
     }
 
     .school-name {
-        font-size: 17px;
+        font-size: 16px;
         font-weight: bold;
         color: #0f172a;
         letter-spacing: 0.2px;
     }
 
     .report-title {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: bold;
-        margin-top: 3px;
+        margin-top: 2px;
         text-transform: uppercase;
         color: #334155;
     }
 
     .info-line {
-        margin-top: 8px;
+        margin-top: 5px;
         font-size: 9px;
-        padding: 3px 0;
+        padding: 2px 0;
         display: flex;
         justify-content: space-between;
         white-space: nowrap;
@@ -82,7 +82,7 @@
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 0.3px;
-        margin: 10px 0 4px 0;
+        margin: 6px 0 3px 0;
         color: #0f172a;
     }
 
@@ -95,7 +95,7 @@
     th,
     td {
         border: 1px solid #cbd5e1;
-        padding: 4px 5px;
+        padding: 3px 4px;
         vertical-align: middle;
     }
 
@@ -129,8 +129,73 @@
         width: 18%;
     }
 
+    .points-panel {
+        margin-top: 5px;
+        border: 2px solid #1d4ed8;
+        background: #eff6ff;
+        page-break-inside: avoid;
+    }
+
+    .points-table td {
+        border: none;
+        padding: 2px 7px;
+        vertical-align: middle;
+    }
+
+    .points-heading {
+        width: 25%;
+        font-size: 9px;
+        font-weight: bold;
+        color: #1e3a8a;
+        letter-spacing: 0.25px;
+    }
+
+    .points-result {
+        width: 18%;
+        text-align: center;
+        border-left: 1px solid #93c5fd !important;
+    }
+
+    .points-label {
+        font-size: 7.5px;
+        font-weight: bold;
+        color: #475569;
+        text-transform: uppercase;
+    }
+
+    .points-value {
+        font-size: 12px;
+        font-weight: bold;
+        color: #0f172a;
+    }
+
+    .points-value.pending {
+        font-size: 10px;
+        color: #b45309;
+    }
+
+    .points-missing {
+        margin-top: 1px;
+        font-size: 6.8px;
+        color: #92400e;
+    }
+
+    .points-rule {
+        font-size: 7.2px;
+        line-height: 1.25;
+        color: #334155;
+        border-left: 1px solid #93c5fd !important;
+    }
+
+    .form-five .performance-table th,
+    .form-five .performance-table td {
+        padding: 2px 3px;
+        font-size: 7.8px;
+        line-height: 1.15;
+    }
+
     .head-comment {
-        margin-top: 12px;
+        margin-top: 7px;
     }
 
     .head-comment-title {
@@ -142,24 +207,24 @@
 
     .head-comment-line {
         border-bottom: 1px solid #64748b;
-        min-height: 18px;
-        padding: 2px 0 4px 0;
+        min-height: 14px;
+        padding: 1px 0 3px 0;
         font-size: 9px;
     }
 
     .notes {
-        margin-top: 8px;
-        font-size: 8.5px;
+        margin-top: 5px;
+        font-size: 8px;
         color: #374151;
     }
 
     .notes div {
-        margin-top: 3px;
+        margin-top: 2px;
     }
 
     .grade-scale {
-        margin-top: 8px;
-        padding-top: 6px;
+        margin-top: 5px;
+        padding-top: 4px;
         border-top: 1px solid #cbd5e1;
         font-size: 8px;
         color: #374151;
@@ -180,7 +245,7 @@
     }
 </style>
 
-<div class="page">
+<div class="page {{ !empty($formFivePoints) ? 'form-five' : '' }}">
 
     <table class="header-table">
         <tr>
@@ -213,7 +278,7 @@
 
     <div class="section-title">Subject Performance</div>
 
-    <table>
+    <table class="performance-table">
         <thead>
             <tr>
                 <th class="subject-col">Subject</th>
@@ -233,7 +298,7 @@
                         @if ($row['midterm_score'] !== null)
                             {{ number_format($row['midterm_score'], 0) }}{{ $row['midterm_grade'] }}
                         @else
-                            <span class="muted">—</span>
+                            <span class="muted">-</span>
                         @endif
                     </td>
 
@@ -241,13 +306,13 @@
                         @if ($row['endterm_score'] !== null)
                             {{ number_format($row['endterm_score'], 0) }}{{ $row['endterm_grade'] }}
                         @else
-                            <span class="muted">—</span>
+                            <span class="muted">-</span>
                         @endif
                     </td>
 
-                    <td>{{ $row['teacher_comment'] ?? '—' }}</td>
+                    <td>{{ $row['teacher_comment'] ?? '-' }}</td>
 
-                    <td>{{ $row['teacher_name'] ?? '—' }}</td>
+                    <td>{{ $row['teacher_name'] ?? '-' }}</td>
                 </tr>
             @empty
                 <tr>
@@ -256,6 +321,34 @@
             @endforelse
         </tbody>
     </table>
+
+    @if (!empty($formFivePoints))
+        <div class="points-panel">
+            <table class="points-table">
+                <tr>
+                    <td class="points-heading">Form 5 Best-Six Points</td>
+
+                    @foreach (['midterm' => 'Midterm', 'endterm' => 'Endterm'] as $examKey => $examLabel)
+                        @php($points = $formFivePoints[$examKey])
+                        <td class="points-result">
+                            <div class="points-label">{{ $examLabel }}</div>
+                            <div class="points-value {{ $points['complete'] ? '' : 'pending' }}">
+                                {{ $points['display'] }}
+                            </div>
+                            @if (!$points['complete'])
+                                <div class="points-missing">Missing: {{ implode(', ', $points['missing']) }}</div>
+                            @endif
+                        </td>
+                    @endforeach
+
+                    <td class="points-rule">
+                        <strong>Maximum: 48 points.</strong><br>
+                        English (EFL/ESL) and Mathematics (MaC/MaE) are compulsory, plus the best four other subjects.
+                    </td>
+                </tr>
+            </table>
+        </div>
+    @endif
 
     <div class="section-title">Academic Summary</div>
 
@@ -315,14 +408,14 @@
 
     <div class="grade-scale">
         <strong>Grade Scale:</strong>
-        <span><strong>A*</strong> 90–100</span>
-        <span><strong>A</strong> 80–89</span>
-        <span><strong>B</strong> 70–79</span>
-        <span><strong>C</strong> 60–69</span>
-        <span><strong>D</strong> 50–59</span>
-        <span><strong>E</strong> 40–49</span>
-        <span><strong>F</strong> 35–39</span>
-        <span><strong>G</strong> Below 35</span>
+        <span><strong>A*</strong> &gt;89 to 100</span>
+        <span><strong>A</strong> &gt;79 to 89</span>
+        <span><strong>B</strong> &gt;69 to 79</span>
+        <span><strong>C</strong> &gt;59 to 69</span>
+        <span><strong>D</strong> &gt;49 to 59</span>
+        <span><strong>E</strong> &gt;39 to 49</span>
+        <span><strong>F</strong> &gt;34 to 39</span>
+        <span><strong>G</strong> 0 to 34</span>
     </div>
 
 </div>

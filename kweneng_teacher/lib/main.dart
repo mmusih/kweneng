@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'providers/app_providers.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/login_screen.dart';
 
 void main() {
@@ -25,7 +26,9 @@ class KwenengTeacherApp extends ConsumerWidget {
       home: auth.isLoading
           ? const _StartupScreen()
           : auth.isAuthenticated
-          ? const TeacherDashboardScreen()
+          ? auth.user?.mustChangePassword == true
+                ? const TeacherChangePasswordScreen(isRequired: true)
+                : const TeacherDashboardScreen()
           : const TeacherLoginScreen(),
     );
   }

@@ -11,19 +11,20 @@ class AcademicYear extends Model
 
     // Define constants for status values
     const STATUS_OPEN = 'open';
+
     const STATUS_LOCKED = 'locked';
+
     const STATUS_CLOSED = 'closed';
-    
+
     protected $fillable = [
         'year_name',
         'active',
-        'status'
+        'status',
     ];
 
     protected $casts = [
         'active' => 'boolean',
     ];
-
 
     public function scopeActive($query)
     {
@@ -50,23 +51,33 @@ class AcademicYear extends Model
     {
         return $this->hasMany(StudentClassHistory::class);
     }
-    
+
+    public function awardRuns()
+    {
+        return $this->hasMany(AwardRun::class);
+    }
+
+    public function prefectAppointments()
+    {
+        return $this->hasMany(PrefectAppointment::class);
+    }
+
     // Helper methods
     public function isOpen(): bool
     {
         return $this->status === self::STATUS_OPEN;
     }
-    
+
     public function isLocked(): bool
     {
         return $this->status === self::STATUS_LOCKED;
     }
-    
+
     public function isClosed(): bool
     {
         return $this->status === self::STATUS_CLOSED;
     }
-    
+
     public function isActive(): bool
     {
         return $this->active;

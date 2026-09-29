@@ -3,78 +3,83 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\MarksService;
-use App\Models\Mark;
-use App\Models\ClassModel;
-use App\Models\Subject;
 use App\Models\AcademicYear;
-use App\Models\Term;
-use App\Models\Teacher;
+use App\Models\ClassModel;
+use App\Models\Mark;
 use App\Models\Student;
 use App\Models\StudentSubject;
+use App\Models\Subject;
+use App\Models\Teacher;
+use App\Models\Term;
+use App\Services\MarksService;
+use App\Services\MarksMonitoringService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 class MarksController extends Controller
 {
-    protected $marksService;
-
-    public function __construct(MarksService $marksService)
-    {
-        $this->marksService = $marksService;
-    }
+    public function __construct(
+        protected MarksService $marksService,
+        private readonly MarksMonitoringService $marksMonitoring
+    ) {}
 
     public function index(Request $request)
     {
         $activeAcademicYear = AcademicYear::current();
-        $activeTerm = $activeAcademicYear ? Term::current($activeAcademicYear->id) : null;
-        $selectedAcademicYearId = $request->input('academic_year_id', $activeAcademicYear?->id);
-        $selectedTermId = $request->input('term_id', $activeTerm?->id);
+        $selectedAcademicYearId = (int) ($request->input('academic_year_id') ?: $activeAcademicYear?->id);
+        $terms = $selectedAcademicYearId
+            ? Term::where('academic_year_id', $selectedAcademicYearId)->orderBy('start_date')->get()
+            : collect();
+        $requestedTermId = (int) $request->input('term_id');
+        $selectedTermId = $terms->contains('id', $requestedTermId)
+            ? $requestedTermId
+            : (Term::current($selectedAcademicYearId)?->id ?? $terms->sortByDesc('start_date')->first()?->id);
+        $activeTerm = $selectedTermId ? $terms->firstWhere('id', $selectedTermId) : null;
+        $classId = $request->input('class_id');
+        $subjectId = $request->input('subject_id');
+        $teacherId = $request->input('teacher_id');
+        $search = trim((string) $request->input('search', ''));
+        $requestedAssessment = $request->input('assessment');
+        $assessment = in_array($requestedAssessment, ['midterm', 'endterm'], true)
+            ? $requestedAssessment
+            : ($selectedAcademicYearId && $selectedTermId
+                ? $this->marksMonitoring->defaultAssessment($selectedAcademicYearId, $selectedTermId)
+                : 'midterm');
 
-        $query = Mark::with(['student.user', 'subject', 'class', 'teacher.user', 'academicYear', 'term']);
-
-        if ($selectedAcademicYearId) {
-            $query->where('academic_year_id', $selectedAcademicYearId);
-        }
-
-        if ($selectedTermId) {
-            $query->where('term_id', $selectedTermId);
-        }
-
-        if ($request->filled('class_id')) {
-            $query->where('class_id', $request->class_id);
-        }
-
-        if ($request->filled('subject_id')) {
-            $query->where('subject_id', $request->subject_id);
-        }
-
-        if ($request->filled('student_id')) {
-            $query->where('student_id', $request->student_id);
-        }
-
-        if ($request->filled('teacher_id')) {
-            $query->where('teacher_id', $request->teacher_id);
-        }
-
-        $marks = $query->latest()->paginate(50)->appends($request->query());
-
-        $academicYears = AcademicYear::all();
-        $classes = ClassModel::all();
-        $subjects = Subject::all();
-        $teachers = Teacher::with('user')->get();
-
-        $marksImportPreview = session('marks_import_preview');
+        $academicYears = AcademicYear::orderByDesc('id')->get();
+        $classes = ClassModel::query()
+            ->when($selectedAcademicYearId, fn ($query) => $query->where('academic_year_id', $selectedAcademicYearId))
+            ->orderBy('level')->orderBy('name')->get();
+        $subjects = Subject::orderBy('name')->get();
+        $teachers = Teacher::with('user')
+            ->whereHas('teacherSubjects', fn ($query) => $query->where('academic_year_id', $selectedAcademicYearId))
+            ->get()->sortBy(fn ($teacher) => $teacher->user?->name)->values();
+        $monitor = $selectedAcademicYearId && $selectedTermId
+            ? $this->marksMonitoring->build($selectedAcademicYearId, $selectedTermId, $assessment, [
+                'class_id' => $classId,
+                'subject_id' => $subjectId,
+                'teacher_id' => $teacherId,
+                'search' => $search,
+            ])
+            : ['teachersData' => [], 'summary' => $this->emptyMonitoringSummary()];
+        $teachersData = $monitor['teachersData'];
+        $summary = $monitor['summary'];
 
         return view('admin.marks.index', compact(
-            'marks',
+            'teachersData',
+            'summary',
             'academicYears',
             'classes',
             'subjects',
             'teachers',
-            'marksImportPreview',
+            'terms',
+            'assessment',
+            'classId',
+            'subjectId',
+            'teacherId',
+            'search',
             'activeAcademicYear',
             'activeTerm',
             'selectedAcademicYearId',
@@ -82,17 +87,146 @@ class MarksController extends Controller
         ));
     }
 
+    private function emptyMonitoringSummary(): array
+    {
+        return [
+            'teachers' => 0, 'complete_teachers' => 0, 'incomplete_teachers' => 0,
+            'assignments' => 0, 'complete_assignments' => 0, 'expected' => 0,
+            'completed' => 0, 'missing' => 0, 'progress' => null, 'critical_teachers' => 0,
+        ];
+    }
+
     public function show($id)
     {
         $mark = Mark::with(['student.user', 'subject', 'class', 'teacher.user', 'academicYear', 'term'])->findOrFail($id);
+
         return view('admin.marks.show', compact('mark'));
+    }
+
+    public function editGroup(Request $request)
+    {
+        $data = $request->validate([
+            'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'teacher_id' => ['required', 'integer', 'exists:teachers,id'],
+        ]);
+
+        $term = Term::whereKey($data['term_id'])
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->firstOrFail();
+        $class = ClassModel::whereKey($data['class_id'])
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->firstOrFail();
+        $subject = Subject::findOrFail($data['subject_id']);
+        $teacher = Teacher::with('user')->findOrFail($data['teacher_id']);
+
+        $studentAssignments = StudentSubject::with('student.user')
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->where('class_id', $data['class_id'])
+            ->where('subject_id', $data['subject_id'])
+            ->where('teacher_id', $data['teacher_id'])
+            ->whereHas('student.classHistory', function ($query) use ($data) {
+                $query->where('academic_year_id', $data['academic_year_id'])
+                    ->where('class_id', $data['class_id'])
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
+            ->get()
+            ->unique('student_id')
+            ->sortBy(fn ($assignment) => $assignment->student?->user?->name)
+            ->values();
+
+        $marks = Mark::where('academic_year_id', $data['academic_year_id'])
+            ->where('term_id', $data['term_id'])
+            ->where('class_id', $data['class_id'])
+            ->where('subject_id', $data['subject_id'])
+            ->whereIn('student_id', $studentAssignments->pluck('student_id'))
+            ->get()
+            ->keyBy('student_id');
+
+        return view('admin.marks.group-edit', compact(
+            'term', 'class', 'subject', 'teacher', 'studentAssignments', 'marks', 'data'
+        ));
+    }
+
+    public function updateGroup(Request $request)
+    {
+        $data = $request->validate([
+            'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'teacher_id' => ['required', 'integer', 'exists:teachers,id'],
+            'marks' => ['required', 'array'],
+            'marks.*.midterm' => ['nullable', 'numeric', 'between:0,100'],
+            'marks.*.endterm' => ['nullable', 'numeric', 'between:0,100'],
+            'marks.*.remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $term = Term::whereKey($data['term_id'])
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->firstOrFail();
+        ClassModel::whereKey($data['class_id'])
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->firstOrFail();
+
+        $allowedStudentIds = StudentSubject::query()
+            ->where('academic_year_id', $data['academic_year_id'])
+            ->where('class_id', $data['class_id'])
+            ->where('subject_id', $data['subject_id'])
+            ->where('teacher_id', $data['teacher_id'])
+            ->whereHas('student.classHistory', function ($query) use ($data) {
+                $query->where('academic_year_id', $data['academic_year_id'])
+                    ->where('class_id', $data['class_id'])
+                    ->where('status', 'active')
+                    ->whereNull('exited_at');
+            })
+            ->pluck('student_id')
+            ->map(fn ($id) => (int) $id);
+        $submittedStudentIds = collect(array_keys($data['marks']))->map(fn ($id) => (int) $id);
+
+        if ($submittedStudentIds->diff($allowedStudentIds)->isNotEmpty()) {
+            return back()->withErrors(['marks' => 'The learner list changed. Reload the page and try again.']);
+        }
+
+        $rows = $submittedStudentIds->map(function (int $studentId) use ($data, $request) {
+            $scores = $data['marks'][$studentId] ?? [];
+
+            return [
+                'student_id' => $studentId,
+                'subject_id' => (int) $data['subject_id'],
+                'class_id' => (int) $data['class_id'],
+                'teacher_id' => (int) $data['teacher_id'],
+                'academic_year_id' => (int) $data['academic_year_id'],
+                'term_id' => (int) $data['term_id'],
+                'midterm_score' => $scores['midterm'] ?? null,
+                'endterm_score' => $scores['endterm'] ?? null,
+                'remarks' => $scores['remarks'] ?? null,
+            ];
+        })->all();
+
+        $result = $this->marksService->bulkUpsertMarks($rows);
+
+        if (! $result['success']) {
+            return back()->withErrors(['marks' => $result['message'] ?? 'Marks could not be saved.'])->withInput();
+        }
+
+        return redirect()->route('admin.marks.group.edit', [
+            'academic_year_id' => $data['academic_year_id'],
+            'term_id' => $term->id,
+            'class_id' => $data['class_id'],
+            'subject_id' => $data['subject_id'],
+            'teacher_id' => $data['teacher_id'],
+        ])->with('success', 'Marks saved successfully.');
     }
 
     public function edit($id)
     {
         $mark = Mark::findOrFail($id);
 
-        if (!Gate::allows('override', $mark)) {
+        if (! Gate::allows('override', $mark)) {
             abort(403);
         }
 
@@ -103,22 +237,23 @@ class MarksController extends Controller
     {
         $mark = Mark::findOrFail($id);
 
-        if (!Gate::allows('override', $mark)) {
+        if (! Gate::allows('override', $mark)) {
             abort(403);
         }
 
         $validated = $request->validate([
             'midterm_score' => 'nullable|numeric|min:0|max:100',
             'endterm_score' => 'nullable|numeric|min:0|max:100',
-            'grade' => 'nullable|string|max:10',
             'remarks' => 'nullable|string|max:500',
         ]);
 
-        if (isset($validated['midterm_score']) || isset($validated['endterm_score'])) {
-            $midterm = $validated['midterm_score'] ?? $mark->midterm_score;
-            $endterm = $validated['endterm_score'] ?? $mark->endterm_score;
-            $validated['grade'] = $this->calculateGradeForMark($midterm, $endterm);
-        }
+        $midterm = array_key_exists('midterm_score', $validated)
+            ? $validated['midterm_score']
+            : $mark->midterm_score;
+        $endterm = array_key_exists('endterm_score', $validated)
+            ? $validated['endterm_score']
+            : $mark->endterm_score;
+        $validated['grade'] = $this->calculateGradeForMark($midterm, $endterm);
 
         $mark->update($validated);
 
@@ -129,7 +264,7 @@ class MarksController extends Controller
     {
         $mark = Mark::findOrFail($id);
 
-        if (!Gate::allows('delete', $mark)) {
+        if (! Gate::allows('delete', $mark)) {
             abort(403);
         }
 
@@ -202,29 +337,31 @@ class MarksController extends Controller
             foreach ($csv['rows'] as $rowIndex => $row) {
                 $rowNumber = $rowIndex + 2;
 
-                if (!$this->rowMatchesSelectedClass($row['class'], $class->name)) {
+                if (! $this->rowMatchesSelectedClass($row['class'], $class->name)) {
                     $issues[] = [
                         'type' => 'class_mismatch',
                         'row_number' => $rowNumber,
                         'message' => "CSV row class '{$row['class']}' does not match selected class '{$class->name}'.",
                     ];
+
                     continue;
                 }
 
                 $student = $this->findStudentFromCsvRow($row['surname'], $row['name'], $studentLookup, $classStudents);
 
-                if (!$student) {
+                if (! $student) {
                     $issues[] = [
                         'type' => 'student_not_found',
                         'row_number' => $rowNumber,
                         'message' => "No student match found for {$row['surname']}, {$row['name']}.",
                     ];
+
                     continue;
                 }
 
                 $studentKey = (string) $student->id;
 
-                if (!isset($groupedByStudent[$studentKey])) {
+                if (! isset($groupedByStudent[$studentKey])) {
                     $groupedByStudent[$studentKey] = [
                         'student_id' => $student->id,
                         'student_name' => $student->user->name ?? 'Unknown Student',
@@ -239,8 +376,9 @@ class MarksController extends Controller
                 foreach ($row['subjects'] as $csvCode => $cell) {
                     $normalizedCode = $this->normalizeSubjectCode($csvCode);
 
-                    if (!isset($subjectLookup[$normalizedCode])) {
+                    if (! isset($subjectLookup[$normalizedCode])) {
                         $unknownSubjectCodes[$csvCode] = true;
+
                         continue;
                     }
 
@@ -257,12 +395,13 @@ class MarksController extends Controller
                         $validated['academic_year_id']
                     );
 
-                    if (!$teacherId) {
+                    if (! $teacherId) {
                         $issues[] = [
                             'type' => 'teacher_not_resolved',
                             'row_number' => $rowNumber,
                             'message' => "Could not resolve teacher for {$student->user->name} - {$subject->code}.",
                         ];
+
                         continue;
                     }
 
@@ -272,13 +411,13 @@ class MarksController extends Controller
                         'subject_name' => $subject->name,
                         'teacher_id' => $teacherId,
                         'score' => $score,
-                        'grade' => $this->normalizeGrade($cell['grade']),
+                        'grade' => $this->marksService->calculateGrade($score),
                     ];
                 }
             }
 
             $groupedPreview = array_values(array_filter($groupedByStudent, function ($studentRow) {
-                return !empty($studentRow['subjects']);
+                return ! empty($studentRow['subjects']);
             }));
 
             session([
@@ -294,10 +433,10 @@ class MarksController extends Controller
                     ],
                     'students' => $groupedPreview,
                     'matched_students_count' => count($groupedPreview),
-                    'matched_cells_count' => collect($groupedPreview)->sum(fn($item) => count($item['subjects'])),
+                    'matched_cells_count' => collect($groupedPreview)->sum(fn ($item) => count($item['subjects'])),
                     'unknown_subject_codes' => array_keys($unknownSubjectCodes),
                     'issues' => $issues,
-                ]
+                ],
             ]);
 
             return redirect()->route('admin.marks.index', [
@@ -306,7 +445,7 @@ class MarksController extends Controller
                 'class_id' => $class->id,
             ])->with('success', 'CSV preview generated successfully.');
         } catch (\Exception $e) {
-            Log::error('Marks CSV preview failed: ' . $e->getMessage());
+            Log::error('Marks CSV preview failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['csv_file' => 'Failed to preview CSV import. Please check the file and try again.'])
@@ -325,7 +464,7 @@ class MarksController extends Controller
 
         $preview = session('marks_import_preview');
 
-        if (!$preview || empty($preview['students'])) {
+        if (! $preview || empty($preview['students'])) {
             return redirect()->back()->withErrors([
                 'csv_file' => 'No valid preview data found. Preview the CSV again before applying.',
             ]);
@@ -361,11 +500,7 @@ class MarksController extends Controller
                             $mark->endterm_score = $subjectRow['score'];
                         }
 
-                        if (!empty($subjectRow['grade'])) {
-                            $mark->grade = $subjectRow['grade'];
-                        } else {
-                            $mark->grade = $this->calculateGradeForMark($mark->midterm_score, $mark->endterm_score);
-                        }
+                        $mark->grade = $this->calculateGradeForMark($mark->midterm_score, $mark->endterm_score);
 
                         $mark->save();
                     }
@@ -380,7 +515,7 @@ class MarksController extends Controller
                 'class_id' => $validated['class_id'],
             ])->with('success', 'Marks imported successfully from CSV.');
         } catch (\Exception $e) {
-            Log::error('Marks CSV apply failed: ' . $e->getMessage());
+            Log::error('Marks CSV apply failed: '.$e->getMessage());
 
             return redirect()->back()->withErrors([
                 'csv_file' => 'Failed to apply CSV import. Please try again.',
@@ -419,17 +554,17 @@ class MarksController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->whereHas('student.user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', '%' . $search . '%');
+                    $userQuery->where('name', 'like', '%'.$search.'%');
                 })
                     ->orWhereHas('student', function ($studentQuery) use ($search) {
-                        $studentQuery->where('admission_no', 'like', '%' . $search . '%');
+                        $studentQuery->where('admission_no', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('subject', function ($subjectQuery) use ($search) {
-                        $subjectQuery->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('code', 'like', '%' . $search . '%');
+                        $subjectQuery->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('code', 'like', '%'.$search.'%');
                     })
                     ->orWhereHas('teacher.user', function ($teacherQuery) use ($search) {
-                        $teacherQuery->where('name', 'like', '%' . $search . '%');
+                        $teacherQuery->where('name', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -481,7 +616,7 @@ class MarksController extends Controller
                 ->where('academic_year_id', $validated['academic_year_id'])
                 ->exists();
 
-            if (!$teacherAssigned) {
+            if (! $teacherAssigned) {
                 return redirect()->back()
                     ->withErrors([
                         'teacher_id' => 'The selected teacher is not assigned to this subject for this class and academic year.',
@@ -490,7 +625,7 @@ class MarksController extends Controller
             }
 
             $selectedStudentIds = collect($validated['student_ids'])
-                ->map(fn($id) => (int) $id)
+                ->map(fn ($id) => (int) $id)
                 ->values()
                 ->all();
 
@@ -500,7 +635,7 @@ class MarksController extends Controller
                 (int) $validated['academic_year_id']
             );
 
-            if (!empty($invalidStudentIds)) {
+            if (! empty($invalidStudentIds)) {
                 return redirect()->back()
                     ->withErrors([
                         'student_ids' => 'One or more selected learners are not active in the selected class and academic year.',
@@ -525,7 +660,7 @@ class MarksController extends Controller
                 'is_elective' => $request->boolean('is_elective') ? 1 : 0,
             ])->with('success', 'Student subject assignments saved successfully.');
         } catch (\Exception $e) {
-            Log::error('Student subject assignment failed: ' . $e->getMessage());
+            Log::error('Student subject assignment failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to save assignments. Please try again.'])
@@ -552,7 +687,7 @@ class MarksController extends Controller
                 ->where('academic_year_id', $validated['academic_year_id'])
                 ->exists();
 
-            if (!$teacherAssigned) {
+            if (! $teacherAssigned) {
                 return redirect()->back()
                     ->withErrors([
                         'teacher_id' => 'The selected teacher is not assigned to this subject for this class and academic year.',
@@ -592,6 +727,7 @@ class MarksController extends Controller
                 if (count($exactMatches) === 1) {
                     $student = $exactMatches[0];
                     $matched[] = $this->buildPreviewMatchRow($student, $csvSurname, $csvGivenNames, 'Exact', 100);
+
                     continue;
                 }
 
@@ -602,6 +738,7 @@ class MarksController extends Controller
                         'name' => $csvGivenNames,
                         'reason' => 'Multiple students matched this name exactly.',
                     ];
+
                     continue;
                 }
 
@@ -639,6 +776,7 @@ class MarksController extends Controller
                 $row['already_with_selected_teacher'] = $assignment
                     ? (int) $assignment->teacher_id === (int) $validated['teacher_id']
                     : false;
+
                 return $row;
             })->values()->all();
 
@@ -648,7 +786,7 @@ class MarksController extends Controller
                 'subject_id' => $validated['subject_id'],
                 'teacher_id' => $validated['teacher_id'],
                 'is_elective' => $request->boolean('is_elective') ? 1 : 0,
-            ])->with('success', count($matched) . ' row(s) matched in preview.')
+            ])->with('success', count($matched).' row(s) matched in preview.')
                 ->with('student_subject_import_preview', [
                     'context' => [
                         'academic_year_id' => $validated['academic_year_id'],
@@ -661,7 +799,7 @@ class MarksController extends Controller
                     'unmatched' => $unmatched,
                 ]);
         } catch (\Exception $e) {
-            Log::error('Student subject CSV preview failed: ' . $e->getMessage());
+            Log::error('Student subject CSV preview failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['csv_file' => 'Failed to preview CSV import. Please check the file format and try again.'])
@@ -689,14 +827,14 @@ class MarksController extends Controller
                 ->where('academic_year_id', $validated['academic_year_id'])
                 ->exists();
 
-            if (!$teacherAssigned) {
+            if (! $teacherAssigned) {
                 return redirect()->back()
                     ->withErrors([
                         'teacher_id' => 'The selected teacher is not assigned to this subject for this class and academic year.',
                     ]);
             }
 
-            $studentIds = collect($validated['student_ids'])->map(fn($id) => (int) $id)->values()->all();
+            $studentIds = collect($validated['student_ids'])->map(fn ($id) => (int) $id)->values()->all();
 
             $invalidStudentIds = $this->invalidStudentIdsForClassYear(
                 $studentIds,
@@ -704,7 +842,7 @@ class MarksController extends Controller
                 (int) $validated['academic_year_id']
             );
 
-            if (!empty($invalidStudentIds)) {
+            if (! empty($invalidStudentIds)) {
                 return redirect()->back()
                     ->withErrors([
                         'student_ids' => 'One or more imported learners are not active in the selected class and academic year.',
@@ -728,7 +866,7 @@ class MarksController extends Controller
                 'is_elective' => $request->boolean('is_elective') ? 1 : 0,
             ])->with('success', 'CSV import applied successfully.');
         } catch (\Exception $e) {
-            Log::error('Student subject CSV apply failed: ' . $e->getMessage());
+            Log::error('Student subject CSV apply failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to apply CSV import. Please try again.']);
@@ -749,7 +887,7 @@ class MarksController extends Controller
                 'page',
             ]))->with('success', 'Assignment removed successfully.');
         } catch (\Exception $e) {
-            Log::error('Student subject removal failed: ' . $e->getMessage());
+            Log::error('Student subject removal failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to remove assignment. Please try again.']);
@@ -768,7 +906,7 @@ class MarksController extends Controller
 
         try {
             $assignmentIds = collect($validated['assignment_ids'])
-                ->map(fn($id) => (int) $id)
+                ->map(fn ($id) => (int) $id)
                 ->unique()
                 ->values()
                 ->all();
@@ -784,9 +922,9 @@ class MarksController extends Controller
                 'teacher_id',
                 'search',
                 'page',
-            ]))->with('success', count($assignmentIds) . ' assignments removed successfully.');
+            ]))->with('success', count($assignmentIds).' assignments removed successfully.');
         } catch (\Exception $e) {
-            Log::error('Student subject bulk removal failed: ' . $e->getMessage());
+            Log::error('Student subject bulk removal failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to remove selected assignments. Please try again.']);
@@ -795,7 +933,7 @@ class MarksController extends Controller
 
     public function getClassesByAcademicYear($academicYearId)
     {
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
@@ -806,18 +944,19 @@ class MarksController extends Controller
 
             return response()->json($classes);
         } catch (\Exception $e) {
-            Log::error('Failed to load classes: ' . $e->getMessage());
+            Log::error('Failed to load classes: '.$e->getMessage());
+
             return response()->json(['error' => 'Failed to load classes'], 500);
         }
     }
 
     public function getStudentsByClass($classId, $academicYearId)
     {
-        if (!ClassModel::find($classId)) {
+        if (! ClassModel::find($classId)) {
             return response()->json(['error' => 'Invalid class'], 404);
         }
 
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
@@ -854,11 +993,11 @@ class MarksController extends Controller
 
     public function getSubjectsByClass($classId, $academicYearId)
     {
-        if (!ClassModel::find($classId)) {
+        if (! ClassModel::find($classId)) {
             return response()->json(['error' => 'Invalid class'], 404);
         }
 
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
@@ -870,22 +1009,23 @@ class MarksController extends Controller
 
             return response()->json($subjects);
         } catch (\Exception $e) {
-            Log::error('Failed to load subjects: ' . $e->getMessage());
+            Log::error('Failed to load subjects: '.$e->getMessage());
+
             return response()->json(['error' => 'Failed to load subjects'], 500);
         }
     }
 
     public function getTeachersBySubject($classId, $subjectId, $academicYearId)
     {
-        if (!ClassModel::find($classId)) {
+        if (! ClassModel::find($classId)) {
             return response()->json(['error' => 'Invalid class'], 404);
         }
 
-        if (!Subject::find($subjectId)) {
+        if (! Subject::find($subjectId)) {
             return response()->json(['error' => 'Invalid subject'], 404);
         }
 
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
@@ -902,26 +1042,27 @@ class MarksController extends Controller
 
             return response()->json($teachers);
         } catch (\Exception $e) {
-            Log::error('Failed to load teachers: ' . $e->getMessage());
+            Log::error('Failed to load teachers: '.$e->getMessage());
+
             return response()->json(['error' => 'Failed to load teachers'], 500);
         }
     }
 
     public function getStudentsForSubjectTeacher($classId, $academicYearId, $subjectId, $teacherId)
     {
-        if (!ClassModel::find($classId)) {
+        if (! ClassModel::find($classId)) {
             return response()->json(['error' => 'Invalid class'], 404);
         }
 
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
-        if (!Subject::find($subjectId)) {
+        if (! Subject::find($subjectId)) {
             return response()->json(['error' => 'Invalid subject'], 404);
         }
 
-        if (!Teacher::find($teacherId)) {
+        if (! Teacher::find($teacherId)) {
             return response()->json(['error' => 'Invalid teacher'], 404);
         }
 
@@ -960,14 +1101,15 @@ class MarksController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
-            Log::error('Failed to load assignment students: ' . $e->getMessage());
+            Log::error('Failed to load assignment students: '.$e->getMessage());
+
             return response()->json(['error' => 'Failed to load assignment students'], 500);
         }
     }
 
     public function getTermsByAcademicYear($academicYearId)
     {
-        if (!AcademicYear::find($academicYearId)) {
+        if (! AcademicYear::find($academicYearId)) {
             return response()->json(['error' => 'Invalid academic year'], 404);
         }
 
@@ -978,7 +1120,8 @@ class MarksController extends Controller
 
             return response()->json($terms);
         } catch (\Exception $e) {
-            Log::error('Failed to load terms: ' . $e->getMessage());
+            Log::error('Failed to load terms: '.$e->getMessage());
+
             return response()->json(['error' => 'Failed to load terms'], 500);
         }
     }
@@ -1051,7 +1194,7 @@ class MarksController extends Controller
                 ];
             }
 
-            if (!empty($rows)) {
+            if (! empty($rows)) {
                 DB::table('student_subjects')->upsert(
                     $rows,
                     ['student_id', 'subject_id', 'teacher_id', 'academic_year_id'],
@@ -1071,12 +1214,12 @@ class MarksController extends Controller
         }
 
         $header = fgetcsv($handle);
-        if (!$header) {
+        if (! $header) {
             fclose($handle);
             throw new \RuntimeException('CSV file is empty.');
         }
 
-        $normalizedHeader = array_map(fn($item) => strtolower(trim((string) $item)), $header);
+        $normalizedHeader = array_map(fn ($item) => strtolower(trim((string) $item)), $header);
 
         $surnameIndex = array_search('surname', $normalizedHeader);
         $nameIndex = array_search('name', $normalizedHeader);
@@ -1121,13 +1264,14 @@ class MarksController extends Controller
 
     private function buildNameKey(string $surname, string $givenNames): string
     {
-        return $this->normalizeNamePart($surname) . '|' . $this->normalizeNamePart($givenNames);
+        return $this->normalizeNamePart($surname).'|'.$this->normalizeNamePart($givenNames);
     }
 
     private function normalizeNamePart(string $value): string
     {
         $value = mb_strtolower($this->normalizeWhitespace($value));
         $value = preg_replace('/[^a-z0-9 ]/u', '', $value) ?? $value;
+
         return trim($value);
     }
 
@@ -1191,13 +1335,13 @@ class MarksController extends Controller
         }
 
         $header = fgetcsv($handle);
-        if (!$header) {
+        if (! $header) {
             fclose($handle);
             throw new \RuntimeException('CSV file is empty.');
         }
 
-        $header = array_map(fn($item) => trim((string) $item), $header);
-        $normalized = array_map(fn($item) => strtolower(trim((string) $item)), $header);
+        $header = array_map(fn ($item) => trim((string) $item), $header);
+        $normalized = array_map(fn ($item) => strtolower(trim((string) $item)), $header);
 
         $surnameIndex = array_search('surname', $normalized);
         $nameIndex = array_search('name', $normalized);
@@ -1370,6 +1514,7 @@ class MarksController extends Controller
         $value = strtoupper(trim($value));
         $value = str_replace('FORM', '', $value);
         $value = preg_replace('/\s+/', '', $value) ?? $value;
+
         return trim($value);
     }
 
@@ -1434,7 +1579,7 @@ class MarksController extends Controller
             return null;
         }
 
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return null;
         }
 
@@ -1447,24 +1592,11 @@ class MarksController extends Controller
         return $score;
     }
 
-    private function normalizeGrade(?string $value): ?string
-    {
-        $value = strtoupper(trim((string) $value));
-        return $value === '' ? null : $value;
-    }
-
     private function calculateGradeForMark($midterm, $endterm): ?string
     {
-        if ($midterm === null && $endterm === null) {
-            return null;
-        }
-
-        if ($midterm !== null && $endterm !== null) {
-            $average = ((float) $midterm + (float) $endterm) / 2;
-            return $this->marksService->calculateGrade($average);
-        }
-
-        $singleScore = $midterm ?? $endterm;
-        return $singleScore !== null ? $this->marksService->calculateGrade((float) $singleScore) : null;
+        return $this->marksService->calculateGradeForScores(
+            $midterm !== null ? (float) $midterm : null,
+            $endterm !== null ? (float) $endterm : null,
+        );
     }
 }

@@ -447,6 +447,87 @@ class GridController extends Controller
         return response()->json(['message' => 'Lesson duplicated into the tray.'] + $this->refreshed($setting));
     }
 
+    /** Explicitly change timetable demand, keeping every placed card intact. */
+    public function updateRequiredCount(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['required', 'integer', 'exists:tt_settings,id'],
+            'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
+            'required' => ['required', 'integer', 'min:0', 'max:40'],
+            'version' => ['required', 'integer'],
+            'expected_required' => ['required', 'integer'],
+            'expected_placed' => ['required', 'integer'],
+        ]);
+        $setting = $this->setting($request);
+        DB::transaction(function () use ($setting, $data) {
+            $current = Setting::whereKey($setting->id)->lockForUpdate()->firstOrFail();
+            $stack = collect($this->payload->build($current)['requirements'])
+                ->first(fn ($item) => in_array((int) $data['lesson_id'], $item['lesson_ids'], true));
+            if (!$stack || $current->preparation_version != $data['version']
+                || $stack['required'] !== $data['expected_required'] || $stack['placed'] !== $data['expected_placed']) {
+                throw ValidationException::withMessages(['required' => 'This timetable changed. Close this dialog and refresh before changing the count.']);
+            }
+            if ($data['required'] < $stack['placed']) {
+                throw ValidationException::withMessages(['required' => 'The required count cannot be less than the number already placed. Return cards to the tray first.']);
+            }
+            if ($stack['split_key']) {
+                throw ValidationException::withMessages(['required' => 'Adjust linked split counts together in the assignment editor.']);
+            }
+            $lessons = Lesson::with(['cards', 'teachers', 'classes', 'groups', 'rooms'])->whereIn('id', $stack['lesson_ids'])->lockForUpdate()->get();
+            $delta = $data['required'] - $stack['required'];
+            if ($delta > 0) {
+                $source = $lessons->first();
+                foreach ($source->classes as $class) {
+                    foreach ($source->teachers as $teacher) {
+                        $periods = Lesson::where('tt_setting_id', $current->id)->where('subject_id', $source->subject_id)
+                            ->whereHas('classes', fn ($query) => $query->where('classes.id', $class->id))
+                            ->whereHas('teachers', fn ($query) => $query->where('teachers.id', $teacher->id))
+                            ->get()->sum(fn ($lesson) => $lesson->cardsRequired() * $lesson->periods_per_card);
+                        if ($periods + $delta * $source->periods_per_card > 40) {
+                            throw ValidationException::withMessages(['required' => 'An assignment can use at most 40 periods per cycle, including its other lesson cards.']);
+                        }
+                    }
+                }
+            }
+            if ($delta < 0) {
+                $remaining = -$delta;
+                foreach ($lessons as $lesson) {
+                    $take = min($remaining, $this->placement->unplacedCount($lesson));
+                    if (!$take) continue;
+                    $count = $lesson->cardsRequired() - $take;
+                    $lesson->update(['cards_per_cycle' => $count, 'periods_per_week' => $count * $lesson->periods_per_card]);
+                    $remaining -= $take;
+                }
+            } elseif ($delta > 0) {
+                $source = $lessons->first();
+                if ($source->preparation_key === null) {
+                    $count = $source->cardsRequired() + $delta;
+                    $source->update(['cards_per_cycle' => $count, 'periods_per_week' => $count * $source->periods_per_card]);
+                } else {
+                    foreach ($lessons->filter(fn ($lesson) => $lesson->cardsRequired() === 0) as $lesson) {
+                        if (!$delta) break;
+                        $lesson->update(['cards_per_cycle' => 1, 'periods_per_week' => $lesson->periods_per_card]);
+                        --$delta;
+                    }
+                    while ($delta-- > 0) {
+                        $copy = $source->replicate();
+                        $copy->preparation_key = (string) \Illuminate\Support\Str::uuid();
+                        $copy->cards_per_cycle = 1;
+                        $copy->periods_per_week = $source->periods_per_card;
+                        $copy->save();
+                        $copy->teachers()->sync($source->teachers->modelKeys());
+                        $copy->classes()->sync($source->classes->modelKeys());
+                        $copy->groups()->sync($source->groups->modelKeys());
+                        $copy->rooms()->sync($source->rooms->mapWithKeys(fn ($room) => [$room->id => ['sort_order' => $room->pivot->sort_order]])->all());
+                    }
+                }
+            }
+            $current->increment('preparation_version');
+        });
+
+        return response()->json(['message' => 'Required count updated. Placed cards and teaching assignments are unchanged.'] + $this->refreshed($setting->fresh()));
+    }
+
     /** Delete a lesson and all of its placed cards. */
     public function destroyLesson(Request $request): JsonResponse
     {

@@ -9,10 +9,17 @@ use App\Models\Homework;
 use App\Models\ParentAbsenceNotice;
 use App\Models\TeacherSubject;
 use App\Models\Term;
+use App\Services\Timetable\TeacherLoadService;
+use App\Services\Timetable\TimetableDayService;
 use Illuminate\Http\Request;
 
 class TeacherDashboardController extends Controller
 {
+    public function __construct(
+        private readonly TeacherLoadService $loads,
+        private readonly TimetableDayService $days,
+    ) {}
+
     public function index(Request $request)
     {
         $teacher = $request->user()->teacher;
@@ -46,6 +53,7 @@ class TeacherDashboardController extends Controller
         $classTeacherClassIds = $classTeacherClasses->pluck('id');
 
         return response()->json([
+            'day_label' => $this->days->label(),
             'teacher' => [
                 'id' => $teacher->id,
                 'name' => $request->user()->name,
@@ -94,6 +102,7 @@ class TeacherDashboardController extends Controller
                     ->whereHas('student', fn ($query) => $query->whereIn('current_class_id', $classTeacherClassIds))
                     ->count(),
             ],
+            'teaching_load' => $this->loads->forTeacher($teacher, $academicYear?->id),
         ]);
     }
 }

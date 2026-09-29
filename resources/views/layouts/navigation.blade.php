@@ -1,6 +1,10 @@
 <x-theme-init />
 
-<nav id="navbar" class="fixed top-0 z-50 w-full transition-all duration-300 ease-in-out">
+@php
+    $staticTimetableNav = request()->routeIs('admin.timetable.index', 'admin.timetable.grid');
+@endphp
+<nav id="navbar" data-scroll-mode="{{ $staticTimetableNav ? 'static' : 'auto' }}"
+    class="{{ $staticTimetableNav ? 'relative' : 'fixed top-0' }} z-50 w-full transition-all duration-300 ease-in-out">
 
     @php
         $isHomePage = request()->routeIs('home');
@@ -29,6 +33,19 @@
             $officeUnreadMessages = $officeMessageRoute && Route::has($officeMessageRoute)
                 ? \App\Models\ParentMessage::where('is_read_by_admin', false)->count()
                 : 0;
+
+            $awardsRoute = match (Auth::user()->role) {
+                'admin' => 'admin.awards.index',
+                'headmaster' => 'headmaster.awards.index',
+                'parent' => 'parent.awards.index',
+                default => null,
+            };
+
+            $prefectsRoute = match (Auth::user()->role) {
+                'admin' => 'admin.prefects.index',
+                'headmaster' => 'headmaster.prefects.index',
+                default => null,
+            };
         @endphp
     @endauth
 
@@ -154,6 +171,14 @@
                                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600 dark:text-brand-200 dark:hover:bg-brand-700 dark:hover:text-white">
                                         Dashboard
                                     </a>
+                                @endif
+
+                                @if ($awardsRoute && Route::has($awardsRoute))
+                                    <a href="{{ route($awardsRoute) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600 dark:text-brand-200 dark:hover:bg-brand-700 dark:hover:text-white">Awards &amp; Certificates</a>
+                                @endif
+
+                                @if ($prefectsRoute && Route::has($prefectsRoute))
+                                    <a href="{{ route($prefectsRoute) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600 dark:text-brand-200 dark:hover:bg-brand-700 dark:hover:text-white">Prefects &amp; Duties</a>
                                 @endif
 
                                 @if ($officeMessageRoute && Route::has($officeMessageRoute))
@@ -287,6 +312,14 @@
                         </a>
                     @endif
 
+                    @if ($awardsRoute && Route::has($awardsRoute))
+                        <a href="{{ route($awardsRoute) }}" class="block w-full px-4 py-3 text-left text-base text-slate-100 hover:bg-slate-700 hover:text-white">Awards &amp; Certificates</a>
+                    @endif
+
+                    @if ($prefectsRoute && Route::has($prefectsRoute))
+                        <a href="{{ route($prefectsRoute) }}" class="block w-full px-4 py-3 text-left text-base text-slate-100 hover:bg-slate-700 hover:text-white">Prefects &amp; Duties</a>
+                    @endif
+
                     @if ($officeMessageRoute && Route::has($officeMessageRoute))
                         <a href="{{ route($officeMessageRoute) }}"
                             class="flex items-center justify-between w-full px-4 py-3 text-base text-slate-100 hover:text-white hover:bg-slate-700">
@@ -328,6 +361,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const navbar = document.getElementById('navbar');
+        const staticNavbar = navbar?.dataset.scrollMode === 'static';
         const mobileMenu = document.getElementById('mobile-menu');
         const mobileButton = document.getElementById('mobile-menu-button');
         const mobileMenuIconOpen = document.getElementById('mobile-menu-icon-open');
@@ -393,7 +427,7 @@
 
         function updateNavbarSpacer() {
             if (navbar && navbarSpacer) {
-                navbarSpacer.style.height = navbar.offsetHeight + 'px';
+                navbarSpacer.style.height = staticNavbar ? '0px' : navbar.offsetHeight + 'px';
             }
         }
 
@@ -428,6 +462,7 @@
         }
 
         function updateNavbarOnScroll() {
+            if (staticNavbar) return;
             if (isCompactView()) {
                 resetNavbarForCompactView();
                 return;
@@ -488,7 +523,7 @@
             }
         });
 
-        window.addEventListener('scroll', updateNavbarOnScroll, { passive: true });
+        if (!staticNavbar) window.addEventListener('scroll', updateNavbarOnScroll, { passive: true });
         window.addEventListener('resize', function() {
             if (isCompactView()) {
                 resetNavbarForCompactView();

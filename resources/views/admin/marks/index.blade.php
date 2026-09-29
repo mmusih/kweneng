@@ -1,600 +1,115 @@
 <x-app-layout>
     <x-slot name="header">
-        <div
-            class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
-            <h2 class="font-semibold text-2xl text-white leading-tight">
-                Manage Marks
-            </h2>
+        <div class="mt-16 rounded-xl bg-slate-900 px-5 py-5 text-white shadow-sm sm:px-6">
+            <p class="text-xs font-semibold uppercase tracking-widest text-amber-300">Academic oversight</p>
+            <h2 class="mt-1 text-2xl font-semibold">Marks entry progress</h2>
+            <p class="mt-1 text-sm text-slate-300">Monitor and edit every teacher's marks. The active term loads automatically, and other terms remain selectable.</p>
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="mb-4 text-sm text-gray-600">
-                        <a href="{{ route('admin.dashboard') }}" class="hover:text-indigo-600">Dashboard</a>
-                        <span class="mx-2">/</span>
-                        <span class="text-gray-800 font-medium">Manage Marks</span>
+    @php
+        $progress = $summary['progress'];
+        $hasExtraFilters = filled($classId) || filled($subjectId) || filled($teacherId) || filled($search);
+        $statusClasses = fn ($status) => match ($status) {
+            'complete' => 'bg-emerald-100 text-emerald-800', 'good' => 'bg-blue-100 text-blue-800',
+            'pending' => 'bg-amber-100 text-amber-800', 'critical' => 'bg-red-100 text-red-800',
+            default => 'bg-slate-100 text-slate-600',
+        };
+        $statusText = fn ($status) => match ($status) {
+            'complete' => 'Complete', 'good' => 'Nearly done', 'pending' => 'In progress',
+            'critical' => 'Needs attention', default => 'No learners assigned',
+        };
+        $barClass = fn ($value) => match (true) {
+            $value === null => 'bg-slate-300', $value >= 100 => 'bg-emerald-600',
+            $value >= 80 => 'bg-blue-600', $value >= 50 => 'bg-amber-500', default => 'bg-red-500',
+        };
+    @endphp
+
+    <div class="py-6">
+        <div class="mx-auto max-w-7xl space-y-5 sm:px-6 lg:px-8">
+            @if (session('success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">{{ session('success') }}</div>
+            @endif
+
+            <section class="overflow-hidden rounded-xl bg-white shadow-sm">
+                <form method="GET" action="{{ route('admin.marks.index') }}" class="p-5 sm:p-6">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                        <label class="text-sm font-medium text-slate-700">Academic year
+                            <select name="academic_year_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm">
+                                @foreach ($academicYears as $year)<option value="{{ $year->id }}" @selected((string) $selectedAcademicYearId === (string) $year->id)>{{ $year->year_name }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label class="text-sm font-medium text-slate-700">Term
+                            <select name="term_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm">
+                                @foreach ($terms as $term)<option value="{{ $term->id }}" @selected((string) $selectedTermId === (string) $term->id)>{{ $term->name }}</option>@endforeach
+                            </select>
+                        </label>
+                        <label class="text-sm font-medium text-slate-700">Assessment
+                            <select name="assessment" class="mt-1 w-full rounded-lg border-slate-300 text-sm shadow-sm">
+                                <option value="midterm" @selected($assessment === 'midterm')>Midterm</option>
+                                <option value="endterm" @selected($assessment === 'endterm')>End-term</option>
+                            </select>
+                        </label>
+                        <div class="flex items-end"><button class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Show progress</button></div>
                     </div>
-
-                    <div class="mb-6 flex items-start justify-between gap-4">
-                        <div>
-                            <h3 class="text-2xl font-semibold">Marks Management</h3>
-                            <p class="text-gray-600">View, manage, and bulk import student marks from class summary CSV
-                                files.</p>
+                    <details class="mt-4 border-t border-slate-200 pt-4" {{ $hasExtraFilters ? 'open' : '' }}>
+                        <summary class="cursor-pointer text-sm font-semibold text-slate-700">More filters{{ $hasExtraFilters ? ' · Active' : '' }}</summary>
+                        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <label class="text-sm text-slate-700">Class<select name="class_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm"><option value="">All classes</option>@foreach ($classes as $class)<option value="{{ $class->id }}" @selected((string) $classId === (string) $class->id)>{{ $class->name }}</option>@endforeach</select></label>
+                            <label class="text-sm text-slate-700">Subject<select name="subject_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm"><option value="">All subjects</option>@foreach ($subjects as $subject)<option value="{{ $subject->id }}" @selected((string) $subjectId === (string) $subject->id)>{{ $subject->name }}</option>@endforeach</select></label>
+                            <label class="text-sm text-slate-700">Teacher<select name="teacher_id" class="mt-1 w-full rounded-lg border-slate-300 text-sm"><option value="">All teachers</option>@foreach ($teachers as $teacher)<option value="{{ $teacher->id }}" @selected((string) $teacherId === (string) $teacher->id)>{{ $teacher->user?->name ?? 'N/A' }}</option>@endforeach</select></label>
+                            <label class="text-sm text-slate-700">Search<input type="search" name="search" value="{{ $search }}" placeholder="Teacher, class or subject" class="mt-1 w-full rounded-lg border-slate-300 text-sm"></label>
                         </div>
-                        <a href="{{ route('admin.dashboard') }}"
-                            class="text-sm text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
-                            ← Back to Dashboard
-                        </a>
+                    </details>
+                </form>
+            </section>
+
+            @if ($progress !== null)
+                <section class="grid grid-cols-1 gap-4 lg:grid-cols-[1.7fr_1fr_1fr]">
+                    <div class="rounded-xl border {{ $summary['missing'] === 0 ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white' }} p-5 shadow-sm sm:p-6">
+                        <div class="flex items-end justify-between gap-4">
+                            <div><p class="text-sm font-medium text-slate-600">{{ $assessment === 'midterm' ? 'Midterm' : 'End-term' }} entry</p><p class="mt-1 text-4xl font-bold text-slate-900">{{ $progress }}%</p></div>
+                            <p class="text-right text-sm text-slate-600">{{ $summary['completed'] }} of {{ $summary['expected'] }} entries complete</p>
+                        </div>
+                        <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100"><div class="h-full rounded-full {{ $barClass($progress) }}" style="width: {{ $progress }}%"></div></div>
+                        <p class="mt-3 text-sm {{ $summary['missing'] === 0 ? 'font-semibold text-emerald-800' : 'text-slate-600' }}">{{ $summary['missing'] === 0 ? 'All teachers have completed their assigned entry.' : $summary['missing'].' entries remain across the selected term.' }}</p>
                     </div>
+                    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Teachers complete</p><p class="mt-2 text-3xl font-bold">{{ $summary['complete_teachers'] }}<span class="text-lg font-medium text-slate-400"> / {{ $summary['teachers'] }}</span></p><p class="mt-2 text-sm text-slate-600">{{ $summary['incomplete_teachers'] }} still working</p></div>
+                    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">Teaching groups complete</p><p class="mt-2 text-3xl font-bold">{{ $summary['complete_assignments'] }}<span class="text-lg font-medium text-slate-400"> / {{ $summary['assignments'] }}</span></p><p class="mt-2 text-sm text-slate-600">Class and subject assignments</p></div>
+                </section>
+            @else
+                <div class="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600 shadow-sm">No teacher assignments with active learners were found for this selection.</div>
+            @endif
 
-                    @if (session('success'))
-                        <div class="mb-4 rounded-lg bg-green-50 p-4 text-green-800">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if ($errors->any())
-                        <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-                            <ul class="list-disc pl-5">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if ($activeAcademicYear && $activeTerm)
-                        <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900">
-                            <div class="font-semibold">Current marks context</div>
-                            <div class="text-sm mt-1">{{ $activeAcademicYear->year_name }} · {{ $activeTerm->name }} is selected by default.</div>
-                        </div>
-                    @endif
-
-                    <!-- CSV Import -->
-                    <div class="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-                        <div class="mb-4">
-                            <h4 class="text-lg font-semibold text-emerald-900">Bulk Import from Class Summary CSV</h4>
-                            <p class="text-sm text-emerald-800 mt-1">
-                                Upload one class summary sheet and preview either midterm or endterm marks before saving
-                                them.
-                            </p>
-                        </div>
-
-                        <form method="POST" action="{{ route('admin.marks.import-preview') }}"
-                            enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            @csrf
-
-                            <div>
-                                <x-input-label for="import_academic_year_id" :value="__('Academic Year')" />
-                                <select id="import_academic_year_id" name="academic_year_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Academic Year</option>
-                                    @foreach ($academicYears as $year)
-                                        <option value="{{ $year->id }}"
-                                            {{ (int) old('academic_year_id', $selectedAcademicYearId) === (int) $year->id ? 'selected' : '' }}>
-                                            {{ $year->year_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="import_term_id" :value="__('Term')" />
-                                <select id="import_term_id" name="term_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Term</option>
-                                    @if ($selectedAcademicYearId)
-                                        @php
-                                            $importTerms = \App\Models\Term::where(
-                                                'academic_year_id',
-                                                $selectedAcademicYearId,
-                                            )->get();
-                                        @endphp
-                                        @foreach ($importTerms as $term)
-                                            <option value="{{ $term->id }}"
-                                                {{ (int) old('term_id', $selectedTermId) === (int) $term->id ? 'selected' : '' }}>
-                                                {{ $term->name }}
-                                            </option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="import_class_id" :value="__('Class')" />
-                                <select id="import_class_id" name="class_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Class</option>
-                                    @foreach ($classes as $class)
-                                        <option value="{{ $class->id }}"
-                                            {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                                            {{ $class->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="assessment_type" :value="__('Assessment Type')" />
-                                <select id="assessment_type" name="assessment_type"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Type</option>
-                                    <option value="midterm">Midterm</option>
-                                    <option value="endterm">Endterm</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="csv_file" :value="__('CSV File')" />
-                                <input id="csv_file" name="csv_file" type="file" accept=".csv,.txt"
-                                    class="block mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    required>
-                            </div>
-
-                            <div class="md:col-span-5 flex justify-between items-center">
-                                <a href="{{ route('admin.dashboard') }}"
-                                    class="text-sm text-gray-600 hover:text-indigo-600">
-                                    ← Back to Dashboard
-                                </a>
-
-                                <button type="submit"
-                                    class="inline-flex justify-center items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 focus:bg-emerald-700 active:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    Preview CSV Import
-                                </button>
-                            </div>
-                        </form>
-
-                        @if (!empty($marksImportPreview))
-                            <div class="mt-6 rounded-xl border border-emerald-300 bg-white p-4">
-                                <div class="mb-4">
-                                    <h5 class="text-base font-semibold text-gray-900">Import Preview</h5>
-                                    <p class="text-sm text-gray-600">
-                                        Review the grouped preview below before applying the import.
-                                    </p>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                    <div class="rounded-lg bg-green-50 border border-green-200 p-4">
-                                        <div class="text-sm text-green-700">Matched Students</div>
-                                        <div class="text-2xl font-bold text-green-800">
-                                            {{ $marksImportPreview['matched_students_count'] ?? 0 }}</div>
-                                    </div>
-
-                                    <div class="rounded-lg bg-blue-50 border border-blue-200 p-4">
-                                        <div class="text-sm text-blue-700">Matched Subject Marks</div>
-                                        <div class="text-2xl font-bold text-blue-800">
-                                            {{ $marksImportPreview['matched_cells_count'] ?? 0 }}</div>
-                                    </div>
-
-                                    <div class="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
-                                        <div class="text-sm text-yellow-700">Issues</div>
-                                        <div class="text-2xl font-bold text-yellow-800">
-                                            {{ count($marksImportPreview['issues'] ?? []) }}</div>
-                                    </div>
-
-                                    <div class="rounded-lg bg-purple-50 border border-purple-200 p-4">
-                                        <div class="text-sm text-purple-700">Unknown Subject Codes</div>
-                                        <div class="text-2xl font-bold text-purple-800">
-                                            {{ count($marksImportPreview['unknown_subject_codes'] ?? []) }}</div>
+            @if (count($teachersData))
+                <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-200 px-5 py-4 sm:px-6"><h3 class="font-semibold text-slate-900">Teacher progress</h3><p class="mt-1 text-sm text-slate-500">Teachers needing attention appear first. Expand a teacher for the class and subject breakdown.</p></div>
+                    <div class="divide-y divide-slate-200">
+                        @foreach ($teachersData as $teacher)
+                            <details class="group">
+                                <summary class="grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50 sm:grid-cols-[minmax(12rem,1fr)_8rem_9rem_auto] sm:px-6">
+                                    <div><p class="font-semibold text-slate-900">{{ $teacher['teacher'] }}</p><p class="text-xs text-slate-500">{{ count($teacher['subjects']) }} teaching {{ Str::plural('group', count($teacher['subjects'])) }}</p></div>
+                                    <div class="hidden text-sm text-slate-600 sm:block">{{ $teacher['completed'] }}/{{ $teacher['expected'] }} entered</div>
+                                    <div class="hidden h-2 overflow-hidden rounded-full bg-slate-200 sm:block"><div class="h-full {{ $barClass($teacher['progress']) }}" style="width: {{ $teacher['progress'] ?? 0 }}%"></div></div>
+                                    <div class="flex items-center gap-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClasses($teacher['status']) }}">{{ $teacher['progress'] !== null ? $teacher['progress'].'%' : $statusText($teacher['status']) }}</span><span class="text-slate-400 transition group-open:rotate-180">⌄</span></div>
+                                </summary>
+                                <div class="border-t border-slate-100 bg-slate-50 px-4 py-4 sm:px-6">
+                                    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Class</th><th class="px-4 py-3">Subject</th><th class="px-4 py-3">Entered</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                @foreach ($teacher['subjects'] as $subject)
+                                                    <tr><td class="px-4 py-3 text-slate-700">{{ $subject['class'] }}</td><td class="px-4 py-3 font-medium text-slate-900">{{ $subject['subject'] }}</td><td class="whitespace-nowrap px-4 py-3">{{ $subject['completed'] }}/{{ $subject['expected'] }}</td><td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClasses($subject['status']) }}">{{ $statusText($subject['status']) }}{{ $subject['missing'] > 0 ? ' · '.$subject['missing'].' remaining' : '' }}</span></td><td class="px-4 py-3 text-right"><a href="{{ route('admin.marks.group.edit', ['academic_year_id' => $subject['academic_year_id'], 'term_id' => $subject['term_id'], 'class_id' => $subject['class_id'], 'subject_id' => $subject['subject_id'], 'teacher_id' => $subject['teacher_id']]) }}" class="inline-flex rounded-md bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700">Edit marks</a></td></tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-
-                                <div class="mb-4 text-sm text-gray-700">
-                                    <strong>Academic Year:</strong>
-                                    {{ $marksImportPreview['context']['academic_year_name'] ?? '' }}
-                                    <span class="mx-2">|</span>
-                                    <strong>Term:</strong> {{ $marksImportPreview['context']['term_name'] ?? '' }}
-                                    <span class="mx-2">|</span>
-                                    <strong>Class:</strong> {{ $marksImportPreview['context']['class_name'] ?? '' }}
-                                    <span class="mx-2">|</span>
-                                    <strong>Assessment:</strong>
-                                    {{ ucfirst($marksImportPreview['context']['assessment_type'] ?? '') }}
-                                </div>
-
-                                @if (!empty($marksImportPreview['unknown_subject_codes']))
-                                    <div class="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                                        <h6 class="font-semibold text-yellow-900 mb-2">Unknown Subject Codes</h6>
-                                        <div class="flex flex-wrap gap-2">
-                                            @foreach ($marksImportPreview['unknown_subject_codes'] as $code)
-                                                <span
-                                                    class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-                                                    {{ $code }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endif
-
-                                @if (!empty($marksImportPreview['issues']))
-                                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
-                                        <h6 class="font-semibold text-red-900 mb-2">Import Issues</h6>
-                                        <div class="space-y-2 text-sm text-red-800 max-h-56 overflow-y-auto">
-                                            @foreach ($marksImportPreview['issues'] as $issue)
-                                                <div>
-                                                    Row {{ $issue['row_number'] }} — {{ $issue['message'] }}
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @endif
-
-                                @if (!empty($marksImportPreview['students']))
-                                    <div class="space-y-4 mb-4">
-                                        @foreach ($marksImportPreview['students'] as $studentRow)
-                                            <div class="rounded-lg border border-gray-200 overflow-hidden">
-                                                <div
-                                                    class="bg-gray-50 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                                                    <div>
-                                                        <div class="font-semibold text-gray-900">
-                                                            {{ $studentRow['student_name'] }}</div>
-                                                        <div class="text-sm text-gray-500">
-                                                            {{ $studentRow['admission_no'] }}</div>
-                                                    </div>
-                                                    <div class="text-xs text-gray-500">
-                                                        CSV row(s): {{ implode(', ', $studentRow['row_numbers']) }}
-                                                    </div>
-                                                </div>
-
-                                                <div class="overflow-x-auto">
-                                                    <table class="min-w-full divide-y divide-gray-200">
-                                                        <thead class="bg-white">
-                                                            <tr>
-                                                                <th
-                                                                    class="px-4 py-3 text-left text-xs font-bold uppercase text-gray-600">
-                                                                    Subject</th>
-                                                                <th
-                                                                    class="px-4 py-3 text-left text-xs font-bold uppercase text-gray-600">
-                                                                    Score</th>
-                                                                <th
-                                                                    class="px-4 py-3 text-left text-xs font-bold uppercase text-gray-600">
-                                                                    Grade</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody class="divide-y divide-gray-100 bg-white">
-                                                            @foreach ($studentRow['subjects'] as $subjectRow)
-                                                                <tr>
-                                                                    <td class="px-4 py-3 text-sm text-gray-900">
-                                                                        {{ $subjectRow['subject_code'] }} -
-                                                                        {{ $subjectRow['subject_name'] }}
-                                                                    </td>
-                                                                    <td class="px-4 py-3 text-sm text-gray-800">
-                                                                        {{ $subjectRow['score'] }}
-                                                                    </td>
-                                                                    <td class="px-4 py-3 text-sm text-gray-800">
-                                                                        {{ $subjectRow['grade'] ?? '—' }}
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-
-                                    <form method="POST" action="{{ route('admin.marks.import-apply') }}"
-                                        class="flex justify-between items-center">
-                                        @csrf
-                                        <input type="hidden" name="academic_year_id"
-                                            value="{{ $marksImportPreview['context']['academic_year_id'] }}">
-                                        <input type="hidden" name="term_id"
-                                            value="{{ $marksImportPreview['context']['term_id'] }}">
-                                        <input type="hidden" name="class_id"
-                                            value="{{ $marksImportPreview['context']['class_id'] }}">
-                                        <input type="hidden" name="assessment_type"
-                                            value="{{ $marksImportPreview['context']['assessment_type'] }}">
-
-                                        <a href="{{ route('admin.marks.index') }}"
-                                            class="text-sm text-gray-600 hover:text-indigo-600">
-                                            ← Back to Marks List
-                                        </a>
-
-                                        <button type="submit"
-                                            class="inline-flex justify-center items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                            Apply Import
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
-                        @endif
+                            </details>
+                        @endforeach
                     </div>
-
-                    <!-- Filters -->
-                    <div class="mb-8 p-6 bg-gray-50 rounded-lg">
-                        <h4 class="text-lg font-semibold mb-4">Filter Marks</h4>
-                        <form method="GET" action="{{ route('admin.marks.index') }}"
-                            class="grid grid-cols-1 md:grid-cols-3 gap-4" id="marks-filter-form">
-                            <div>
-                                <x-input-label for="academic_year_id" :value="__('Academic Year')" />
-                                <select id="academic_year_id" name="academic_year_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="">All Academic Years</option>
-                                    @foreach ($academicYears as $year)
-                                        <option value="{{ $year->id }}"
-                                            {{ (int) $selectedAcademicYearId === (int) $year->id ? 'selected' : '' }}>
-                                            {{ $year->year_name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="term_id" :value="__('Term')" />
-                                <select id="term_id" name="term_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="">All Terms</option>
-                                    @if ($selectedAcademicYearId)
-                                        @php
-                                            $terms = \App\Models\Term::where(
-                                                'academic_year_id',
-                                                $selectedAcademicYearId,
-                                            )->get();
-                                        @endphp
-                                        @foreach ($terms as $term)
-                                            <option value="{{ $term->id }}"
-                                                {{ (int) $selectedTermId === (int) $term->id ? 'selected' : '' }}>
-                                                {{ $term->name }}
-                                            </option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="class_id" :value="__('Class')" />
-                                <select id="class_id" name="class_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="">All Classes</option>
-                                    @foreach ($classes as $class)
-                                        <option value="{{ $class->id }}"
-                                            {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                                            {{ $class->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="subject_id" :value="__('Subject')" />
-                                <select id="subject_id" name="subject_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="">All Subjects</option>
-                                    @foreach ($subjects as $subject)
-                                        <option value="{{ $subject->id }}"
-                                            {{ request('subject_id') == $subject->id ? 'selected' : '' }}>
-                                            {{ $subject->name }} ({{ $subject->code }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div>
-                                <x-input-label for="teacher_id" :value="__('Teacher')" />
-                                <select id="teacher_id" name="teacher_id"
-                                    class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                    <option value="">All Teachers</option>
-                                    @foreach ($teachers as $teacher)
-                                        <option value="{{ $teacher->id }}"
-                                            {{ request('teacher_id') == $teacher->id ? 'selected' : '' }}>
-                                            {{ $teacher->user->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="flex items-end">
-                                <button type="submit"
-                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
-                                    Filter
-                                </button>
-                                <a href="{{ route('admin.marks.index') }}"
-                                    class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                                    Clear
-                                </a>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Marks Table -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Student</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Subject</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Class</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Term</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Midterm</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Endterm</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Grade</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Teacher</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse($marks as $mark)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                {{ $mark->student->user->name ?? 'Unknown Student' }}</div>
-                                            <div class="text-sm text-gray-500">
-                                                {{ $mark->student->admission_no ?? 'N/A' }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->subject->name ?? 'Unknown Subject' }}
-                                            ({{ $mark->subject->code ?? 'N/A' }})
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->class->name ?? 'Unknown Class' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->term->name ?? 'Unknown Term' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->midterm_score ?? 'N/A' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->endterm_score ?? 'N/A' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @if ($mark->grade)
-                                                <span
-                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @switch($mark->grade)
-                                                    @case('A*') bg-green-100 text-green-800 @break
-                                                    @case('A') bg-green-100 text-green-800 @break
-                                                    @case('B') bg-blue-100 text-blue-800 @break
-                                                    @case('C') bg-yellow-100 text-yellow-800 @break
-                                                    @case('D') bg-orange-100 text-orange-800 @break
-                                                    @case('E') bg-red-100 text-red-800 @break
-                                                    @case('F') bg-red-100 text-red-800 @break
-                                                    @default bg-gray-100 text-gray-800
-                                                @endswitch">
-                                                    {{ $mark->grade }}
-                                                </span>
-                                            @else
-                                                <span class="text-gray-500">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->teacher->user->name ?? 'Unknown Teacher' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="{{ route('admin.marks.show', $mark) }}"
-                                                class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                                View
-                                            </a>
-                                            <a href="{{ route('admin.marks.edit', $mark) }}"
-                                                class="text-blue-600 hover:text-blue-900 mr-3">
-                                                Edit
-                                            </a>
-                                            <form action="{{ route('admin.marks.destroy', $mark) }}" method="POST"
-                                                class="inline"
-                                                onsubmit="return confirm('Are you sure you want to delete this mark?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
-                                            No marks found.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-4">
-                        {{ $marks->appends(request()->query())->links() }}
-                    </div>
-                </div>
-            </div>
+                </section>
+            @endif
         </div>
     </div>
-
-    @push('scripts')
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const academicYearSelect = document.getElementById('academic_year_id');
-                const termSelect = document.getElementById('term_id');
-                const importAcademicYearSelect = document.getElementById('import_academic_year_id');
-                const importTermSelect = document.getElementById('import_term_id');
-
-                if (academicYearSelect) {
-                    academicYearSelect.addEventListener('change', function() {
-                        const academicYearId = this.value;
-
-                        if (academicYearId) {
-                            loadTerms(academicYearId, termSelect, false);
-                        } else {
-                            termSelect.innerHTML = '<option value="">All Terms</option>';
-                        }
-                    });
-                }
-
-                if (importAcademicYearSelect) {
-                    importAcademicYearSelect.addEventListener('change', function() {
-                        const academicYearId = this.value;
-
-                        if (academicYearId) {
-                            loadTerms(academicYearId, importTermSelect, true);
-                        } else {
-                            importTermSelect.innerHTML = '<option value="">Select Term</option>';
-                        }
-                    });
-                }
-
-                function loadTerms(academicYearId, targetSelect, importMode = false) {
-                    targetSelect.innerHTML = '<option value="">Loading...</option>';
-
-                    fetch(`/admin/terms/by-academic-year/${academicYearId}`, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! Status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            targetSelect.innerHTML = importMode ?
-                                '<option value="">Select Term</option>' :
-                                '<option value="">All Terms</option>';
-
-                            if (!Array.isArray(data) || data.length === 0) {
-                                targetSelect.innerHTML = importMode ?
-                                    '<option value="">No Terms Found</option>' :
-                                    '<option value="">No Terms Found</option>';
-                                return;
-                            }
-
-                            data.forEach(term => {
-                                const option = document.createElement('option');
-                                option.value = term.id;
-                                option.textContent = term.name;
-                                targetSelect.appendChild(option);
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error loading terms:', error);
-                            targetSelect.innerHTML = '<option value="">Error loading terms</option>';
-                        });
-                }
-            });
-        </script>
-    @endpush
 </x-app-layout>

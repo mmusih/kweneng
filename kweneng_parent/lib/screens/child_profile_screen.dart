@@ -35,7 +35,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
 
   static const _documentTypes = {
     'birth_certificate': 'Birth Certificate Number',
-    'national_id': 'ID Number',
+    'id_number': 'ID Number',
     'passport': 'Passport Number',
   };
 
@@ -293,7 +293,11 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Student profile updated.')));
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/dashboard');
+      }
     }
   }
 }
@@ -315,6 +319,12 @@ class _ChildHeader extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 26,
+            foregroundImage: (child.photo?.isNotEmpty ?? false)
+                ? NetworkImage(child.photo!)
+                : null,
+            onForegroundImageError: (child.photo?.isNotEmpty ?? false)
+                ? (error, stackTrace) {}
+                : null,
             child: Text(
               child.name.isEmpty
                   ? 'S'

@@ -27,13 +27,36 @@ class AdminDashboardPresentationTest extends TestCase
             ->assertSee(route('admin.librarians.index', absolute: false))
             ->assertSee(route('admin.accounts-officers.index', absolute: false))
             ->assertSee(route('admin.student-subjects.index', absolute: false))
+            ->assertSee(route('admin.awards.index', absolute: false))
+            ->assertSee(route('admin.awards.create', absolute: false))
+            ->assertSee('Awards &amp; Recognition', escape: false)
             ->assertSee(route('admin.absence-notices.index', absolute: false))
             ->assertSee(route('admin.activity-logs.index', absolute: false))
             ->assertSee(route('admin.events.create', absolute: false))
+            ->assertSee('xl:flex-nowrap', escape: false)
+            ->assertSee('Departments/HODs')
             ->assertSee('role="tablist"', escape: false)
             ->assertSee('aria-controls="mobile-menu"', escape: false)
             ->assertSee('data-theme-toggle', escape: false)
             ->assertSee('adminDashboard(', escape: false);
+    }
+
+    public function test_admin_dashboard_uses_the_grid_as_the_main_timetable_feature(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.timetable.index', absolute: false))
+            ->assertSee('Timetable')
+            ->assertDontSee('Timetable (legacy)')
+            // Nothing has been imported into tt_* on a fresh database, and the card says so
+            // rather than reporting a confident "0 cards placed".
+            ->assertSee('No lessons yet');
     }
 
     public function test_admin_dashboard_keeps_every_legacy_destination(): void
@@ -71,6 +94,7 @@ class AdminDashboardPresentationTest extends TestCase
             'admin.subjects.manage-teachers',
             'admin.teachers.index',
             'admin.terms.index',
+            'admin.timetable.index',
             'admin.users.index',
             'inventory.dashboard',
             'inventory.requisitions.index',

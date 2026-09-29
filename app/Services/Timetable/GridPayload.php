@@ -44,10 +44,12 @@ class GridPayload
             ->all();
 
         $cards = $this->cards($lessons, $colours, $shortNames);
+        $requirements = $this->tray($lessons, $colours, $shortNames);
 
         return [
             'setting' => [
                 'id' => (int) $setting->id,
+                'preparation_version' => (int) $setting->preparation_version,
                 'name' => $setting->name,
                 'term_label' => $setting->term_label,
                 'cycle_length' => (int) $setting->cycle_length,
@@ -87,7 +89,8 @@ class GridPayload
             ])->values()->all(),
             'cards' => $cards->map(fn (array $card) => $card + ['lane' => 0])
                 ->values()->all(),
-            'tray' => $this->tray($lessons, $colours, $shortNames),
+            'tray' => array_values(array_filter($requirements, fn ($item) => $item['unplaced'] > 0)),
+            'requirements' => $requirements,
             'editor' => $this->editorOptions($setting, $baseRooms, $lessons) + [
                 'teacher_assignments' => $schoolAssignments['teacher_assignments'],
             ],
@@ -257,6 +260,8 @@ class GridPayload
         return $lessons
             ->map(fn (Lesson $lesson) => $this->describe($lesson, $colours, $shortNames) + [
                 'unplaced' => $this->placement->unplacedCount($lesson),
+                'required' => $lesson->cardsRequired(),
+                'placed' => count($this->placement->unitsFor($lesson)),
                 'room' => $lesson->rooms->first()?->name,
                 'room_id' => $lesson->rooms->first()?->id,
                 'stack_key' => $lesson->preparation_key === null
@@ -266,11 +271,13 @@ class GridPayload
                         $lesson->split_key ? $splitSignatures[$lesson->split_key] : null,
                     ], JSON_THROW_ON_ERROR)),
             ])
-            ->filter(fn (array $entry) => $entry['unplaced'] > 0)
             ->groupBy('stack_key')
             ->map(function (Collection $entries): array {
-                $stack = $entries->first();
+                $stack = $entries->first(fn ($entry) => $entry['unplaced'] > 0) ?? $entries->first();
                 $stack['unplaced'] = (int) $entries->sum('unplaced');
+                $stack['required'] = (int) $entries->sum('required');
+                $stack['placed'] = (int) $entries->sum('placed');
+                $stack['lesson_ids'] = $entries->pluck('lesson_id')->values()->all();
 
                 return $stack;
             })

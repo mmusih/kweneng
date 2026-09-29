@@ -289,6 +289,7 @@
                                 class="bg-white rounded-xl border {{ $isBlocked ? 'border-red-200' : 'border-gray-100' }} p-4">
                                 <div class="flex items-center justify-between mb-3">
                                     <div>
+                                        <x-student-photo :student="$child" />
                                         <p class="font-medium text-gray-900 text-sm">
                                             {{ $child->user->name ?? 'Unknown Student' }}</p>
                                         <p class="text-xs text-gray-400 mt-0.5">
@@ -371,6 +372,20 @@
                                                 class="font-medium text-gray-800">{{ $overview['behaviour_label'] ?? 'Good' }}</span>
                                         </div>
                                     </div>
+                                @endif
+
+                                @if($child->awards->isNotEmpty())
+                                    <div class="mb-3 border-t border-amber-100 pt-3">
+                                        <div class="mb-2 flex items-center justify-between"><p class="text-xs uppercase tracking-wide text-amber-700">Awards</p><a href="{{ route('parent.awards.index') }}" class="text-xs font-medium text-sky-700">View all</a></div>
+                                        <div class="flex flex-wrap gap-2">@foreach($child->awards->take(3) as $award)<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white" style="background:{{ $award->run->category?->badge_color ?? '#D4AF37' }}"><span>★</span>{{ $award->award_title }}</span>@endforeach</div>
+                                    </div>
+                                @endif
+
+                                @if($child->prefectAppointments->isNotEmpty())
+                                    @php
+                                        $prefect = $child->prefectAppointments->first();
+                                    @endphp
+                                    <div class="mb-3 border-t border-violet-100 pt-3"><p class="text-xs uppercase tracking-wide text-violet-700">Student leadership</p><div class="mt-1 flex items-center justify-between gap-3"><span class="text-sm font-semibold text-gray-800">{{ $prefect->title }}</span><a href="{{ route('parent.prefects.certificate', $prefect) }}" class="text-xs font-medium text-sky-700">Certificate</a></div><p class="mt-1 text-xs text-gray-500">{{ Str::limit($prefect->duties, 90) }}</p></div>
                                 @endif
 
                                 {{-- Library section --}}

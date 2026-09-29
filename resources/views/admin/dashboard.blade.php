@@ -16,25 +16,25 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-1.5 lg:justify-end xl:flex-nowrap xl:shrink-0">
                     <a href="{{ route('admin.students.create') }}"
-                        class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-[#212A31] hover:bg-[#D3D9D4] transition duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
-                        <x-icon name="plus" class="w-4 h-4" />
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-white px-3 py-2 text-xs font-semibold text-[#212A31] hover:bg-[#D3D9D4] transition duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
+                        <x-icon name="plus" class="w-3.5 h-3.5" />
                         Add Student
                     </a>
                     <a href="{{ route('admin.departments.index') }}"
-                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
-                        <x-icon name="bank" class="w-4 h-4" />
-                        Departments / HODs
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
+                        <x-icon name="bank" class="w-3.5 h-3.5" />
+                        Departments/HODs
                     </a>
                     <a href="{{ route('admin.reports.index') }}"
-                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
-                        <x-icon name="document-report" class="w-4 h-4" />
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
+                        <x-icon name="document-report" class="w-3.5 h-3.5" />
                         Reports
                     </a>
                     <a href="{{ route('inventory.dashboard') }}"
-                        class="inline-flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
-                        <x-icon name="archive" class="w-4 h-4" />
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/15 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#124E66]">
+                        <x-icon name="archive" class="w-3.5 h-3.5" />
                         Inventory
                     </a>
                 </div>
@@ -157,6 +157,23 @@
                 'icon_class' => 'bg-teal-500/10 text-teal-600',
             ],
             [
+                'title' => 'Awards',
+                'body' => 'Generate rankings, custom prizes, certificates, and Excel exports',
+                'meta' => ($awardOverview['published'] ?? 0) . ' published · ' . ($awardOverview['drafts'] ?? 0) . ' drafts',
+                'meta_tone' => ($awardOverview['drafts'] ?? 0) > 0 ? 'amber' : 'emerald',
+                'route' => route('admin.awards.index'),
+                'icon' => 'badge-check',
+                'icon_class' => 'bg-amber-500/10 text-amber-700',
+            ],
+            [
+                'title' => 'Prefects',
+                'body' => 'Leadership appointments, assigned duties, service periods, and certificates',
+                'meta' => 'Student leadership',
+                'route' => route('admin.prefects.index'),
+                'icon' => 'user-group',
+                'icon_class' => 'bg-violet-500/10 text-violet-700',
+            ],
+            [
                 'title' => 'Academic Staff',
                 'body' => 'Teachers, headmasters, and assignments',
                 'meta' => ($stats['totalTeachers'] ?? 0) . ' teachers',
@@ -198,11 +215,16 @@
             ],
             [
                 'title' => 'Timetable',
-                'body' => 'Cycles, periods, rooms, groups, and lesson scheduling',
-                'meta' => 'School-wide planning',
+                'body' => 'Drag-and-drop editor: option blocks, doubles, and clash shading',
+                // "Placements", not "cards": a double is two tt_cards rows drawn as one
+                // card, so a raw row count would disagree with what the grid shows.
+                'meta' => ($timetableOverview['lessons'] ?? 0) === 0
+                    ? 'No lessons yet'
+                    : ($timetableOverview['placements'] ?? 0) . ' placements',
+                'meta_tone' => ($timetableOverview['lessons'] ?? 0) === 0 ? 'amber' : 'sky',
                 'route' => route('admin.timetable.index'),
                 'icon' => 'table-cells',
-                'icon_class' => 'bg-cyan-500/10 text-cyan-700',
+                'icon_class' => 'bg-sky-500/10 text-sky-600',
             ],
             [
                 'title' => 'Classes',
@@ -219,6 +241,22 @@
                 'route' => route('admin.subjects.index'),
                 'icon' => 'book-open',
                 'icon_class' => 'bg-rose-500/10 text-rose-600',
+            ],
+            [
+                'title' => 'Assign Subjects to Classes',
+                'body' => 'Choose the subjects offered by each class',
+                'meta' => 'Academic setup',
+                'route' => route('admin.subjects.manage-classes'),
+                'icon' => 'book-open',
+                'icon_class' => 'bg-indigo-500/10 text-indigo-600',
+            ],
+            [
+                'title' => 'Assign Teachers to Subjects',
+                'body' => 'Connect teachers to class subjects',
+                'meta' => 'Academic setup',
+                'route' => route('admin.subjects.manage-teachers'),
+                'icon' => 'book-open',
+                'icon_class' => 'bg-indigo-500/10 text-indigo-600',
             ],
             [
                 'title' => 'Student Subject Assignments',
@@ -558,6 +596,7 @@
                                     :title="$card['title']"
                                     :body="$card['body']"
                                     :meta="$card['meta']"
+                                    :meta-tone="$card['meta_tone'] ?? 'slate'"
                                     :route="$card['route']"
                                     :icon="$card['icon']"
                                     :icon-class="$card['icon_class']" />
@@ -625,7 +664,17 @@
                                     </div>
                                     <div>
                                         <h4 class="font-bold text-[#212A31] group-hover:text-amber-900 dark:text-white">Terms</h4>
-                                        <p class="text-sm text-[#748D92] mt-1 dark:text-brand-400">Create, activate, finalize, and lock terms.</p>
+                                        <p class="text-sm text-[#748D92] mt-1 dark:text-brand-400">Create, activate, finalize, lock, and unlock terms.</p>
+                                    </div>
+                                </a>
+                                <a href="{{ route('admin.study-retention.index') }}"
+                                    class="group bg-white border border-[#D3D9D4] hover:border-emerald-400 hover:bg-emerald-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#124E66] focus-visible:ring-offset-2 dark:bg-brand-800 dark:border-brand-600 dark:hover:bg-brand-700/50 dark:focus-visible:ring-offset-brand-900">
+                                    <div class="p-2.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300 dark:group-hover:bg-emerald-500/25">
+                                        <x-icon name="users" class="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-[#212A31] group-hover:text-emerald-900 dark:text-white">Study List</h4>
+                                        <p class="text-sm text-[#748D92] mt-1 dark:text-brand-400">Set performance conditions and print learners remaining for study.</p>
                                     </div>
                                 </a>
                                 <a href="{{ route('admin.marks.index') }}"
@@ -658,6 +707,16 @@
                                     <div>
                                         <h4 class="font-bold text-[#212A31] group-hover:text-teal-900 dark:text-white">Exam Summaries</h4>
                                         <p class="text-sm text-[#748D92] mt-1 dark:text-brand-400">Midterm and endterm summaries.</p>
+                                    </div>
+                                </a>
+                                <a href="{{ route('admin.awards.index') }}"
+                                    class="group bg-white border border-[#D3D9D4] hover:border-amber-400 hover:bg-amber-50/20 transition-all duration-200 p-5 rounded-xl shadow-sm flex items-start gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#124E66] focus-visible:ring-offset-2 dark:bg-brand-800 dark:border-brand-600 dark:hover:bg-brand-700/50 dark:focus-visible:ring-offset-brand-900">
+                                    <div class="p-2.5 rounded-lg bg-amber-50 text-amber-700 group-hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:group-hover:bg-amber-500/25">
+                                        <x-icon name="badge-check" class="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-[#212A31] group-hover:text-amber-900 dark:text-white">Awards &amp; Certificates</h4>
+                                        <p class="text-sm text-[#748D92] mt-1 dark:text-brand-400">{{ $awardOverview['recipients'] }} recipient{{ $awardOverview['recipients'] === 1 ? '' : 's' }} this academic year.</p>
                                     </div>
                                 </a>
                                 <a href="{{ route('admin.promotions.index') }}"
@@ -711,6 +770,19 @@
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    <section class="mt-6 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm dark:border-amber-800 dark:from-amber-950/30 dark:to-brand-800">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div><p class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Awards &amp; Recognition</p><h3 class="mt-1 text-lg font-bold text-[#212A31] dark:text-white">Academic and custom awards</h3><p class="mt-1 text-sm text-[#748D92] dark:text-brand-300">Review drafts, publish badges, print certificates, and export recipient lists.</p></div>
+                            <div class="flex flex-wrap gap-2"><a href="{{ route('admin.awards.create') }}" class="rounded-lg bg-[#124E66] px-4 py-2 text-sm font-bold text-white">Create award</a><a href="{{ route('admin.awards.index') }}" class="rounded-lg border border-[#124E66] bg-white px-4 py-2 text-sm font-bold text-[#124E66] dark:bg-brand-800 dark:text-brand-100">Manage awards</a></div>
+                        </div>
+                        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div class="rounded-lg bg-white p-4 dark:bg-brand-800"><p class="text-xs font-bold uppercase text-slate-500">Draft runs</p><p class="mt-1 text-2xl font-extrabold text-amber-700">{{ $awardOverview['drafts'] }}</p></div>
+                            <div class="rounded-lg bg-white p-4 dark:bg-brand-800"><p class="text-xs font-bold uppercase text-slate-500">Published runs</p><p class="mt-1 text-2xl font-extrabold text-emerald-700">{{ $awardOverview['published'] }}</p></div>
+                            <div class="rounded-lg bg-white p-4 dark:bg-brand-800"><p class="text-xs font-bold uppercase text-slate-500">Recipients</p><p class="mt-1 text-2xl font-extrabold text-[#124E66] dark:text-sky-300">{{ $awardOverview['recipients'] }}</p></div>
+                        </div>
+                        @if($awardOverview['recent']->isNotEmpty())<div class="mt-5 grid gap-2 md:grid-cols-2">@foreach($awardOverview['recent'] as $awardRun)<a href="{{ route('admin.awards.show', $awardRun) }}" class="flex items-center justify-between rounded-lg border border-amber-100 bg-white px-4 py-3 hover:border-amber-300 dark:border-amber-900 dark:bg-brand-800"><span><strong class="block text-sm text-slate-900 dark:text-white">{{ $awardRun->title }}</strong><small class="text-slate-500">{{ $awardRun->academicYear?->year_name }}{{ $awardRun->term ? ' · '.$awardRun->term->name : '' }}</small></span><span class="text-right"><strong class="block text-sm">{{ $awardRun->awards_count }}</strong><small class="capitalize text-slate-500">{{ $awardRun->status }}</small></span></a>@endforeach</div>@endif
                     </section>
                 </div>
 

@@ -3,12 +3,14 @@ class TeacherUser {
   final int teacherId;
   final String name;
   final String email;
+  final bool mustChangePassword;
 
   const TeacherUser({
     required this.id,
     required this.teacherId,
     required this.name,
     required this.email,
+    this.mustChangePassword = false,
   });
 
   factory TeacherUser.fromJson(Map<String, dynamic> j) => TeacherUser(
@@ -16,6 +18,15 @@ class TeacherUser {
     teacherId: _int(j['teacher_id']),
     name: j['name']?.toString() ?? 'Teacher',
     email: j['email']?.toString() ?? '',
+    mustChangePassword: j['must_change_password'] == true,
+  );
+
+  TeacherUser copyWith({bool? mustChangePassword}) => TeacherUser(
+    id: id,
+    teacherId: teacherId,
+    name: name,
+    email: email,
+    mustChangePassword: mustChangePassword ?? this.mustChangePassword,
   );
 
   Map<String, dynamic> toJson() => {
@@ -23,6 +34,7 @@ class TeacherUser {
     'teacher_id': teacherId,
     'name': name,
     'email': email,
+    'must_change_password': mustChangePassword,
   };
 }
 
@@ -160,6 +172,8 @@ class TeacherDashboardData {
   final List<SchoolClassInfo> classTeacherClasses;
   final List<TeachingAssignment> teachingAssignments;
   final TeacherCounts counts;
+  final String dayLabel;
+  final TeacherLoad teachingLoad;
 
   const TeacherDashboardData({
     required this.teacher,
@@ -168,6 +182,8 @@ class TeacherDashboardData {
     required this.classTeacherClasses,
     required this.teachingAssignments,
     required this.counts,
+    required this.dayLabel,
+    required this.teachingLoad,
   });
 
   factory TeacherDashboardData.fromJson(
@@ -200,7 +216,61 @@ class TeacherDashboardData {
     counts: TeacherCounts.fromJson(
       Map<String, dynamic>.from((j['counts'] as Map?) ?? const {}),
     ),
+    dayLabel: j['day_label']?.toString() ?? '',
+    teachingLoad: TeacherLoad.fromJson(
+      Map<String, dynamic>.from((j['teaching_load'] as Map?) ?? const {}),
+    ),
   );
+}
+
+class TeacherLoad {
+  final double total;
+  final List<TeacherScheduleLoad> schedules;
+  const TeacherLoad({required this.total, required this.schedules});
+  factory TeacherLoad.fromJson(Map<String, dynamic> j) => TeacherLoad(
+    total: _double(j['grand_total']) ?? 0,
+    schedules: (j['schedules'] as List? ?? [])
+        .map(
+          (row) => TeacherScheduleLoad.fromJson(
+            Map<String, dynamic>.from(row as Map),
+          ),
+        )
+        .toList(),
+  );
+}
+
+class TeacherScheduleLoad {
+  final String label;
+  final double total;
+  final List<TeacherSubjectLoad> subjects;
+  const TeacherScheduleLoad({
+    required this.label,
+    required this.total,
+    required this.subjects,
+  });
+  factory TeacherScheduleLoad.fromJson(Map<String, dynamic> j) =>
+      TeacherScheduleLoad(
+        label: j['label']?.toString() ?? 'Schedule',
+        total: _double(j['total']) ?? 0,
+        subjects: (j['subjects'] as List? ?? [])
+            .map(
+              (row) => TeacherSubjectLoad.fromJson(
+                Map<String, dynamic>.from(row as Map),
+              ),
+            )
+            .toList(),
+      );
+}
+
+class TeacherSubjectLoad {
+  final String subject;
+  final double periods;
+  const TeacherSubjectLoad({required this.subject, required this.periods});
+  factory TeacherSubjectLoad.fromJson(Map<String, dynamic> j) =>
+      TeacherSubjectLoad(
+        subject: j['subject']?.toString() ?? 'Subject',
+        periods: _double(j['periods']) ?? 0,
+      );
 }
 
 class ParentAbsenceNoticeInfo {
@@ -584,12 +654,18 @@ class TimetableData {
   final String? academicYear;
   final int? selectedDayNumber;
   final List<TimetableDayData> days;
+  final String? scheduleLabel;
+  final String? dayLabel;
+  final List<TimetableData> schedules;
 
   const TimetableData({
     this.templateName,
     this.academicYear,
     this.selectedDayNumber,
     required this.days,
+    this.scheduleLabel,
+    this.dayLabel,
+    this.schedules = const [],
   });
 
   bool get isPublished => templateName != null;
@@ -599,6 +675,12 @@ class TimetableData {
         ? Map<String, dynamic>.from(j['template'] as Map)
         : null;
 
+    final schedules = (j['schedules'] as List? ?? [])
+        .map(
+          (item) =>
+              TimetableData._schedule(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
     return TimetableData(
       templateName: template?['name']?.toString(),
       academicYear: template?['academic_year']?.toString(),
@@ -612,6 +694,31 @@ class TimetableData {
             ),
           )
           .toList(),
+      scheduleLabel: template?['schedule_label']?.toString(),
+      dayLabel: j['day_label']?.toString(),
+      schedules: schedules,
+    );
+  }
+
+  factory TimetableData._schedule(Map<String, dynamic> j) {
+    final template = j['template'] is Map
+        ? Map<String, dynamic>.from(j['template'] as Map)
+        : null;
+    return TimetableData(
+      templateName: template?['name']?.toString(),
+      academicYear: template?['academic_year']?.toString(),
+      selectedDayNumber: j['selected_day_number'] == null
+          ? null
+          : _int(j['selected_day_number']),
+      days: (j['days'] as List? ?? [])
+          .map(
+            (item) => TimetableDayData.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(),
+      scheduleLabel: template?['schedule_label']?.toString(),
+      dayLabel: j['day_label']?.toString(),
     );
   }
 }

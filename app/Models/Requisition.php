@@ -119,6 +119,11 @@ class Requisition extends Model
         return $this->hasMany(RequisitionItem::class);
     }
 
+    public function purchaseOrders()
+    {
+        return $this->hasMany(SchoolPurchaseOrder::class);
+    }
+
     public function isClosed(): bool
     {
         return in_array($this->status, [self::STATUS_REJECTED, self::STATUS_FULFILLED, self::STATUS_CANCELLED], true);

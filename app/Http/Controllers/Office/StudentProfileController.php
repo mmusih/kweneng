@@ -50,7 +50,11 @@ class StudentProfileController extends Controller
 
     public function show(Student $student)
     {
-        $student->load(['user', 'currentClass.academicYear', 'parents.user', 'studentSubjects.subject']);
+        $student->load(['user', 'currentClass.academicYear', 'parents.user', 'studentSubjects.subject',
+            'awards' => fn ($query) => $query->whereHas('run', fn ($run) => $run->where('status', 'published'))
+                ->with(['run.category', 'run.academicYear', 'run.term'])->latest(),
+            'prefectAppointments' => fn ($query) => $query->with('academicYear')->latest('appointed_on'),
+        ]);
 
         return view('office.students.show', compact('student'));
     }
@@ -115,6 +119,6 @@ class StudentProfileController extends Controller
             ]);
         });
 
-        return redirect()->route('office.students.show', $student)->with('success', 'Student profile updated successfully.');
+        return redirect()->route('office.students.show', array_merge(['student' => $student], $request->only(['search', 'class_id', 'page', 'incomplete'])))->with('success', 'Student profile updated successfully.');
     }
 }

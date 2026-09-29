@@ -14,6 +14,7 @@ class TimetableScreen extends ConsumerStatefulWidget {
 class _TimetableScreenState extends ConsumerState<TimetableScreen> {
   int? selectedStudentId;
   int? selectedDay;
+  int selectedSchedule = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +67,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
                   onChanged: (value) => setState(() {
                     selectedStudentId = value;
                     selectedDay = null;
+                    selectedSchedule = 0;
                   }),
                 ),
               ),
@@ -94,17 +96,23 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
       );
     }
 
-    if (data.days.isEmpty) {
+    final available = data.schedules.isEmpty ? [data] : data.schedules;
+    if (selectedSchedule >= available.length) selectedSchedule = 0;
+    final schedule = available[selectedSchedule];
+
+    if (schedule.days.isEmpty) {
       return const _EmptyView(
         message: 'No timetable days have been configured.',
       );
     }
 
     final activeDay =
-        selectedDay ?? data.selectedDayNumber ?? data.days.first.dayNumber;
-    final day = data.days.firstWhere(
+        selectedDay ??
+        schedule.selectedDayNumber ??
+        schedule.days.first.dayNumber;
+    final day = schedule.days.firstWhere(
       (item) => item.dayNumber == activeDay,
-      orElse: () => data.days.first,
+      orElse: () => schedule.days.first,
     );
 
     return RefreshIndicator(
@@ -115,13 +123,40 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         children: [
+          if ((data.dayLabel ?? '').isNotEmpty)
+            Chip(
+              avatar: const Icon(Icons.today_outlined, size: 18),
+              label: Text(data.dayLabel!),
+            ),
+          if (available.length > 1) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              children: List.generate(
+                available.length,
+                (index) => ChoiceChip(
+                  label: Text(
+                    available[index].scheduleLabel ??
+                        available[index].templateName ??
+                        'Schedule',
+                  ),
+                  selected: index == selectedSchedule,
+                  onSelected: (_) => setState(() {
+                    selectedSchedule = index;
+                    selectedDay = null;
+                  }),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Text(
-            data.templateName!,
+            schedule.templateName!,
             style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
           ),
-          if (data.academicYear != null)
+          if (schedule.academicYear != null)
             Text(
-              data.academicYear!,
+              schedule.academicYear!,
               style: const TextStyle(color: Colors.grey),
             ),
           const SizedBox(height: 16),
@@ -129,10 +164,10 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
             height: 42,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: data.days.length,
+              itemCount: schedule.days.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final item = data.days[index];
+                final item = schedule.days[index];
                 return ChoiceChip(
                   selected: item.dayNumber == day.dayNumber,
                   label: Text(item.name),
@@ -154,7 +189,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
                   ),
                 ),
               ),
-              if (data.selectedDayNumber == day.dayNumber)
+              if (schedule.selectedDayNumber == day.dayNumber)
                 const Chip(label: Text('Today')),
             ],
           ),

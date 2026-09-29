@@ -24,7 +24,10 @@ class BookController extends Controller
                     $q->where('title', 'like', "%{$search}%")
                         ->orWhere('author', 'like', "%{$search}%")
                         ->orWhere('isbn', 'like', "%{$search}%")
-                        ->orWhere('publisher', 'like', "%{$search}%");
+                        ->orWhere('publisher', 'like', "%{$search}%")
+                        ->orWhereHas('copies', function ($copies) use ($search) {
+                            $copies->whereIdentifier($search);
+                        });
                 });
             })
             ->orderBy('title')
@@ -522,4 +525,3 @@ class BookController extends Controller
         return preg_replace('/[^0-9Xx]/', '', $isbn) ?? '';
     }
 }
-

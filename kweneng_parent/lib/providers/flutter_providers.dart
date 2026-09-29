@@ -233,6 +233,14 @@ final timetableProvider = FutureProvider.family<TimetableData, int>((
   return TimetableData.fromJson(data);
 });
 
+final academicRecordProvider =
+    FutureProvider.family<StudentAcademicRecord, int>((ref, studentId) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .getAcademicRecord(studentId);
+      return StudentAcademicRecord.fromJson(data);
+    });
+
 // ============================================================
 // Events
 // ============================================================

@@ -132,3 +132,82 @@ test('save applies all pending counts without an Apply click and refreshes the e
         assert.deepEqual(events.map(e => e[0]), ['timetable-prepared', 'preparation-close']);
     } finally { global.fetch = oldFetch; global.document = oldDocument; }
 });
+
+test('joining from a card reflects in both class lists without creating duplicates on class switch', async () => {
+    const state = await setup(); state.classId = 1; state.chooseClass();
+    state.assignments[0].class_name = '2A'; state.assignments[2].class_name = '2B';
+    state.classId = 2; state.chooseClass();
+    const unit = state.occurrences('1:1:1')[0];
+    state.classId = 1;
+    state.openJoint({ kind: 'unit', key: unit.key });
+    state.joint.target = '2:1:1'; state.join();
+    assert.equal(state.occurrences('1:1:1')[0], state.occurrences('2:1:1')[0]);
+    assert.equal(state.joinedClasses('1:1:1'), '2B');
+    assert.equal(state.joinedClasses('2:1:1'), '2A');
+    const count = state.units.length;
+    state.classId = 2; state.chooseClass();
+    assert.equal(state.units.length, count);
+    assert.equal(state.belongs(unit), true);
+    state.pattern('2:1:1');
+    state.unjoin(unit);
+    assert.equal(state.occurrences('1:1:1').length, 1);
+    assert.equal(state.occurrences('2:1:1').length, 1);
+    assert.equal(state.joinedClasses('2:1:1'), '');
+});
+
+test('opening joint classes applies pending counts before choosing the cards to join', async () => {
+    const state = await setup(); state.classId = 1; state.chooseClass();
+    state.patterns['1:1:1'] = { singles: 2, doubles: 1 };
+    state.openJoint({ kind: 'assignment', key: '1:1:1' });
+    state.joint.target = '2:1:1'; state.join();
+    assert.equal(state.occurrences('2:1:1').length, 3);
+    assert.equal(state.occurrences('1:1:1').length, 3);
+});
+
+async function englishSetup() {
+    const state = await setup();
+    state.classes = [{ id: 17, name: 'Form 1A' }, { id: 3, name: 'Form 1B' }, { id: 6, name: 'Form 2A' }];
+    state.assignments = state.classes.map(c => ({ key: `${c.id}:9:8`, class_id: c.id, class_name: c.name,
+        subject_id: 9, teacher_id: 8, subject: 'English', teacher: 'English teacher', existing: false }));
+    state.classId = 17; state.chooseClass();
+    return state;
+}
+
+test('Form 1A English offers both Form 1B and Form 2A and keeps joined Form 1B visible', async () => {
+    const state = await englishSetup();
+    const unit = state.occurrences('17:9:8')[0];
+    state.openJoint({ kind: 'unit', key: unit.key });
+    assert.deepEqual(state.jointOptions().map(a => a.class_name), ['Form 1B', 'Form 2A']);
+    assert.ok(state.jointOptions().every(a => !state.jointOptionStatus(a).disabled));
+    state.joint.target = '3:9:8'; state.join();
+    state.openJoint({ kind: 'unit', key: unit.key });
+    assert.deepEqual(state.jointOptions().map(a => a.class_name), ['Form 1B', 'Form 2A']);
+    assert.equal(state.jointOptionStatus(state.assignments[1]).label, 'Already joined');
+    assert.equal(state.jointOptionStatus(state.assignments[2]).disabled, false);
+    state.classId = 3; state.chooseClass();
+    state.openJoint({ kind: 'unit', key: unit.key });
+    assert.deepEqual(state.jointOptions().map(a => a.class_name), ['Form 1A', 'Form 2A']);
+    assert.equal(state.jointOptionStatus(state.assignments[0]).label, 'Already joined');
+    assert.equal(state.occurrences('3:9:8').length, 1);
+});
+
+test('joining all cards completes a partially joined assignment without duplicating its existing joint', async () => {
+    const state = await englishSetup();
+    state.patterns['17:9:8'] = { singles: 2, doubles: 0 }; state.applyPattern('17:9:8');
+    const unit = state.occurrences('17:9:8')[0];
+    state.openJoint({ kind: 'unit', key: unit.key }); state.joint.target = '3:9:8'; state.join();
+    state.openJoint({ kind: 'assignment', key: '17:9:8' });
+    assert.equal(state.jointOptionStatus(state.assignments[1]).disabled, false);
+    state.joint.target = '3:9:8'; state.join();
+    assert.equal(state.occurrences('3:9:8').length, 2);
+    assert.ok(state.occurrences('17:9:8').every(u => u.sources.length === 2));
+});
+
+test('existing individual lessons do not silently remove a matching class from the picker', async () => {
+    const state = await englishSetup(); state.assignments[1].existing = true;
+    state.openJoint({ kind: 'assignment', key: '17:9:8' });
+    assert.equal(state.jointOptions().length, 2);
+    assert.match(state.jointOptionLabel(state.assignments[1]), /Form 1B.*Existing individual lessons/);
+    state.joint.target = '3:9:8'; state.join();
+    assert.equal(state.occurrences('3:9:8').length, 0);
+});

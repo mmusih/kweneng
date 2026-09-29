@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\StudentFeeBalance;
+use App\Models\StudentFinanceAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,12 +35,15 @@ class ParentFeesController extends Controller
             ->get()
             ->groupBy('student_id');
 
-        $children = $students->map(function ($student) use ($balances) {
+        $accounts = StudentFinanceAccount::whereIn('student_id', $studentIds)->get()->keyBy('student_id');
+        $children = $students->map(function ($student) use ($balances, $accounts) {
             $latestBalance = $balances->get($student->id)?->first();
+            $account = $accounts->get($student->id);
 
             $closingBalance = $latestBalance
                 ? (float) $latestBalance->closing_balance
                 : null;
+            if ($account) $closingBalance = $account->balanceMinor() / 100;
 
             return [
                 'student_id' => $student->id,
@@ -54,7 +58,8 @@ class ParentFeesController extends Controller
                     : ($closingBalance > 0 ? 'outstanding' : 'clear'),
                 'academic_year' => $latestBalance?->academicYear?->year_name,
                 'term' => $latestBalance?->term?->name,
-                'last_updated' => $latestBalance?->updated_at?->toDateTimeString(),
+                'last_updated' => $account ? now()->toDateTimeString() : $latestBalance?->updated_at?->toDateTimeString(),
+                'balance_source' => $account ? 'ledger' : 'import',
             ];
         })->values();
 

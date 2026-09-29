@@ -106,10 +106,8 @@
                                 <div>
                                     <h3 class="text-xl font-bold text-gray-800">Email</h3>
                                     <p class="text-gray-600">
-                                        <a href="mailto:kwenenginternational@gmail.com"
-                                            class="hover:text-indigo-600 transition">kwenenginternational@gmail.com</a><br>
-                                        <a href="mailto:info@kwenenginternational.com"
-                                            class="hover:text-indigo-600 transition">info@kwenenginternational.com</a>
+                                        <a href="mailto:kweneng.international@gmail.com"
+                                            class="hover:text-indigo-600 transition">kweneng.international@gmail.com</a>
                                     </p>
                                 </div>
                             </div>
@@ -140,7 +138,7 @@
                                     <span class="text-xl">💬</span>
                                 </a>
 
-                                <a href="mailto:info@kwenenginternational.com"
+                                <a href="mailto:kweneng.international@gmail.com"
                                     class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white hover:bg-indigo-700 transition duration-300 transform hover:-translate-y-1"
                                     aria-label="Email">
                                     <span class="text-xl">✉</span>
@@ -288,11 +286,11 @@
                         <p class="text-gray-500 text-sm">Quick communication channel</p>
                     </a>
 
-                    <a href="mailto:info@kwenenginternational.com"
+                    <a href="mailto:kweneng.international@gmail.com"
                         class="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition duration-300 transform hover:-translate-y-1 text-center border border-gray-100">
                         <div class="text-indigo-600 text-4xl mb-4">✉️</div>
                         <h3 class="text-xl font-bold mb-2">Email</h3>
-                        <p class="text-gray-600 font-medium">info@kwenenginternational.com</p>
+                        <p class="text-gray-600 font-medium">kweneng.international@gmail.com</p>
                         <p class="text-gray-500 text-sm">General enquiries</p>
                     </a>
 
@@ -321,7 +319,7 @@
                         Call Us Now
                     </a>
 
-                    <a href="mailto:info@kwenenginternational.com"
+                    <a href="mailto:kweneng.international@gmail.com"
                         class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
                         Send Email
                     </a>
