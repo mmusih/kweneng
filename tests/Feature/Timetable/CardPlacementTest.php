@@ -312,4 +312,42 @@ class CardPlacementTest extends TestCase
         $this->assertCount(2, $units);
         $this->assertSame([1, 2], array_map(fn ($u) => $u->dayNumber(), $units));
     }
+
+    public function test_room_clash_on_second_period_places_entire_double_without_room(): void
+    {
+        $bio = $this->lesson('Biology', 'Form 5A', 'BIO', 'K Simukonda', rooms: ['Lab 1']);
+        $chem = $this->lesson('Chemistry', 'Form 5B', 'CHE', 'N Chisenga', double: true, rooms: ['Lab 1']);
+        $this->placement->place($bio, 1, 2);
+        $placed = $this->placement->place($chem, 1, 1, $this->rooms['Lab 1']->id);
+        $this->assertNull($placed->roomId());
+        $this->assertSame(2, Card::where('tt_lesson_id', $chem->id)->whereNull('tt_room_id')->count());
+        $this->assertSame($this->rooms['Lab 1']->id, $this->placement->unitsFor($bio)[0]->roomId());
+    }
+
+    public function test_moving_into_an_occupied_room_keeps_the_move_but_clears_the_room(): void
+    {
+        $bio = $this->lesson('Biology', 'Form 5A', 'BIO', 'K Simukonda', rooms: ['Lab 1']);
+        $chem = $this->lesson('Chemistry', 'Form 5B', 'CHE', 'N Chisenga', rooms: ['Lab 1']);
+        $this->placement->place($bio, 1, 1);
+        $placed = $this->placement->place($chem, 2, 1);
+        $moved = $this->placement->move($placed, 1, 1);
+        $this->assertNull($moved->roomId());
+        $this->assertSame(1, $moved->dayNumber());
+    }
+
+    public function test_linked_split_room_collision_is_roomless_in_preview_and_placement(): void
+    {
+        $bio = $this->lesson('Biology', 'Form 5A', 'BIO', 'K Simukonda', double: true, rooms: ['Lab 1']);
+        $chem = $this->lesson('Chemistry', 'Form 5A', 'CHE', 'N Chisenga', double: true, rooms: ['Lab 1']);
+        $bio->update(['split_key' => 'room-split']);
+        $chem->update(['split_key' => 'room-split']);
+        $verdict = $this->placement->splitVerdict(collect([$bio, $chem]), collect(), $chem, 1, 1, $this->rooms['Lab 1']->id, false);
+        $this->assertTrue($verdict['ok']);
+        $this->assertNull($verdict['room_id']);
+        $placed = $this->placement->place($chem, 1, 1, $this->rooms['Lab 1']->id);
+        $this->assertNull($placed->roomId());
+        $this->assertCount(1, $this->placement->unitsFor($bio));
+        $this->assertSame(2, Card::where('tt_lesson_id', $chem->id)->whereNull('tt_room_id')->count());
+    }
+
 }

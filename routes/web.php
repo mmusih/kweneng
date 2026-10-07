@@ -50,6 +50,7 @@ require __DIR__ . '/hr_finance.php';
 require __DIR__ . '/staff_workflows.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/admin.php';
+require __DIR__ . '/subject_option_plans.php';
 require __DIR__ . '/teacher.php';
 
 // Include student routes

@@ -18,7 +18,7 @@
 
         <style>[x-cloak] { display: none !important; }</style>
     </head>
-    <body class="font-sans antialiased bg-gray-100 text-gray-900 transition-colors dark:bg-brand-900 dark:text-brand-200">
+    <body @if(request()->routeIs('admin.*')) data-admin-screen @endif class="font-sans antialiased bg-gray-100 text-gray-900 transition-colors dark:bg-brand-900 dark:text-brand-200">
         <div class="min-h-screen bg-gray-100 transition-colors dark:bg-brand-900 flex flex-col">
             <!-- Page Navigation -->
             @include('layouts.navigation')
@@ -42,6 +42,7 @@
             @auth
                 @php
                     $dashboardBackRoute = match (Auth::user()->role) {
+                        'hr' => 'hr.dashboard',
                         'admin' => 'admin.dashboard',
                         'teacher' => 'teacher.dashboard',
                         'headmaster' => 'headmaster.dashboard',
@@ -68,8 +69,8 @@
                     <nav aria-label="Backward navigation" data-back-navigation
                         class="{{ isset($header) ? 'pt-4' : 'pt-20' }} px-4 sm:px-6 lg:px-8">
                         <div class="mx-auto max-w-7xl">
-                            <a href="{{ $profileBackUrl ?? $dashboardBackUrl }}"
-                                @if(! $profileBackUrl) onclick="if (document.referrer) { try { if (new URL(document.referrer).origin === window.location.origin) { window.history.back(); return false; } } catch (error) {} }" @endif
+                            <a href="{{ \App\Support\ScreenNavigation::backUrl(request()) ?? $profileBackUrl ?? $dashboardBackUrl }}"
+
                                 aria-label="Go back to the previous page"
                                 class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-brand-600 dark:bg-brand-800 dark:text-brand-100 dark:hover:bg-brand-700">
                                 <span aria-hidden="true">←</span>
@@ -82,19 +83,7 @@
 
             <!-- Page Content -->
             @auth
-                @if(auth()->user()->canManageHr() || in_array(auth()->user()->role, array_merge(\App\Support\UserRoles::manageableStaff(), ['parent'])))
-                    <nav aria-label="Staff and finance" class="px-4 py-3 {{ isset($header) ? '' : 'mt-16' }}">
-                        <div class="mx-auto max-w-7xl flex flex-wrap gap-4 text-sm font-semibold">
-                            @if(auth()->user()->canManageHr())<a class="underline" href="{{ route('hr.staff.index') }}">Staff & documents</a>@endif
-                            @if(in_array(auth()->user()->role, ['admin','accounts_officer']))<a class="underline" href="{{ route('finance.payments.index') }}">Payments & receipts</a><a class="underline" href="{{ route('finance.accounts.index') }}">Fee ledgers</a>@endif
-                            @if(auth()->user()->role==='parent')<a class="underline" href="{{ route('parent.receipts.index') }}">Payments & receipts</a>@endif
-                            @if(in_array(auth()->user()->role, \App\Support\UserRoles::manageableStaff()))<a class="underline" href="{{ route('staff.leave.index') }}">My leave</a><a class="underline" href="{{ route('staff.expenses.index') }}">My expenses</a>@endif
-                            @if(auth()->user()->canManageHr())<a class="underline" href="{{ route('hr.leave.index') }}">Leave approvals</a>@endif
-                            @if(in_array(auth()->user()->role, ['admin','headmaster','accounts_officer']))<a class="underline" href="{{ route('finance.expenses.index') }}">Expense approvals</a>@endif
-                            @if(in_array(auth()->user()->role, ['admin','headmaster','accounts_officer','office','inventory']))<a class="underline" href="{{ route('finance.purchasing.index') }}">Purchasing</a>@endif
-                        </div>
-                    </nav>
-                @endif
+                <x-operations-navigation />
             @endauth
             <main class="flex-1">
                 {{ $slot }}

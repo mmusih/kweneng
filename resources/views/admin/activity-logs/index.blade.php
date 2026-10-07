@@ -1,18 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-6 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-6 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg flex items-center justify-center">
             <div class="flex items-center justify-between w-full">
                 <h2 class="font-semibold text-2xl text-white leading-tight">
                     Activity Logs
                 </h2>
-                <a href="{{ route('admin.dashboard') }}"
+                <a data-admin-back href="{{ route('admin.dashboard') }}"
                     class="text-white hover:text-slate-200 text-sm font-medium flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                    Back to Dashboard
+                    Back
                 </a>
             </div>
         </div>

@@ -18,9 +18,10 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate(['status' => ['nullable', Rule::in(['submitted', 'approved', 'rejected', 'cancelled', 'paid'])]]);
         $manage = $request->routeIs('finance.*');
         $staff = StaffWorkflows::staff($request->user());
-        $claims = StaffExpenseClaim::with('staff', 'department')->when(! $manage, fn ($q) => $q->whereHas('staff', fn ($q) => $q->where('user_id', $request->user()->id)))->latest()->paginate(30);
+        $claims = StaffExpenseClaim::with('staff', 'department')->when(! $manage, fn ($q) => $q->whereHas('staff', fn ($q) => $q->where('user_id', $request->user()->id)))->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))->latest()->paginate(30)->withQueryString();
 
         return view('finance.expenses.index', compact('manage', 'staff', 'claims') + ['departments' => Department::orderBy('name')->get()]);
     }

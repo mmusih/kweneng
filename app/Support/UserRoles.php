@@ -14,6 +14,7 @@ class UserRoles
     public const OFFICE = 'office';
     public const REGISTER_OFFICER = 'register_officer';
     public const INVENTORY = 'inventory';
+    public const HR = 'hr';
 
     public static function all(): array
     {
@@ -28,6 +29,7 @@ class UserRoles
             self::OFFICE,
             self::REGISTER_OFFICER,
             self::INVENTORY,
+            self::HR,
         ];
     }
 
@@ -50,6 +52,7 @@ class UserRoles
     public static function operationalStaff(): array
     {
         return [
+            self::HR,
             self::ADMIN,
             self::HEADMASTER,
             self::OFFICE,
@@ -71,6 +74,7 @@ class UserRoles
             self::OFFICE,
             self::REGISTER_OFFICER,
             self::INVENTORY,
+            self::HR,
         ];
     }
 }

@@ -50,7 +50,10 @@ class CardPlacementService
     public function move(Placement $placement, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
     {
         if (! $placement->lesson->split_key) {
-            return $this->moveOne($placement, $dayNumber, $startPeriod, $roomId);
+            return DB::transaction(function () use ($placement, $dayNumber, $startPeriod, $roomId) {
+                \App\Models\Tt\Setting::whereKey($placement->lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
+                return $this->moveOne($placement, $dayNumber, $startPeriod, $roomId);
+            });
         }
 
         return DB::transaction(function () use ($placement, $dayNumber, $startPeriod, $roomId) {
@@ -64,7 +67,7 @@ class CardPlacementService
             foreach ($units as $unit) {
                 $selected = $unit->lesson->id === $placement->lesson->id;
                 $newRoom = $selected ? ($roomId ?? $unit->roomId()) : $unit->roomId();
-                $this->refuseIfConflicting($unit->lesson, $dayNumber, $startPeriod, $newRoom, []);
+                $newRoom = $this->placementRoom($unit->lesson, $dayNumber, $startPeriod, $newRoom, []);
                 $placed = $this->write($unit->lesson, $dayNumber, $startPeriod, $newRoom, [
                     'weeks' => (string) $unit->first()->weeks, 'terms' => (string) $unit->first()->terms,
                 ]);
@@ -109,6 +112,7 @@ class CardPlacementService
     public function splitVerdict(Collection $members, Collection $pool, Lesson $selected, int $day, int $period, ?int $roomId, bool $moving): array
     {
         $ids = $members->pluck('id')->all();
+        $selectedRoom = null;
         $occupants = $pool->reject(fn ($card) => in_array($card->tt_lesson_id, $ids))->values();
         foreach ($members as $member) {
             $member->loadMissing(['setting', 'weeksDef', 'termsDef', 'teachers.user', 'classes', 'groups', 'rooms', 'subject']);
@@ -121,7 +125,7 @@ class CardPlacementService
             $checker = $this->checker->withPool($occupants);
             $first = [];
             $chosen = null;
-            foreach ($rooms as $candidate) {
+            foreach (array_unique([...$rooms, null], SORT_REGULAR) as $candidate) {
                 $conflicts = $checker->check($member, $day, $period, $candidate);
                 if ($conflicts === []) {
                     $chosen = $candidate;
@@ -133,6 +137,9 @@ class CardPlacementService
             if ($first !== []) {
                 return ['ok' => false, 'room_id' => null, 'conflicts' => array_map(fn ($c) => $c->toArray(), $first)];
             }
+            if ($member->id === $selected->id) {
+                $selectedRoom = $chosen;
+            }
             $masks = PlacementMasks::forLesson($member, $day);
             foreach (range($period, $period + $member->periods_per_card - 1) as $number) {
                 $card = new Card(['tt_lesson_id' => $member->id, 'period_number' => $number, 'days' => (string) $masks->days,
@@ -143,7 +150,7 @@ class CardPlacementService
             }
         }
 
-        return ['ok' => true, 'room_id' => $roomId, 'conflicts' => []];
+        return ['ok' => true, 'room_id' => $selectedRoom, 'conflicts' => []];
     }
 
     public function __construct(
@@ -171,7 +178,7 @@ class CardPlacementService
 
         $roomId = $this->pickRoom($lesson, $dayNumber, $startPeriod, $roomId, []);
 
-        $this->refuseIfConflicting($lesson, $dayNumber, $startPeriod, $roomId, []);
+        $roomId = $this->placementRoom($lesson, $dayNumber, $startPeriod, $roomId, []);
 
         $masks = PlacementMasks::forLesson($lesson, $dayNumber);
 
@@ -233,11 +240,11 @@ class CardPlacementService
 
         // The card must not collide with the copy of itself it is leaving behind, or
         // nothing could ever be nudged one period sideways.
-        // Moving an existing card preserves its room, including an explicit "no room".
+        // Moving preserves its room unless occupied, including an explicit "no room".
         // Automatic room selection is only for a new card coming out of the tray.
         $roomId ??= $placement->roomId();
 
-        $this->refuseIfConflicting($lesson, $dayNumber, $startPeriod, $roomId, $ignore);
+        $roomId = $this->placementRoom($lesson, $dayNumber, $startPeriod, $roomId, $ignore);
 
         // Weeks and terms come off the existing rows, not off the lesson: an imported card
         // may run in a narrower window than its lesson allows, and a move must not widen it.
@@ -325,18 +332,24 @@ class CardPlacementService
      *
      * @throws PlacementRefused
      */
-    private function refuseIfConflicting(
+    private function placementRoom(
         Lesson $lesson,
         int $dayNumber,
         int $startPeriod,
         ?int $roomId,
         array $ignoreCardIds,
-    ): void {
+    ): ?int {
         $conflicts = $this->checker->check($lesson, $dayNumber, $startPeriod, $roomId, $ignoreCardIds);
 
+        if (collect($conflicts)->contains(fn ($conflict) => $conflict->kind === Conflict::ROOM)) {
+            $roomId = null;
+            $conflicts = $this->checker->check($lesson, $dayNumber, $startPeriod, null, $ignoreCardIds);
+        }
         if ($conflicts !== []) {
             throw new PlacementRefused($conflicts);
         }
+
+        return $roomId;
     }
 
     /**
@@ -386,8 +399,8 @@ class CardPlacementService
 
     /**
      * A lesson may name several usable rooms ("any free lab"). Take the first that is
-     * actually free at this slot, and if none are, take the first so the refusal names a
-     * room the admin recognises rather than saying nothing about rooms at all.
+     * actually free at this slot. If none are free, placementRoom clears the chosen
+     * room while still enforcing every non-room conflict.
      *
      * @param  list<int>  $ignoreCardIds
      */

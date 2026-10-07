@@ -59,13 +59,22 @@ class AssignmentPreparationService
         $manual = $lessons->whereNull('preparation_key');
 
         return [
+            'manual_lessons' => $manual->map(fn ($lesson) => [
+                'cards' => $lesson->cardsRequired(), 'span' => (int) $lesson->periods_per_card,
+                'class_ids' => $lesson->classes->pluck('id')->values(),
+                'groups' => $lesson->groups->map(fn ($group) => [
+                    'id' => $group->id, 'class_id' => $group->class_id,
+                    'division_id' => $group->tt_division_id, 'entire_class' => (bool) $group->entire_class,
+                ])->values(),
+            ])->values(),
+            'capacity' => app(ClassCapacity::class)->limit($setting),
             'version' => (int) $setting->preparation_version,
             'rooms' => Room::where('tt_setting_id', $setting->id)->get(['id', 'name']),
             'classes' => ClassModel::with('timetableDivisions.groups')->where('academic_year_id', $setting->academic_year_id)
                 ->orderBy('level')->orderBy('name')->get()->map(fn ($class) => [
                     'id' => $class->id, 'name' => $class->name,
                     'groups' => $class->timetableDivisions->flatMap(fn ($division) => $division->groups->map(fn ($g) => [
-                        'id' => $g->id, 'name' => $division->name.' / '.$g->name,
+                        'id' => $g->id, 'name' => $division->name.' / '.$g->name, 'shared_key' => $g->shared_key, 'division_id' => $division->id,
                     ]))->values(),
                 ]),
             'assignments' => $this->assignments($setting)->map(fn ($a, $key) => [
@@ -97,7 +106,6 @@ class AssignmentPreparationService
             $generated = $existing->whereNotNull('preparation_key')->keyBy('preparation_key');
             $units = $data['units'];
             $manual = $assignments->map(fn ($assignment) => $this->manualSummary($existing, $assignment));
-            $totals = $manual->map(fn ($summary) => $summary['periods'])->all();
 
             foreach ($units as &$unit) {
                 $unit['span'] = (int) $unit['span'];
@@ -118,8 +126,6 @@ class AssignmentPreparationService
                     if ($source['group_id']) {
                         $this->require(Group::whereKey($source['group_id'])->where('class_id', $a->class_id)->where('entire_class', false)->whereNotNull('tt_division_id')->exists(), 'Choose an attendance group belonging to the assignment’s class.');
                     }
-                    $totals[$source['key']] = ($totals[$source['key']] ?? 0) + $unit['span'];
-                    $this->require($totals[$source['key']] <= 40, 'An assignment can use at most 40 periods per cycle.');
                     if ($manual[$source['key']]['cards'] > 0) {
                         $this->require(($data['manual_baselines'][$source['key']] ?? null) === $manual[$source['key']]['signature'],
                             'Existing lesson counts have changed. Reload the assignments before adding cards so existing lessons are not duplicated.');
@@ -179,51 +185,34 @@ class AssignmentPreparationService
         });
     }
 
-    /** Connected split rows share one division, including their cross-class joint members. */
+    /** Each split occurrence owns its attendance; filler assignments may use other divisions elsewhere. */
     private function assignSplitGroups(array &$units, $assignments): void
     {
-        $families = [];
-        foreach (collect($units)->filter(fn ($u) => $u['split_key'])->groupBy('split_key') as $members) {
-            $keys = $members->flatMap(fn ($u) => array_column($u['sources'], 'key'))->unique()->all();
-            do {
-                $merged = false;
-                foreach ($families as $i => $family) {
-                    if (array_intersect($keys, $family)) {
-                        $keys = array_values(array_unique(array_merge($keys, $family)));
-                        unset($families[$i]);
-                        $merged = true;
-                    }
-                }
-            } while ($merged);
-            $families[] = $keys;
+        $rows = [];
+        foreach ($units as $index => $unit) {
+            if ($unit['split_key']) $rows[$unit['split_key']][] = $index;
         }
-        foreach ($families as $keys) {
-            sort($keys);
+        foreach ($rows as $indices) {
+            $sources = collect($indices)->flatMap(fn ($index) => $units[$index]['sources']);
+            $keys = $sources->pluck('key')->unique()->sort()->values()->all();
             $shared = 'prepared-'.substr(hash('sha256', implode('|', $keys)), 0, 24);
-            foreach (collect($keys)->groupBy(fn ($key) => $assignments[$key]->class_id) as $classId => $classKeys) {
-                $explicit = collect($units)->flatMap(fn ($u) => $u['sources'])->filter(fn ($s) => $classKeys->contains($s['key']) && $s['group_id']);
-                $divisionIds = Group::whereIn('id', $explicit->pluck('group_id'))->pluck('tt_division_id')->unique();
-                $this->require($divisionIds->count() <= 1, 'The selected split groups belong to different divisions. Choose groups from one division.');
+            foreach ($sources->groupBy(fn ($source) => $assignments[$source['key']]->class_id) as $classId => $classSources) {
+                $divisionIds = Group::whereIn('id', $classSources->pluck('group_id')->filter())->pluck('tt_division_id')->unique();
+                $this->require($divisionIds->count() <= 1, 'The groups in this split card row must belong to one division. Other occurrences may use different divisions.');
                 $division = $divisionIds->isNotEmpty() ? Division::findOrFail($divisionIds->first()) : Division::firstOrCreate(
                     ['class_id' => $classId, 'shared_key' => $shared],
                     ['name' => 'Prepared split', 'division_tag' => ((int) Division::where('class_id', $classId)->max('division_tag')) + 1],
                 );
-                foreach ($classKeys as $key) {
-                    $groupId = $explicit->firstWhere('key', $key)['group_id'] ?? null;
-                    if (! $groupId) {
-                        $a = $assignments[$key];
-                        $groupId = Group::firstOrCreate(['class_id' => $classId, 'tt_division_id' => $division->id, 'shared_key' => 'prepared-'.substr(hash('sha256', $key), 0, 24)],
-                            ['name' => $a->subject->name.' · '.$a->teacher->user->name, 'entire_class' => false])->id;
+                foreach ($indices as $index) {
+                    foreach ($units[$index]['sources'] as &$source) {
+                        $assignment = $assignments[$source['key']];
+                        if ($assignment->class_id != $classId || $source['group_id']) continue;
+                        $source['group_id'] = Group::firstOrCreate(
+                            ['class_id' => $classId, 'tt_division_id' => $division->id, 'shared_key' => 'prepared-'.substr(hash('sha256', $source['key']), 0, 24)],
+                            ['name' => $assignment->subject->name.' · '.$assignment->teacher->user->name, 'entire_class' => false],
+                        )->id;
                     }
-                    foreach ($units as &$unit) {
-                        foreach ($unit['sources'] as &$source) {
-                            if ($source['key'] === $key && ! $source['group_id']) {
-                                $source['group_id'] = $groupId;
-                            }
-                        }
-                        unset($source);
-                    }
-                    unset($unit);
+                    unset($source);
                 }
             }
         }

@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $this->activityLogService = $activityLogService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, \App\Services\FinanceDashboardService $finance)
     {
         $query = Student::with(['user', 'currentClass', 'latestFeeBalance'])
             ->orderBy('admission_no');
@@ -58,7 +58,7 @@ class DashboardController extends Controller
 
         $classes = ClassModel::orderBy('level')->orderBy('name')->get();
 
-        return view('accounts-officer.dashboard', compact('stats', 'students', 'classes'));
+        return view('accounts-officer.dashboard', array_merge(compact('stats', 'students', 'classes'), ['finance' => $finance->data()]));
     }
 
     public function block(Student $student)

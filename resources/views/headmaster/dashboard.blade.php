@@ -23,6 +23,7 @@
     <div class="py-6">
         <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
             <form method="GET" class="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-5 dark:bg-brand-800">
+                <a class="font-semibold text-blue-700" href="{{ route('headmaster.timetable.index') }}">Timetable</a>
                 <label for="overview-term" class="font-semibold">Performance term</label>
                 <select id="overview-term" name="term_id" class="rounded border-slate-300">
                     @foreach($terms as $term)<option value="{{ $term->id }}" @selected($currentTerm?->id === $term->id)>{{ $term->academicYear?->year_name }} · {{ $term->name }}</option>@endforeach

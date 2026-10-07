@@ -18,9 +18,11 @@ use Illuminate\Validation\ValidationException;
 
 class PurchasingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('finance.purchasing.index', ['orders' => SchoolPurchaseOrder::with('requisition')->latest()->paginate(30), 'requisitions' => Requisition::where('status', 'approved')->whereDoesntHave('purchaseOrders', fn ($q) => $q->whereNotIn('status', ['rejected', 'cancelled']))->with('requester')->latest()->get()]);
+        $request->validate(['status' => ['nullable', Rule::in(['submitted', 'approved', 'rejected', 'cancelled', 'received', 'paid'])]]);
+
+        return view('finance.purchasing.index', ['orders' => SchoolPurchaseOrder::with('requisition')->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))->latest()->paginate(30)->withQueryString(), 'requisitions' => Requisition::where('status', 'approved')->whereDoesntHave('purchaseOrders', fn ($q) => $q->whereNotIn('status', ['rejected', 'cancelled']))->with('requester')->latest()->get()]);
     }
 
     public function suppliers()

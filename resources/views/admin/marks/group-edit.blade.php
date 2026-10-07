@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 rounded-xl bg-gradient-to-r from-indigo-700 to-blue-700 px-6 py-5 text-white shadow-sm">
+        <div class="kw-page-header mt-16 rounded-xl bg-gradient-to-r from-indigo-700 to-blue-700 px-6 py-5 text-white shadow-sm">
             <p class="text-xs font-semibold uppercase tracking-widest text-indigo-200">Administrator marks override</p>
             <h2 class="mt-1 text-2xl font-semibold">{{ $class->name }} · {{ $subject->name }}</h2>
             <p class="mt-1 text-sm text-indigo-100">{{ $teacher->user?->name ?? 'Teacher' }} · {{ $term->academicYear?->year_name }} {{ $term->name }}</p>
@@ -10,7 +10,7 @@
     <div class="py-10">
         <div class="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <a href="{{ route('admin.marks.index', ['academic_year_id' => $data['academic_year_id'], 'term_id' => $data['term_id']]) }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← Back to teacher progress</a>
+                <a data-admin-back href="{{ route('admin.marks.index', ['academic_year_id' => $data['academic_year_id'], 'term_id' => $data['term_id']]) }}" class="text-sm font-semibold text-indigo-700 hover:text-indigo-900">← Back</a>
                 @if($term->isLocked())<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Term locked · administrator override enabled</span>@endif
             </div>
 

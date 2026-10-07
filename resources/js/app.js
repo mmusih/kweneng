@@ -1,3 +1,4 @@
+import { installAdminNavigation } from './admin-navigation';
 import './bootstrap';
 import Alpine from 'alpinejs';
 import { timetablePreparation } from './timetable-preparation';
@@ -54,3 +55,4 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', (
 window.Alpine = Alpine;
 
 Alpine.start();
+installAdminNavigation();

@@ -220,7 +220,13 @@ class PortalCard extends StatelessWidget {
 class PortalMetric extends StatelessWidget {
   final String label;
   final String value;
-  const PortalMetric({super.key, required this.label, required this.value});
+  final bool subdued;
+  const PortalMetric({
+    super.key,
+    required this.label,
+    required this.value,
+    this.subdued = false,
+  });
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 132,
@@ -229,10 +235,10 @@ class PortalMetric extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.primary,
+          style: TextStyle(
+            fontSize: subdued ? 14 : 23,
+            fontWeight: subdued ? FontWeight.w500 : FontWeight.w800,
+            color: subdued ? const Color(0xFF64748B) : AppTheme.primary,
           ),
         ),
         const SizedBox(height: 4),

@@ -141,10 +141,14 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('timetable/settings', [TimetableSettingController::class, 'store'])->name('timetable.settings.store');
         Route::get('timetable/teacher-loads', [TimetableTeacherLoadController::class, 'index'])->name('timetable.teacher-loads');
         Route::get('timetable/teacher-loads/download', [TimetableTeacherLoadController::class, 'download'])->name('timetable.teacher-loads.download');
+        Route::get('timetable/teaching-summary', [TimetableTeacherLoadController::class, 'teachingSummary'])->name('timetable.teaching-summary');
+        Route::get('timetable/teaching-summary/download', [TimetableTeacherLoadController::class, 'teachingSummaryDownload'])->name('timetable.teaching-summary.download');
+        Route::get('timetable/teaching-summary/csv', [TimetableTeacherLoadController::class, 'csv'])->name('timetable.teaching-summary.csv');
         Route::get('timetable/settings/{setting}/verification', TimetableVerificationController::class)->name('timetable.settings.verification');
         Route::get('timetable/settings/{setting}/print/{type}/{id}', TimetablePrintController::class)->name('timetable.settings.print');
         Route::get('timetable/grid/candidates', [GridController::class, 'candidates'])->name('timetable.grid.candidates');
         Route::post('timetable/grid/move', [GridController::class, 'move'])->name('timetable.grid.move');
+        Route::post('timetable/grid/card-attendance', [GridController::class, 'changeCardAttendance'])->name('timetable.grid.card-attendance');
         Route::post('timetable/grid/card-room', [GridController::class, 'changeRoom'])->name('timetable.grid.card-room');
         Route::post('timetable/grid/unplace', [GridController::class, 'unplace'])->name('timetable.grid.unplace');
         Route::put('timetable/grid/required-count', [GridController::class, 'updateRequiredCount'])->name('timetable.grid.required-count');
@@ -190,6 +194,9 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('terms', TermController::class)->except(['show']);
         Route::get('study-retention', [StudyRetentionController::class, 'index'])->name('study-retention.index');
         Route::post('study-retention', [StudyRetentionController::class, 'store'])->name('study-retention.store');
+        Route::post('study-retention/selection', [StudyRetentionController::class, 'selection'])->name('study-retention.selection');
+        Route::post('study-retention/enrolments', [StudyRetentionController::class, 'enrol'])->name('study-retention.enrol');
+        Route::delete('study-retention/enrolments/{studyEnrolment}', [StudyRetentionController::class, 'unenrol'])->name('study-retention.unenrol');
         Route::get('study-retention/print', [StudyRetentionController::class, 'print'])->name('study-retention.print');
         Route::delete('study-retention/{studyRule}', [StudyRetentionController::class, 'destroy'])->name('study-retention.destroy');
         Route::post('terms/{term}/finalize', [TermController::class, 'finalize'])->name('terms.finalize');

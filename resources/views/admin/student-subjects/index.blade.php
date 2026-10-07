@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 shadow-xl flex items-center justify-between">
+            class="kw-page-header mt-16 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 shadow-xl flex items-center justify-between">
             <div>
                 <h2 class="font-bold text-2xl text-white leading-tight">
                     Student Subject Assignments
@@ -32,9 +32,9 @@
                         </div>
 
                         <div class="flex flex-wrap gap-2">
-                            <a href="{{ route('admin.dashboard') }}"
+                            <a data-admin-back href="{{ route('admin.dashboard') }}"
                                 class="inline-flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">
-                                Back to Dashboard
+                                Back
                             </a>
                             <a href="{{ route('admin.student-subjects.create') }}"
                                 class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow">

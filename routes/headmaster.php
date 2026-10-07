@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:headmaster'])->prefix('headmaster')->name('headmaster.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/timetable', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'timetable'])->name('timetable.index');
+    Route::get('/timetable/teacher-loads', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'index'])->name('timetable.teacher-loads');
+    Route::get('/timetable/teacher-loads/download', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'download'])->name('timetable.teacher-loads.download');
+    Route::get('/timetable/teaching-summary', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'teachingSummary'])->name('timetable.teaching-summary');
+    Route::get('/timetable/teaching-summary/download', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'teachingSummaryDownload'])->name('timetable.teaching-summary.download');
+    Route::get('/timetable/teaching-summary/csv', [\App\Http\Controllers\Admin\Timetable\TeacherLoadController::class, 'csv'])->name('timetable.teaching-summary.csv');
     Route::get('/students', [\App\Http\Controllers\Headmaster\StudentProfileController::class, 'index'])->name('students.index');
     Route::get('/students/{student}', [\App\Http\Controllers\Headmaster\StudentProfileController::class, 'show'])->name('students.show');
 

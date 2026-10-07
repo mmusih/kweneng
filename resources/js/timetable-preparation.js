@@ -74,8 +74,8 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
         applyPattern(key, record = true) {
             const p = this.pattern(key), counts = [Number(p.singles), Number(p.doubles)];
             const manual = this.manual(key);
-            if (counts.some(n => !Number.isInteger(n) || n < 0) || counts[0] + 2 * counts[1] + manual.periods - manual.singles - 2 * manual.doubles > 40) {
-                this.error = 'Use whole numbers, with no more than 40 periods per cycle.'; return false;
+            if (counts.some(n => !Number.isInteger(n) || n < 0 || n > 2000)) {
+                this.error = 'Use whole numbers between 0 and 2000.'; return false;
             }
             counts[0] -= manual.singles; counts[1] -= manual.doubles;
             if (counts.some(n => n < 0)) {
@@ -221,7 +221,13 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
                     this.error = 'These occurrences belong to different split rows. Unlink one row first.'; return;
                 }
                 if (target) used.add(target.key);
-                const sources = [...unit.sources, ...(target?.sources || [{ key, group_id: null }])];
+                const origin = unit.sources.find(source => source.group_id);
+                const originGroup = origin && this.groupsFor(origin.key).find(group => group.id === origin.group_id);
+                const match = originGroup && this.groupsFor(key).find(group =>
+                    (originGroup.shared_key && group.shared_key === originGroup.shared_key) || group.name === originGroup.name);
+                const additions = (target?.sources || [{ key, group_id: null }]).map(source =>
+                    source.key === key && !source.group_id && match ? { ...source, group_id: match.id } : source);
+                const sources = [...unit.sources, ...additions];
                 const classes = sources.map(s => this.lookupAssignment(s.key)?.class_id);
                 if (new Set(classes).size !== classes.length) { this.error = 'This would include the same class twice.'; return; }
                 pairs.push([unit, target, sources]);
@@ -244,7 +250,14 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
             this.checkpoint();
             this.occurrences(key).forEach(u => u.sources.filter(s => s.key === key).forEach(s => s.group_id = Number(groupId) || null));
         },
-        groupValue(key) { return this.occurrences(key).flatMap(u => u.sources).find(s => s.key === key)?.group_id || ''; },
+        changeCardGroup(unit, source, value) {
+            if (unit.placed) { this.error = 'Use this card’s attendance menu on the grid, or return it to the tray first.'; return; }
+            this.checkpoint(); source.group_id = Number(value) || null;
+        },
+        groupValue(key) {
+            const values = [...new Set(this.occurrences(key).flatMap(u => u.sources).filter(s => s.key === key).map(s => s.group_id || ''))];
+            return values.length > 1 ? 'mixed' : (values[0] || '');
+        },
         setRoom(unit, value) {
             if (unit.placed) { this.error = 'Return this card to the tray before changing its room.'; return; }
             this.checkpoint(); unit.room_id = Number(value) || null;
@@ -259,10 +272,40 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
                 if (remaining.length === 1) remaining[0].split_key = null;
             }
         },
+        capacityUsed() {
+            let whole = 0;
+            const divisions = {};
+            const add = (periods, groups) => {
+                if (!groups.length || groups.some(g => g.entire_class)) { whole += periods; return; }
+                groups.forEach(g => {
+                    const division = g.division_id ?? 'group-' + g.id;
+                    divisions[division] ||= {};
+                    divisions[division][g.id] = (divisions[division][g.id] || 0) + periods;
+                });
+            };
+            for (const lesson of this.manual_lessons || []) {
+                if (lesson.class_ids.includes(Number(this.classId))) add(lesson.cards * lesson.span,
+                    lesson.groups.filter(g => Number(g.class_id) === Number(this.classId)));
+            }
+            const rows = {};
+            this.units.filter(u => u.split_key).forEach(u => (rows[u.split_key] ||= []).push(u));
+            this.units.filter(u => this.belongs(u)).forEach(u => {
+                const source = u.sources.find(s => this.lookupAssignment(s.key)?.class_id === Number(this.classId));
+                let group = this.groupsFor(source.key).find(g => Number(g.id) === Number(source.group_id));
+                if (!group && u.split_key) {
+                    const sources = rows[u.split_key].flatMap(member => member.sources);
+                    const explicit = sources.filter(s => this.lookupAssignment(s.key)?.class_id === Number(this.classId))
+                        .map(s => this.groupsFor(s.key).find(g => Number(g.id) === Number(s.group_id))).find(Boolean);
+                    group = { id: source.key, division_id: explicit?.division_id ?? 'draft-' + [...new Set(sources.map(s => s.key))].sort().join('|') };
+                }
+                add(u.span, group ? [group] : []);
+            });
+            return whole + Object.values(divisions).reduce((sum, groups) => sum + Math.max(...Object.values(groups)), 0);
+        },
         totals() {
-            const units = this.units.filter(u => this.belongs(u));
-            const manual = this.classAssignments().reduce((sum, a) => ({ cards: sum.cards + this.manual(a.key).cards, periods: sum.periods + this.manual(a.key).periods }), { cards: 0, periods: 0 });
-            return `${units.length + manual.cards} cards · ${units.reduce((sum, u) => sum + u.span, 0) + manual.periods} teaching periods`;
+            const cards = this.units.filter(u => this.belongs(u)).length + (this.manual_lessons || [])
+                .filter(l => l.class_ids.includes(Number(this.classId))).reduce((sum, l) => sum + l.cards, 0);
+            return cards + ' cards · ' + this.capacityUsed() + ' / ' + (this.capacity ?? 40) + ' grid periods · parallel options count together' + (this.capacityUsed() > this.capacity ? ' · extra cards can stay in the tray' : '');
         },
         close() {
             if (this.busy || (this.dirty && !window.confirm('Discard unsaved lesson changes?'))) return;
@@ -296,7 +339,7 @@ export function timetablePreparation(initial, saveUrl, options = {}) {
                 const response = await fetch(this.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: JSON.stringify({ version: this.version, units: this.units, manual_baselines: Object.fromEntries(this.assignments.filter(a => a.manual?.signature).map(a => [a.key, a.manual.signature])) }) });
                 const result = await response.json();
                 if (!response.ok) throw new Error(Object.values(result.errors || {}).flat().join(' ') || result.message || 'Could not save cards.');
-                this.units = result.units; this.assignments = result.assignments; this.classes = result.classes; this.version = result.version;
+                this.manual_lessons = result.manual_lessons || []; this.units = result.units; this.assignments = result.assignments; this.classes = result.classes; this.version = result.version;
                 this.patterns = {}; this.history = []; this.dirty = false; this.message = result.message;
                 if (this.embedded) { this.$dispatch('timetable-prepared', { grid: result.grid }); if (returnToGrid) this.$dispatch('preparation-close'); }
                 else if (returnToGrid && this.gridUrl) window.location.assign(this.gridUrl);

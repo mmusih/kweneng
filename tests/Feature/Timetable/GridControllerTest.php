@@ -103,8 +103,8 @@ class GridControllerTest extends TestCase
         $teacher = collect($load['teachers'])->firstWhere('teacher_id', $this->teachers['K Simukonda']->id);
         $this->assertEquals(8, $teacher['grand_total']);
         $this->assertEquals(2, $teacher['grand_scheduled']);
-        $this->putJson($route, $payload + ['required' => 21, 'expected_required' => 4, 'version' => 3])->assertUnprocessable();
-        $this->assertSame(4, $lesson->fresh()->cardsRequired());
+        $this->putJson($route, $payload + ['required' => 25, 'expected_required' => 4, 'version' => 3])->assertOk();
+        $this->assertSame(25, $lesson->fresh()->cardsRequired());
     }
 
     public function test_zero_required_count_can_be_restored_and_stale_edits_are_refused(): void
@@ -216,7 +216,7 @@ class GridControllerTest extends TestCase
             ->assertSee('onTrayDrop()', escape: false)
             ->assertSee('Repeated lesson cards are stacked; drag the top card to the grid, or a placed card back here.', escape: false)
             ->assertSee('Math.max(48, Math.min(64, pixels))', escape: false)
-            ->assertSee('Math.max(2, stack.count)', escape: false)
+            ->assertSee('optionShare(card, classId)', escape: false)
             ->assertSee("{ 'z-20': dragging }", escape: false)
             ->assertSee('fixed inset-x-3 bottom-3', escape: false)
             ->assertSee('Collapse unplaced lesson tray')
@@ -242,7 +242,7 @@ class GridControllerTest extends TestCase
             ->assertSee('tt-midday-divider', escape: false)
             ->assertSee('tt-class-row', escape: false)
             ->assertSee('Attending classes and groups')
-            ->assertSee('Change class / split…')
+            ->assertSee('Attendance — all cards…')->assertSee('Attendance — this card only…')
             ->assertDontSee('Import aSc timetable')
             ->assertSee('Form 5A')
             ->assertSee('Biology');
@@ -1402,4 +1402,19 @@ class GridControllerTest extends TestCase
             'period' => 2,
         ])->assertStatus(422)->assertJsonValidationErrors('card_id');
     }
+
+    public function test_room_only_conflict_is_a_legal_candidate_and_places_without_room(): void
+    {
+        $bio = $this->lesson('Biology', 'Form 5A', 'BIO', 'K Simukonda', rooms: ['Lab 1']);
+        $chem = $this->lesson('Chemistry', 'Form 5B', 'CHE', 'N Chisenga', rooms: ['Lab 1']);
+        $this->placeCard($bio, day: 1, period: 1, room: $this->rooms['Lab 1']);
+        $payload = ['setting_id' => $this->setting->id, 'lesson_id' => $chem->id, 'room_id' => $this->rooms['Lab 1']->id];
+        $response = $this->actingAs($this->admin)->getJson(route('admin.timetable.grid.candidates', $payload))->assertOk();
+        $slot = collect($response->json('slots'))->first(fn ($slot) => $slot['day'] === 1 && $slot['period'] === 1);
+        $this->assertTrue($slot['ok']);
+        $this->assertNull($slot['room_id']);
+        $this->postJson(route('admin.timetable.grid.move'), $payload + ['day' => 1, 'period' => 1])
+            ->assertOk()->assertJsonPath('placement.room_id', null);
+    }
+
 }

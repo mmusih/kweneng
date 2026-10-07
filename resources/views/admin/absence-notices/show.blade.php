@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div class="kw-page-header mt-16 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     Absence Notice Details
@@ -10,7 +10,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('admin.absence-notices.index') }}"
+            <a data-admin-back href="{{ route('admin.absence-notices.index') }}"
                 class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
                 Back
             </a>

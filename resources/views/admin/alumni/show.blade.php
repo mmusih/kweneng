@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="kw-page-header py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
@@ -17,9 +17,9 @@
                                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
                                     Edit
                                 </a>
-                                <a href="{{ route('admin.alumni.index') }}" 
+                                <a data-admin-back href="{{ route('admin.alumni.index') }}"
                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                                    Back to List
+                                    Back
                                 </a>
                             </div>
                         </div>
@@ -94,8 +94,8 @@
                     @else
                         <div class="text-center py-8">
                             <h3 class="text-xl font-semibold text-gray-700">Alumni not found</h3>
-                            <a href="{{ route('admin.alumni.index') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                Back to Alumni List
+                            <a data-admin-back href="{{ route('admin.alumni.index') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Back
                             </a>
                         </div>
                     @endif

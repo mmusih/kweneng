@@ -1230,6 +1230,7 @@ class ParentFeesData {
 }
 
 class TimetableData {
+  final String? date;
   final String? templateName;
   final String? academicYear;
   final int? selectedDayNumber;
@@ -1239,6 +1240,7 @@ class TimetableData {
   final List<TimetableData> schedules;
 
   const TimetableData({
+    this.date,
     this.templateName,
     this.academicYear,
     this.selectedDayNumber,
@@ -1262,6 +1264,7 @@ class TimetableData {
         )
         .toList();
     return TimetableData(
+      date: j['date']?.toString(),
       templateName: template?['name']?.toString(),
       academicYear: template?['academic_year']?.toString(),
       selectedDayNumber: j['selected_day_number'] == null
@@ -1285,6 +1288,7 @@ class TimetableData {
         ? Map<String, dynamic>.from(j['template'] as Map)
         : null;
     return TimetableData(
+      date: j['date']?.toString(),
       templateName: template?['name']?.toString(),
       academicYear: template?['academic_year']?.toString(),
       selectedDayNumber: j['selected_day_number'] == null

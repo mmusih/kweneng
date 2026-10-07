@@ -11,10 +11,12 @@ use Illuminate\Contracts\View\View;
 
 class VerificationController extends Controller
 {
-    public function __invoke(Setting $setting, VerificationService $verification): View
+    public function __invoke(Setting $setting, \Illuminate\Http\Request $request, VerificationService $verification): View
     {
+        $filters = $request->validate(['exclude_forms' => ['sometimes', 'array'], 'exclude_forms.*' => ['integer', 'between:1,12']]);
         return view('admin.timetable.verify', [
             'setting' => $setting,
+            'excludedForms' => array_map('intval', $filters['exclude_forms'] ?? []),
             'report' => $verification->verify($setting),
             'classes' => ClassModel::query()->where('academic_year_id', $setting->academic_year_id)->orderBy('name')->get(),
             'teachers' => Teacher::query()->with('user')->whereIn('id', $setting->lessons()

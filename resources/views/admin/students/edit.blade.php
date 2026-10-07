@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-3 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-lg shadow-lg flex items-center justify-center">
+        <div class="kw-page-header mt-16 p-3 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">Edit Student</h2>
         </div>
     </x-slot>

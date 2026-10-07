@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AccountsOfficer\DashboardController;
 
-Route::middleware(['auth', 'role:accounts_officer'])
+Route::middleware(['auth', 'role:accounts_officer', \App\Http\Middleware\ActiveErpUser::class])
     ->prefix('accounts-officer')
     ->name('accounts-officer.')
     ->group(function () {

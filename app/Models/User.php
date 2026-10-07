@@ -40,7 +40,7 @@ class User extends Authenticatable
 
     public function canManageHr(): bool
     {
-        return $this->isActive() && ($this->isAdmin() || $this->hr_access);
+        return $this->isActive() && ($this->isAdmin() || $this->role === UserRoles::HR || $this->hr_access);
     }
 
     public function hasAnyRole($roles)

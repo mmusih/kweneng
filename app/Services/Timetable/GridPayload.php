@@ -43,6 +43,8 @@ class GridPayload
             ->map(fn ($id) => (int) $id)
             ->all();
 
+        $capacity = app(ClassCapacity::class);
+        $usage = $capacity->usage($setting);
         $cards = $this->cards($lessons, $colours, $shortNames);
         $requirements = $this->tray($lessons, $colours, $shortNames);
 
@@ -52,6 +54,7 @@ class GridPayload
                 'preparation_version' => (int) $setting->preparation_version,
                 'name' => $setting->name,
                 'term_label' => $setting->term_label,
+                'capacity' => $capacity->limit($setting),
                 'cycle_length' => (int) $setting->cycle_length,
                 'schedule_type' => $setting->schedule_type,
                 'schedule_label' => $setting->typeLabel(),
@@ -66,6 +69,7 @@ class GridPayload
                 'id' => (int) $class->id,
                 'name' => $class->name,
                 'lanes' => 1,
+                'periods_used' => $usage[$class->id] ?? 0,
                 'base_room_id' => $baseRooms[$class->id] ?? null,
                 'subject_ids' => $schoolAssignments['subjects_by_class'][$class->id] ?? [],
                 'divisions' => $class->timetableDivisions

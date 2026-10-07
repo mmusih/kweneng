@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './operations.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -547,14 +548,26 @@ html.dark body {
 .tt-class-row {
     position: relative;
     isolation: isolate;
-    border-bottom: 2px solid #475569;
+    border-bottom: 1px solid #cbd5e1;
 }
-.dark .tt-class-row { border-bottom-color: #cbd5e1; }
+.dark .tt-class-row { border-bottom-color: #526372; }
+.tt-class-row:nth-child(even) .tt-grid-background { background-color: #eef4f7; }
+.dark .tt-class-row:nth-child(even) .tt-grid-background { background-color: #2b3c48; }
 .tt-grid-background { z-index: 0; background-color: #f8fafc; }
 .dark .tt-grid-background { background-color: #26333c; }
+/* Match each day heading to a quieter tint down its period columns.
+   Placement feedback removes the tint class so green/red states remain clear. */
+.tt-day-heading { background-color: hsl(var(--tt-day-hue) 65% 85%); color: hsl(var(--tt-day-hue) 45% 24%); }
+.tt-day-period { background-color: hsl(var(--tt-day-hue) 60% 92%); }
+.tt-day-cell { background-color: hsl(var(--tt-day-hue) 60% 96%); }
+.tt-class-row:nth-child(even) .tt-day-cell { background-color: hsl(var(--tt-day-hue) 55% 93%); }
+.dark .tt-day-heading { background-color: hsl(var(--tt-day-hue) 35% 29%); color: hsl(var(--tt-day-hue) 65% 90%); }
+.dark .tt-day-period { background-color: hsl(var(--tt-day-hue) 28% 23%); }
+.dark .tt-day-cell { background-color: hsl(var(--tt-day-hue) 25% 18%); }
+.dark .tt-class-row:nth-child(even) .tt-day-cell { background-color: hsl(var(--tt-day-hue) 25% 21%); }
 .tt-drop-target { background: transparent; }
-.tt-period-divider { border-right: 1px solid #475569; }
-.dark .tt-period-divider { border-right-color: #cbd5e1; }
+.tt-period-divider { border-right: 1px solid #cbd5e1; }
+.dark .tt-period-divider { border-right-color: #526372; }
 .tt-day-divider { border-right: 4px solid #c2410c; }
 .dark .tt-day-divider { border-right-color: #f97316; }
 .tt-midday-divider { border-right: 3px solid #6b7280; }
@@ -624,3 +637,17 @@ html.dark body {
     .profile-completion { flex-direction: column; padding: 18px 20px; }
     .student-profile-nav a { padding: 10px; }
 }
+
+/* Admin-only theme repairs: legacy gradient panels must not keep a pale
+   background behind the dark theme's light text. */
+body[data-admin-screen] header .kw-page-header { background-image: none; }
+body[data-admin-screen] .tt-attendance-only > :not([x-ref="attendanceEditor"]) { display: none; }
+.dark body[data-admin-screen] :is(.dark\:text-brand-50, .dark\:text-brand-100) { color: #f1f5f9; }
+.dark body[data-admin-screen] .dark\:text-brand-300 { color: #cbd5e1; }
+.dark body[data-admin-screen] .dark\:border-brand-500 { border-color: #64748b; }
+.dark body[data-admin-screen] .dark\:bg-brand-950 { background-color: #11181d; }
+.dark body[data-admin-screen] :is([class~="text-black"], [class~="text-zinc-900"], [class~="text-neutral-900"]) { color: #f1f5f9; }
+.dark body[data-admin-screen] :is([class~="bg-white/50"], [class~="bg-white/70"], [class~="bg-white/80"], [class~="bg-white/90"], [class~="bg-white/95"]) { background-color: #212a31; }
+.dark body[data-admin-screen] :is([class~="bg-zinc-50"], [class~="bg-neutral-50"]) { background-color: #26333c; }
+.dark body[data-admin-screen] :is([class~="from-amber-50"], [class~="from-blue-50"], [class~="from-emerald-50"], [class~="from-gray-50"], [class~="from-indigo-50"], [class~="from-purple-50"], [class~="from-red-50"], [class~="from-slate-100"], [class~="from-white"]) { background-image: none; background-color: #26333c; }
+.dark body[data-admin-screen] :is(input, select, textarea):disabled { color: #aebabd; background-color: #2e3944; opacity: 1; }

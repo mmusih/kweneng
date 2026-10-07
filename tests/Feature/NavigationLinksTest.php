@@ -22,7 +22,7 @@ class NavigationLinksTest extends TestCase
         }
 
         $this->get(route('admin.subjects.manage-classes'))->assertOk()->assertSee('Assign Subjects to Classes');
-        $this->get(route('admin.subjects.manage-teachers'))->assertOk()->assertSee('Assign Teachers to Subjects');
+        $this->get(route('admin.subjects.manage-teachers'))->assertOk()->assertSee('Teaching Assignments');
         \App\Models\AcademicYear::create(['year_name' => '2026', 'active' => true, 'status' => 'open']);
         $this->get(route('admin.timetable.index'))->assertOk()->assertDontSee('Legacy timetable');
     }

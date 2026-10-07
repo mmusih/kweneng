@@ -217,6 +217,8 @@ Before creating a duplicate parent, search by email and confirm whether the exis
 
 Open **Academic Years** to create, activate, close, or lock a school year. Only one academic year should be active.
 
+Use a single calendar year, such as **2026**. The school year runs from January to December within that same year.
+
 Open **Terms** to create term dates and control term status.
 
 - **Activate** makes a term the current working term.
@@ -232,6 +234,10 @@ Before finalizing or locking, confirm that marks, comments, attendance, and repo
 Open **Subjects** to create and edit subjects.
 
 Use **Manage Classes** to assign subjects to class groups, then use **Manage Teachers** to assign teachers. Student-subject assignments can be maintained under **Student Subjects**, including preview-and-apply import workflows.
+
+Administrators and headmasters can open **Teacher loads** and **Teaching summary** from the page navigation. These reports count scheduled timetable periods per cycle: a single counts as one and a double as two. Shared options, splits and joint classes count once per occupied teacher period, regardless of the number of classes. Unplaced lessons are excluded, and day and afternoon timetables are shown separately.
+
+Filter by academic year and teacher. Reports default to the current published timetable; choose **Latest working timetable** to review draft placements. The teaching summary lists subjects, classes, groups and periods by cycle day. Both screens offer PDF downloads, and the teaching summary can also be exported as CSV.
 
 Check assignments carefully because they determine:
 

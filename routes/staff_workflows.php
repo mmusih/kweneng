@@ -6,6 +6,7 @@ use App\Http\Controllers\Hr\LeaveController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', \App\Http\Middleware\StaffSelfService::class])->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\StaffDashboardController::class, 'index'])->name('dashboard');
     Route::get('leave', [LeaveController::class, 'index'])->name('leave.index');
     Route::post('leave', [LeaveController::class, 'store'])->name('leave.store');
     Route::get('leave/{leave}', [LeaveController::class, 'show'])->name('leave.show');

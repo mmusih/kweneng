@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Assign Subjects to Classes
             </h2>
@@ -42,9 +42,9 @@
                             </p>
                         </div>
 
-                        <a href="{{ route('admin.subjects.index') }}"
+                        <a data-admin-back href="{{ route('admin.subjects.index') }}"
                             class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                            ← Back to Subjects
+                            ← Back
                         </a>
                     </div>
 
@@ -286,9 +286,9 @@
 
                                 <div
                                     class="border-t border-gray-200 bg-gray-50 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                    <a href="{{ route('admin.subjects.index') }}"
+                                    <a data-admin-back href="{{ route('admin.subjects.index') }}"
                                         class="text-sm text-gray-600 hover:text-indigo-600 font-medium">
-                                        ← Back to Subjects
+                                        ← Back
                                     </a>
 
                                     <x-primary-button>

@@ -48,7 +48,7 @@ class SettingFactory extends Factory
         return AcademicYear::current()?->id
             ?? AcademicYear::query()->value('id')
             ?? AcademicYear::create([
-                'year_name' => '2026/2027',
+                'year_name' => '2026',
                 'active' => true,
                 'status' => AcademicYear::STATUS_OPEN,
             ])->id;

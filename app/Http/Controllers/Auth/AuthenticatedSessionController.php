@@ -46,6 +46,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         return match ($user->role) {
+            UserRoles::HR              => redirect()->intended(route('hr.dashboard', false)),
             UserRoles::ADMIN           => redirect()->intended(route('admin.dashboard', false)),
             UserRoles::HEADMASTER      => redirect()->intended(route('headmaster.dashboard', false)),
             UserRoles::TEACHER         => redirect()->intended(route('teacher.dashboard', false)),

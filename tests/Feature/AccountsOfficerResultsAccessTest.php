@@ -30,7 +30,7 @@ class AccountsOfficerResultsAccessTest extends TestCase
             ->get(route('accounts-officer.exam-summaries.index'))
             ->assertOk()
             ->assertSee('Exam Summary Sheets')
-            ->assertSee('Back to Dashboard')
+            ->assertSee('data-admin-back href="'.route('accounts-officer.dashboard').'"', false)
             ->assertSee(route('accounts-officer.dashboard', absolute: false));
 
         $this->actingAs($officer)

@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="kw-page-header py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
@@ -14,10 +14,10 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <x-input-label for="year_name" :value="__('Academic Year Name')" />
-                                <x-text-input id="year_name" class="block mt-1 w-full" type="text" name="year_name" :value="old('year_name')" required autofocus />
+                                <x-input-label for="year_name" :value="__('Academic Year')" />
+                                <x-text-input id="year_name" class="block mt-1 w-full" type="text" name="year_name" :value="old('year_name')" inputmode="numeric" pattern="[1-9][0-9]{3}" maxlength="4" placeholder="2026" required autofocus />
                                 <x-input-error :messages="$errors->get('year_name')" class="mt-2" />
-                                <p class="text-sm text-gray-500 mt-1">Example: 2024/2025</p>
+                                <p class="text-sm text-gray-500 mt-1">Enter a single year, for example 2026. The school year runs from January to December of the same year.</p>
                             </div>
                             
                             <div>

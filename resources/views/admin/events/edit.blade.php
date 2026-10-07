@@ -7,8 +7,8 @@
                 <h2 class="font-semibold text-xl text-white leading-tight">Edit Calendar Event</h2>
                 <p class="text-sm text-white/80 mt-1">Holiday changes are reflected in attendance registers.</p>
             </div>
-            <a href="{{ route($eventRoutePrefix . '.events.index') }}" class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-slate-100">
-                Back to Events
+            <a data-admin-back href="{{ route($eventRoutePrefix . '.events.index') }}" class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-slate-100">
+                Back
             </a>
         </div>
     </x-slot>

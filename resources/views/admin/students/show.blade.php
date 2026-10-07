@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="p-6 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-xl shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            class="kw-page-header p-6 bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] text-white rounded-xl shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h2 class="font-semibold text-2xl text-white leading-tight">
                     Student Profile
@@ -12,9 +12,9 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
-                <a href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
+                <a data-admin-back href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
                     class="inline-flex items-center px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition text-sm font-medium">
-                    ← Back to List
+                    ← Back
                 </a>
 
                 <a href="{{ route('admin.students.edit', array_merge(['student' => $student], request()->only(['search', 'class_id', 'page', 'term_id']))) }}"
@@ -401,9 +401,9 @@
                     Edit Student
                 </a>
 
-                <a href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
+                <a data-admin-back href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}"
                     class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-sm transition">
-                    Back to List
+                    Back
                 </a>
             </div>
         </div>

@@ -20,6 +20,8 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <a class="ops-button" href="{{ route('finance.payments.create') }}">Record payment</a>
+            @include('finance.partials.overview', $finance)
 
             @if (session('success'))
                 <div class="rounded-lg bg-green-50 p-4 text-green-800 border border-green-200">

@@ -9,13 +9,13 @@
                     &middot; {{ $message->created_at->format('M j, Y') }}
                 </p>
             </div>
-            <a href="{{ route($messageRoutePrefix . '.messages.index') }}"
+            <a data-admin-back href="{{ route($messageRoutePrefix . '.messages.index') }}"
                 class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-slate-100 transition">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                Back to Inbox
+                Back
             </a>
         </div>
     </x-slot>

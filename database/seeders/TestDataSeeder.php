@@ -106,7 +106,7 @@ class TestDataSeeder extends Seeder
         */
 
         $academicYear = AcademicYear::create([
-            'year_name' => '2026/2027',
+            'year_name' => '2026',
             'active' => true,
             'status' => 'open',
         ]);

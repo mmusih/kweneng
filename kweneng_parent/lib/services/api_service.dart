@@ -204,6 +204,11 @@ class ApiService {
     return Map<String, dynamic>.from(res.data);
   }
 
+  Future<Map<String, dynamic>> getTodayAttendance() async {
+    final response = await _dio.get('/parent/attendance/today');
+    return Map<String, dynamic>.from(response.data);
+  }
+
   Future<Map<String, dynamic>> getTimetable(int studentId) async {
     final res = await _dio.get(
       '/parent/timetable',

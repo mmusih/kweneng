@@ -6,7 +6,7 @@
                 <h2 class="font-semibold text-2xl text-white leading-tight">
                     Change Password
                 </h2>
-                <a href="javascript:history.back()"
+                <a href="{{ url('/'.str_replace('_', '-', auth()->user()->role).'/dashboard') }}"
                     class="text-white hover:text-slate-200 text-sm font-medium flex items-center">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

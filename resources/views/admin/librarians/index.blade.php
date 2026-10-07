@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 p-6 bg-gradient-to-r from-emerald-600 to-teal-700 rounded-lg shadow-lg flex items-center justify-center">
+        <div class="kw-page-header mt-16 p-6 bg-gradient-to-r from-emerald-600 to-teal-700 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Manage Librarians
             </h2>

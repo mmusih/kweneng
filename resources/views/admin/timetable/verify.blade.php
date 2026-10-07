@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-6 text-white shadow-md">
+        <div class="kw-page-header mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-6 text-white shadow-md">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-widest text-[#D3D9D4]">Timetabling</p>
                     <h2 class="mt-1 text-2xl font-semibold">Verification — {{ $setting->name }}</h2>
                     <p class="mt-1 text-sm text-white/90">Hard failures block publishing; gaps and missing rooms remain review items.</p>
                 </div>
-                <a href="{{ route('admin.timetable.index', ['setting' => $setting->id]) }}" class="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/20">Back to grid</a>
+                <a data-admin-back href="{{ route('admin.timetable.index', ['setting' => $setting->id]) }}" class="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/20">Back</a>
             </div>
         </div>
     </x-slot>
@@ -82,10 +82,12 @@
 
         <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <h3 class="text-base font-semibold text-slate-900 dark:text-white">Printable schedules</h3>
+            <form method="GET" class="mt-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-900"><fieldset><legend class="text-sm font-semibold">Exclude forms from printing</legend><div class="my-3 flex flex-wrap gap-4">@foreach($classes->pluck('level')->unique()->sort() as $form)<label class="text-sm"><input type="checkbox" name="exclude_forms[]" value="{{ $form }}" @checked(in_array((int) $form, $excludedForms, true))> Form {{ $form }}</label>@endforeach</div></fieldset><button class="rounded-md bg-[#124E66] px-3 py-2 text-sm text-white">Apply print filters</button><p class="mt-2 text-sm">{{ $excludedForms ? 'Printing without forms: '.implode(', ', $excludedForms) : 'Printing all forms' }}. Verification above always checks the full timetable.</p></form>
             <div class="mt-3 grid gap-4 md:grid-cols-3">
                 @foreach ([['Classes', 'class', $classes], ['Teachers', 'teacher', $teachers], ['Rooms', 'room', $rooms]] as [$label, $type, $items])
-                    <div><h4 class="text-sm font-semibold">{{ $label }}</h4><div class="mt-2 flex flex-wrap gap-2">
-                        @foreach ($items as $item)<a target="_blank" href="{{ route('admin.timetable.settings.print', [$setting, $type, $item->id]) }}" class="rounded-md bg-[#124E66] px-3 py-2 text-xs font-semibold text-white">{{ $type === 'teacher' ? $item->user?->name : $item->name }}</a>@endforeach
+                    <div><h4 class="text-sm font-semibold">{{ $label }}</h4>
+                        <div class="my-3 flex flex-col gap-2"><a target="_blank" rel="noopener" class="rounded-lg bg-[#124E66] p-3 text-sm font-bold text-white" href="{{ route('admin.timetable.settings.print', [$setting, $type, 'all', 'exclude_forms' => $excludedForms]) }}">Print all {{ strtolower($label) }} · A4</a><a target="_blank" rel="noopener" class="rounded-lg border border-slate-300 p-3 text-sm font-semibold" href="{{ route('admin.timetable.settings.print', [$setting, $type, 'summary', 'exclude_forms' => $excludedForms]) }}">Print {{ strtolower($label) }} summary · A3</a></div><div class="mt-2 flex flex-wrap gap-2">
+                        @foreach ($items as $item)@continue($type === 'class' && in_array((int) $item->level, $excludedForms, true))<a target="_blank" href="{{ route('admin.timetable.settings.print', [$setting, $type, $item->id, 'exclude_forms' => $excludedForms]) }}" class="rounded-md bg-[#124E66] px-3 py-2 text-xs font-semibold text-white">{{ $type === 'teacher' ? $item->user?->name : $item->name }}</a>@endforeach
                     </div></div>
                 @endforeach
             </div>

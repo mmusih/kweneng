@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AcademicYearLabel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,6 +26,11 @@ class AcademicYear extends Model
     protected $casts = [
         'active' => 'boolean',
     ];
+
+    public function getYearNameAttribute(?string $value): ?string
+    {
+        return AcademicYearLabel::singleYear($value);
+    }
 
     public function scopeActive($query)
     {

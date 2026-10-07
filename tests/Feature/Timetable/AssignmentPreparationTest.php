@@ -300,4 +300,61 @@ class AssignmentPreparationTest extends TestCase
         $this->assertDatabaseCount('tt_lessons', 0);
         $this->assertDatabaseCount('tt_groups', 0);
     }
+
+    public function test_filler_occurrences_keep_different_split_divisions_and_whole_class_attendance(): void
+    {
+        $filler = $this->source();
+        $bio = $this->source('Biology', teacher: 'N Chisenga');
+        $physics = $this->source('Physics', teacher: 'M Tau');
+        $makeGroup = fn ($division, $name) => \App\Models\Tt\Group::create([
+            'class_id' => $this->classes['Form 5A']->id, 'tt_division_id' => $division->id,
+            'name' => $name, 'entire_class' => false,
+        ])->id;
+        $first = $makeGroup($this->options['Form 5A'], 'Filler A');
+        $second = $makeGroup($this->science, 'Filler B');
+        $optionsSplit = (string) Str::uuid();
+        $scienceSplit = (string) Str::uuid();
+        $units = [
+            $this->unit(array_replace($filler, ['group_id' => $first]), 1, $optionsSplit),
+            $this->unit(array_replace($bio, ['group_id' => $makeGroup($this->options['Form 5A'], 'Bio')]), 1, $optionsSplit),
+            $this->unit(array_replace($filler, ['group_id' => $second]), 1, $scienceSplit),
+            $this->unit(array_replace($physics, ['group_id' => $makeGroup($this->science, 'Physics')]), 1, $scienceSplit),
+            $this->unit($filler),
+        ];
+        $response = $this->saveUnits($units)->assertOk();
+        $saved = collect($response->json('units'))->keyBy('key');
+        $this->assertSame($first, $saved[$units[0]['key']]['sources'][0]['group_id']);
+        $this->assertSame($second, $saved[$units[2]['key']]['sources'][0]['group_id']);
+        $this->assertNull($saved[$units[4]['key']]['sources'][0]['group_id']);
+        $this->saveUnits($response->json('units'), 1)->assertOk();
+    }
+
+    public function test_prepared_card_attendance_updates_only_its_source_and_survives_preparation_save(): void
+    {
+        $source = $this->source();
+        $units = [$this->unit($source), $this->unit($source)];
+        $this->saveUnits($units)->assertOk();
+        $lesson = Lesson::where('preparation_key', $units[0]['key'])->firstOrFail();
+        $group = \App\Models\Tt\Group::create(['class_id' => $this->classes['Form 5A']->id,
+            'tt_division_id' => $this->science->id, 'name' => 'Filler', 'entire_class' => false]);
+        $this->postJson(route('admin.timetable.grid.card-attendance'), [
+            'setting_id' => $this->setting->id, 'lesson_id' => $lesson->id, 'version' => 1,
+            'attendance' => [['class_id' => $this->classes['Form 5A']->id, 'group_id' => $group->id]],
+        ])->assertOk();
+        $this->assertSame($group->id, $lesson->fresh()->assignment_sources[0]['group_id']);
+        $this->assertNull(Lesson::where('preparation_key', $units[1]['key'])->first()->assignment_sources[0]['group_id']);
+        $payload = app(\App\Services\Timetable\AssignmentPreparationService::class)->payload($this->setting->fresh());
+        $this->saveUnits($payload['units']->all(), 2)->assertOk();
+        $this->assertSame($group->id, $lesson->fresh()->groups->first()->id);
+    }
+
+    public function test_assignment_cards_can_exceed_grid_capacity_and_be_reduced_later(): void
+    {
+        $source = $this->source();
+        $units = array_map(fn () => $this->unit($source, 2), range(1, 30));
+        $response = $this->saveUnits($units)->assertOk()->assertJsonCount(30, 'units');
+        $this->assertEquals(60, $response->json('grid.classes.0.periods_used'));
+        $this->assertEquals(48, $response->json('grid.setting.capacity'));
+        $this->saveUnits(array_slice($response->json('units'), 0, 24), 1)->assertOk()->assertJsonCount(24, 'units');
+    }
 }

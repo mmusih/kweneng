@@ -34,7 +34,7 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-6 shadow-md">
+        <div class="kw-page-header mt-16 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] p-6 shadow-md">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-start gap-4">
                     <div class="shrink-0 rounded-xl bg-white/10 p-3 text-[#D3D9D4]">
@@ -54,10 +54,11 @@
                         class="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15">
                         Verification &amp; print
                     </a>
-                    <a href="{{ route('admin.timetable.teacher-loads') }}"
+                    <a href="{{ route('admin.timetable.teacher-loads', ['academic_year_id' => $setting->academic_year_id, 'source' => $setting->is_published ? 'published' : 'working', 'setting' => $setting->id]) }}"
                         class="inline-flex min-h-11 items-center rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/15">
                         Teacher loads
                     </a>
+                    <a href="{{ route('admin.timetable.teaching-summary', ['academic_year_id' => $setting->academic_year_id, 'source' => $setting->is_published ? 'published' : 'working', 'setting' => $setting->id]) }}" class="inline-flex min-h-11 items-center rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Teaching summary</a>
                     <form method="GET" action="{{ route('admin.timetable.index') }}" class="flex items-center gap-2">
                         <label for="setting" class="sr-only">Timetable</label>
                         <select id="setting" name="setting" onchange="this.form.submit()"
@@ -278,6 +279,7 @@
             preparation: '{{ route('admin.timetable.prepare', $setting) }}',
             move: '{{ route('admin.timetable.grid.move') }}',
             changeRoom: '{{ route('admin.timetable.grid.card-room') }}',
+            cardAttendance: '{{ route('admin.timetable.grid.card-attendance') }}',
             unplace: '{{ route('admin.timetable.grid.unplace') }}',
             lock: '{{ route('admin.timetable.grid.lock') }}',
             storeLesson: '{{ route('admin.timetable.grid.lesson.store') }}',
@@ -595,8 +597,8 @@
                                     </div>
                                     <div class="grid min-w-0 flex-1" x-bind:style="{ gridTemplateColumns: columnTemplate }">
                                         <template x-for="(day, index) in grid.days" x-bind:key="day.number">
-                                            <div x-bind:style="{ gridColumn: (index * grid.periods.length + 1) + ' / span ' + grid.periods.length }"
-                                                class="tt-day-divider truncate px-0.5 py-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:text-[10px] dark:text-brand-300"
+                                            <div x-bind:style="{ ...dayColour(day.number), gridColumn: (index * grid.periods.length + 1) + ' / span ' + grid.periods.length }"
+                                                class="tt-day-heading tt-day-divider truncate px-0.5 py-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-slate-600 sm:text-[10px] dark:text-brand-300"
                                                 x-text="day.label"></div>
                                         </template>
                                     </div>
@@ -608,7 +610,7 @@
                                     </div>
                                     <div class="grid min-w-0 flex-1" x-bind:style="{ gridTemplateColumns: columnTemplate }">
                                         <template x-for="slot in slotList" x-bind:key="slot.key">
-                                            <div x-bind:class="[slot.edgeClass, periodClass(slot)]"
+                                            <div x-bind:class="[slot.edgeClass, periodClass(slot), { 'tt-day-period': !drag && !selected }]" x-bind:style="dayColour(slot.day)"
                                                 x-bind:aria-label="periodTitle(slot)"
                                                 class="min-w-0 overflow-hidden py-1 text-center text-[8px] font-bold sm:text-[9px]"
                                                 x-text="slot.short"></div>
@@ -624,8 +626,8 @@
                                     <div
                                         x-bind:style="drag?.class_ids?.includes(klass.id) ? 'background:#22c55e;color:#052e16;box-shadow:inset 5px 0 #166534' : ''"
                                         x-bind:title="drag?.class_ids?.includes(klass.id) ? klass.name + ' — dragged lesson belongs to this class' : klass.name"
-                                        class="z-20 flex w-20 shrink-0 items-center border-r-2 border-slate-500 bg-white px-1 py-0.5 text-[10px] font-bold text-slate-700 sm:w-24 sm:text-xs dark:border-brand-400 dark:bg-brand-800 dark:text-brand-100"
-                                        x-text="klass.name"></div>
+                                        class="z-20 flex w-20 shrink-0 flex-col justify-center items-start border-r-2 border-slate-500 bg-white px-1 py-0.5 text-[10px] font-bold text-slate-700 sm:w-24 sm:text-xs dark:border-brand-400 dark:bg-brand-800 dark:text-brand-100"
+                                        ><span x-text="klass.name"></span><span class="mt-1 text-[9px] font-medium opacity-70" x-text="capacityLabel(klass.id)"></span></div>
 
                                     <div class="relative grid min-w-0 flex-1" x-bind:style="{
                                         gridTemplateColumns: columnTemplate,
@@ -648,7 +650,7 @@
                                         {{-- Paint all grid lines with the background, beneath cards in every state. --}}
                                         <div class="tt-grid-background pointer-events-none absolute inset-0 grid" x-bind:style="{ gridTemplateColumns: columnTemplate }" aria-hidden="true">
                                             <template x-for="slot in slotList" x-bind:key="slot.key">
-                                                <div x-bind:class="[slotClass(klass, slot), slot.edgeClass]" class="transition-colors"></div>
+                                                <div x-bind:class="[slotClass(klass, slot), slot.edgeClass, { 'tt-day-cell': !drag && !selected }]" x-bind:style="dayColour(slot.day)" class="transition-colors"></div>
                                             </template>
                                         </div>
                                         <template x-for="card in cardsFor(klass.id)" x-bind:key="card.key">
@@ -794,7 +796,7 @@
                 <div x-show="trayOpen" x-transition.opacity class="mt-3 flex flex-col gap-3 sm:flex-row">
                 <div class="flex min-w-0 flex-1 flex-wrap content-start gap-2 overflow-y-auto overscroll-contain p-1" style="max-height:24vh">
                     <template x-for="item in visibleTray" x-bind:key="item.stack_key || item.lesson_id">
-                        <div data-card-stack class="relative shrink-0 pt-2 pr-2" x-bind:style="{ width: item.span > 1 ? '104px' : '62px' }"
+                        <div data-card-stack class="relative shrink-0 self-start pt-2 pr-2" x-bind:style="{ width: item.span > 1 ? '104px' : '62px' }"
                             x-bind:aria-label="item.unplaced + ' stacked ' + item.subject + ' cards'">
                             <span x-show="item.unplaced > 2" aria-hidden="true"
                                 class="absolute inset-x-2 top-0 bottom-2 rounded-lg border border-slate-400 bg-slate-200 shadow-sm dark:border-brand-400 dark:bg-brand-700"></span>
@@ -812,7 +814,7 @@
                                 x-on:click="select(trayCard(item))"
                                 x-on:contextmenu.prevent.stop="openMenu($event, trayCard(item))"
                                 x-bind:class="isSelected(trayCard(item)) ? 'ring-2 ring-[#124E66] dark:ring-brand-400' : 'ring-1 ring-slate-300 dark:ring-brand-600'"
-                                x-bind:style="swatch(item)"
+                                x-bind:style="{ ...swatch(item), height: (64 * trayShare(item).size / trayShare(item).count) + 'px' }"
                                 class="relative z-10 flex h-16 cursor-grab items-center justify-center rounded-sm border border-black/25 px-1 text-[11px] font-bold shadow-md transition hover:-translate-y-0.5 active:cursor-grabbing focus-visible:outline focus-visible:outline-2">
                                 <span class="truncate" x-text="item.subject_short"></span>
                                 <span class="absolute bottom-0.5 right-1 text-[9px] opacity-75" x-text="item.unplaced"></span>
@@ -868,7 +870,8 @@
                     x-on:keydown.arrow-right.prevent="openRoomMenu($event)"
                     class="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-amber-100 dark:text-brand-100 dark:hover:bg-brand-700"><span>Change room</span><span aria-hidden="true">▸</span></button>
                 <button type="button" role="menuitem" x-on:click="openEditor(context.subject, 'attendance')"
-                    class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:text-brand-100 dark:hover:bg-brand-700">Change class / split…</button>
+                    class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:text-brand-100 dark:hover:bg-brand-700">Attendance — all cards…</button>
+                <button type="button" role="menuitem" x-on:click="openEditor(context.subject, 'cardAttendance')" class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:text-brand-100 dark:hover:bg-brand-700">Attendance — this card only…</button>
                 <div class="my-1 border-t border-slate-100 dark:border-brand-700"></div>
                 <button type="button" role="menuitem" x-on:click="openEditor(context.subject, 'duration', 1)"
                     class="block w-full px-3 py-2 text-left hover:bg-slate-100 dark:text-brand-100 dark:hover:bg-brand-700">Make single</button>
@@ -922,7 +925,7 @@
                         <p class="mt-3 text-sm" x-text="countEditor.required + ' required · ' + countEditor.placed + ' placed · ' + countEditor.unplaced + ' remaining'"></p>
                         <p class="mt-1 text-xs text-slate-500" x-text="'Each card uses ' + countEditor.span + ' period(s). This changes timetable demand, not teacher–subject assignments.'"></p>
                         <label class="mt-4 block text-sm font-semibold">Required cards per cycle
-                            <input type="number" x-model.number="countEditor.value" x-bind:min="countEditor.placed" max="40" step="1" class="mt-1 w-full rounded border-slate-300 dark:bg-brand-900">
+                            <input type="number" x-model.number="countEditor.value" x-bind:min="countEditor.placed" max="280" step="1" class="mt-1 w-full rounded border-slate-300 dark:bg-brand-900">
                         </label>
                         <p class="mt-3 text-sm font-semibold" x-text="'Required periods: ' + (countEditor.required * countEditor.span) + ' → ' + (Number(countEditor.value) * countEditor.span) + '. Remaining cards: ' + Math.max(0, Number(countEditor.value) - countEditor.placed)"></p>
                         <p class="mt-2 text-xs">Placed cards stay on the grid. You can undo this count change after saving.</p>
@@ -953,7 +956,7 @@
                     <div class="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-brand-700 dark:bg-brand-800">
                         <div>
                             <h3 class="text-base font-bold text-slate-900 dark:text-brand-50"
-                                x-text="editor.mode === 'create' ? 'Create lesson cards' : 'Edit lesson'"></h3>
+                                x-text="editor.attendanceOnly ? 'Attendance — this card only' : (editor.mode === 'create' ? 'Create lesson cards' : 'Edit lesson')"></h3>
                             <p class="mt-0.5 text-xs text-slate-500 dark:text-brand-400"
                                 x-text="editor.mode === 'create' ? 'Uses the school’s existing class, subject and teacher assignments.' : editor.subject?.class_names"></p>
                         </div>
@@ -961,7 +964,8 @@
                             class="rounded px-2 py-1 text-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-brand-700">&times;</button>
                     </div>
 
-                    <div class="grid gap-5 p-5 sm:grid-cols-2">
+                    <p x-show="editor.attendanceOnly" class="px-5 pt-4 text-sm text-slate-600 dark:text-brand-200">Only this occurrence changes. Other cards keep their attendance. For a tray stack, one card is separated from the stack.</p>
+                    <div class="grid gap-5 p-5 sm:grid-cols-2" :class="{ 'tt-attendance-only': editor.attendanceOnly }">
                         <fieldset class="sm:col-span-2" x-ref="attendanceEditor">
                             <legend class="sr-only">Attending classes and groups</legend>
                             <div class="flex flex-wrap items-end justify-between gap-2">
@@ -983,7 +987,7 @@
                                     <div class="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] dark:border-brand-700 dark:bg-brand-900/60">
                                         <label>
                                             <span class="sr-only">Class</span>
-                                            <select x-model.number="row.class_id" x-on:change="row.group_id = ''; syncLessonRecommendations()"
+                                            <select x-model.number="row.class_id" x-on:change="defaultAttendanceGroup(row); syncLessonRecommendations()"
                                                 class="min-h-10 w-full rounded-md border-slate-300 text-sm focus:border-[#124E66] focus:ring-[#124E66] dark:border-brand-600 dark:bg-brand-900 dark:text-brand-100">
                                                 <template x-for="klass in grid.classes" x-bind:key="klass.id">
                                                     <option x-bind:value="klass.id"
@@ -1042,10 +1046,17 @@
 
                         <label class="block">
                             <span class="text-xs font-semibold text-slate-700 dark:text-brand-200">Cards to place</span>
-                            <input type="number" min="1" max="40" step="1" x-model.number="editor.form.cards_per_cycle"
+                            <input type="number" min="1" max="280" step="1" x-model.number="editor.form.cards_per_cycle"
                                 class="mt-1 min-h-11 w-full rounded-md border-slate-300 text-sm focus:border-[#124E66] focus:ring-[#124E66] dark:border-brand-600 dark:bg-brand-900 dark:text-brand-100">
                             <span class="mt-1 block text-[11px] text-slate-500" x-text="(Number(editor.form.cards_per_cycle) || 0) + ' card(s), using ' + ((Number(editor.form.cards_per_cycle) || 0) * (Number(editor.form.periods_per_card) || 1)) + ' timetable period(s).' "></span>
                         </label>
+                        <div class="sm:col-span-2 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-700 dark:bg-brand-900 dark:text-brand-200">
+                            <template x-for="classId in uniqueAttendanceClassIds()" x-bind:key="classId">
+                                <p><span x-text="grid.classes.find(klass => klass.id === classId)?.name"></span>: <strong x-text="projectedCapacity(classId) + ' / ' + grid.setting.capacity + ' periods'"></strong> after saving</p>
+                            </template>
+                            <p x-show="exceedsCapacity()" class="mt-1 font-semibold text-amber-700 dark:text-amber-300" role="status">More cards than grid space. You can save them now and remove extras later.</p>
+                            <p class="mt-1 opacity-75">Parallel options share capacity. Doubles use two periods. Counts include cards in the tray.</p>
+                        </div>
                         <label class="block" x-ref="durationEditor">
                             <span class="text-xs font-semibold text-slate-700 dark:text-brand-200">Length of each card</span>
                             <select x-model.number="editor.form.periods_per_card"
@@ -1664,7 +1675,7 @@
                             return;
                         }
 
-                        if (subject.preparation_key) {
+                        if (subject.preparation_key && focus !== 'cardAttendance') {
                             this.closeMenu();
                             this.openPreparation(subject.class_ids?.[0]);
                             return;
@@ -1672,6 +1683,7 @@
 
                         this.closeMenu();
                         this.editor.mode = 'edit';
+                        this.editor.attendanceOnly = focus === 'cardAttendance';
                         const hasPlacedCard = subject.card_id !== null && subject.card_id !== undefined;
                         const placementRoomChoice = hasPlacedCard
                             ? (subject.room_id === null || subject.room_id === undefined ? 'none' : 'room:' + subject.room_id)
@@ -1717,6 +1729,7 @@
 
                         this.closeMenu();
                         this.editor.mode = 'create';
+                        this.editor.attendanceOnly = false;
                         this.editor.subject = null;
                         this.editor.form = {
                             subject_id: null,
@@ -1934,9 +1947,21 @@
                         const klass = this.grid.classes.find((entry) => ! used.has(entry.id));
 
                         if (klass) {
-                            this.editor.form.attendance.push({ class_id: klass.id, group_id: '' });
+                            const row = { class_id: klass.id, group_id: '' };
+                            this.defaultAttendanceGroup(row);
+                            this.editor.form.attendance.push(row);
                             this.syncLessonRecommendations();
                         }
+                    },
+
+                    defaultAttendanceGroup(row) {
+                        const peers = this.editor.form.attendance.filter(entry => entry !== row);
+                        const selected = peers.flatMap(entry => this.groupsForClass(entry.class_id)
+                            .filter(group => String(group.id) === String(entry.group_id)));
+                        const groups = this.groupsForClass(row.class_id);
+                        const match = groups.find(group => selected.some(peer => peer.shared_key && peer.shared_key === group.shared_key))
+                            || groups.find(group => selected.some(peer => peer.name === group.name && peer.division === group.division));
+                        row.group_id = match ? String(match.id) : '';
                     },
 
                     matchingGroupRows(row) {
@@ -2207,6 +2232,16 @@
                     },
 
                     async saveLesson() {
+                        if (this.editor.attendanceOnly) {
+                            if (this.busy) return;
+                            const result = await this.post(this.endpoints.cardAttendance, {
+                                setting_id: this.grid.setting.id, lesson_id: this.editor.subject.lesson_id,
+                                card_id: this.editor.subject.card_id || null, version: this.grid.setting.preparation_version,
+                                attendance: this.editor.form.attendance.map(row => ({ class_id: Number(row.class_id), group_id: Number(row.group_id) || null })),
+                            });
+                            if (result) { this.applyGrid(result.grid); this.closeEditor(); this.clearSelection(); this.say('success', result.message); }
+                            return;
+                        }
                         const subject = this.editor.subject;
 
                         if (this.editor.mode === 'edit' && ! subject) {
@@ -2280,7 +2315,7 @@
                         const change = undo ? this.countUndo : this.countEditor;
                         if (!change) return;
                         const value = Number(change.value);
-                        if (!Number.isInteger(value) || value < change.placed || value > 40) {
+                        if (!Number.isInteger(value) || value < change.placed || value > 280) {
                             this.say('error', 'Choose a whole number at least as large as the placed count.'); return;
                         }
                         const data = await this.post(this.endpoints.requiredCount, {
@@ -2669,6 +2704,12 @@
                     // ---------------------------------------------------------------
                     // Presentation
                     // ---------------------------------------------------------------
+                    dayColour(day) {
+                        const hues = [210, 38, 160, 275, 345, 185];
+                        const index = this.grid.days.findIndex(entry => Number(entry.number) === Number(day));
+                        return { '--tt-day-hue': hues[Math.max(0, index) % hues.length] };
+                    },
+
                     colourOf(subject) {
                         if (subject.colour) {
                             return subject.colour;
@@ -2743,6 +2784,50 @@
                         return { index, count: Math.max(1, peers.length) };
                     },
 
+                    optionShare(card, classId) {
+                        const groups = (card.groups || []).filter(group => Number(group.class_id) === Number(classId));
+                        const klass = this.grid.classes.find(entry => Number(entry.id) === Number(classId));
+                        if (!groups.length || groups.some(group => group.entire_class)) return { count: 1, index: 0, size: 1 };
+                        const division = klass?.divisions?.find(entry => entry.id === groups[0].division_id);
+                        if (!division?.groups.length) return { count: Math.max(2, this.cardStack(card, classId).count), index: this.cardStack(card, classId).index, size: 1 };
+                        const indices = division.groups.map((group, index) => groups.some(entry => entry.id === group.id) ? index : -1).filter(index => index >= 0);
+                        return { count: division.groups.length, index: indices.length ? Math.min(...indices) : 0, size: Math.max(1, indices.length) };
+                    },
+
+                    trayShare(item) {
+                        return this.optionShare(item, Number(this.classFilter) || item.class_ids[0]);
+                    },
+
+                    projectedCapacity(classId) {
+                        let whole = 0;
+                        const divisions = {};
+                        const add = (periods, groups) => {
+                            if (!groups.length || groups.some(group => group.entire_class)) { whole += periods; return; }
+                            for (const group of groups) {
+                                const division = this.groupsForClass(classId).find(entry => entry.id === Number(group.id))?.division_id ?? 'group-' + group.id;
+                                divisions[division] ||= {};
+                                divisions[division][group.id] = (divisions[division][group.id] || 0) + periods;
+                            }
+                        };
+                        for (const lesson of this.grid.editor.lesson_presets || []) {
+                            if (!lesson.class_ids.includes(Number(classId)) || (this.editor.mode === 'edit' && lesson.lesson_id === this.editor.subject?.lesson_id)) continue;
+                            add(lesson.cards_per_cycle * lesson.periods_per_card, lesson.groups.filter(group => Number(group.class_id) === Number(classId)));
+                        }
+                        const rows = this.editor.form.attendance.filter(row => Number(row.class_id) === Number(classId));
+                        if (rows.length) add(Number(this.editor.form.cards_per_cycle) * Number(this.editor.form.periods_per_card), rows.map(row => ({ id: Number(row.group_id), entire_class: !row.group_id })));
+                        return whole + Object.values(divisions).reduce((sum, groups) => sum + Math.max(...Object.values(groups)), 0);
+                    },
+
+                    exceedsCapacity() {
+                        return this.uniqueAttendanceClassIds().some(id => this.projectedCapacity(id) > this.grid.setting.capacity);
+                    },
+
+                    capacityLabel(classId) {
+                        const klass = this.grid.classes.find(entry => Number(entry.id) === Number(classId));
+                        const limit = this.grid.setting.capacity ?? this.grid.days.length * this.grid.periods.length;
+                        return (klass?.periods_used || 0) + ' / ' + limit + ' periods';
+                    },
+
                     cardStyle(card, classId) {
                         const index = this.slotIndex[card.day + ':' + card.period];
                         const endSlot = this.slotList[index + Number(card.span) - 1];
@@ -2750,22 +2835,22 @@
                             : (endSlot?.edgeClass === 'tt-midday-divider' ? 3 : 1);
                         const colour = this.colourOf(card);
                         const stack = this.cardStack(card, classId);
-                        // Attendance is specific to each class row: a joint lesson can
-                        // include a whole class and only a group from another class.
-                        // Only group attendance needs space for a later parallel lesson.
-                        const groups = (card.groups || []).filter((group) => Number(group.class_id) === Number(classId));
-                        const entireClass = groups.length === 0 || groups.some((group) => group.entire_class);
-                        const visualLanes = ! entireClass && card.class_ids.length > 1
-                            ? Math.max(2, stack.count)
-                            : stack.count;
+                        const share = this.optionShare(card, classId);
+                        const visualLanes = share.count > 1 ? share.count : stack.count;
+                        const lane = share.count > 1 ? share.index : stack.index;
+                        const size = share.count > 1 ? share.size : 1;
 
                         return {
                             gridColumn: (index + 1) + ' / span ' + card.span,
                             gridRow: '1',
                             marginRight: edgeWidth + 'px',
                             alignSelf: 'start',
-                            height: 'calc(100% / ' + visualLanes + ')',
-                            transform: 'translateY(' + (stack.index * 100) + '%)',
+                            height: 'calc(100% * ' + size + ' / ' + visualLanes + ' - 3px)',
+                            top: 'calc(100% * ' + lane + ' / ' + visualLanes + ' + 1px)',
+                            position: 'relative',
+                            marginLeft: '1px',
+                            borderRadius: '4px',
+                            boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 35%), 0 1px 2px rgb(15 23 42 / 18%)',
                             backgroundColor: colour,
                             color: this.inkOn(colour),
                         };

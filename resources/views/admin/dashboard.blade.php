@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         {{-- Main header block: lively warm gradient using base colors --}}
-        <div class="mt-16 p-6 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] shadow-md">
+        <div class="kw-page-header mt-16 p-6 rounded-2xl bg-gradient-to-r from-[#212A31] via-[#124E66] to-[#2E3944] shadow-md">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                 <div class="flex items-start gap-4">
                     <div class="p-3 bg-white/10 rounded-xl text-[#D3D9D4] shrink-0">
@@ -141,6 +141,14 @@
         // Metas here are informational counts, so they stay neutral (slate) by design.
         $actionCards = [
             [
+                'title' => 'Subject Combination Planner',
+                'body' => 'Choose classes, compare option blocks, and review teacher, room and learner clashes',
+                'meta' => 'Upper-class planning',
+                'route' => route('admin.subject-option-plans.index'),
+                'icon' => 'academic-cap',
+                'icon_class' => 'bg-teal-500/10 text-teal-600',
+            ],
+            [
                 'title' => 'User Management',
                 'body' => 'Accounts, roles, activation, and password resets',
                 'meta' => ($stats['totalUsers'] ?? 0) . ' users',
@@ -251,7 +259,7 @@
                 'icon_class' => 'bg-indigo-500/10 text-indigo-600',
             ],
             [
-                'title' => 'Assign Teachers to Subjects',
+                'title' => 'Teaching Assignments',
                 'body' => 'Connect teachers to class subjects',
                 'meta' => 'Academic setup',
                 'route' => route('admin.subjects.manage-teachers'),

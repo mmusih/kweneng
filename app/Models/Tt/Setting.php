@@ -3,6 +3,7 @@
 namespace App\Models\Tt;
 
 use App\Models\AcademicYear;
+use App\Support\AcademicYearLabel;
 use Database\Factories\Tt\SettingFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,6 +46,16 @@ class Setting extends Model
     protected static function newFactory(): SettingFactory
     {
         return SettingFactory::new();
+    }
+
+    public function getTermLabelAttribute(?string $value): ?string
+    {
+        return AcademicYearLabel::singleYear($value);
+    }
+
+    public function getNameAttribute(?string $value): ?string
+    {
+        return AcademicYearLabel::singleYear($value);
     }
 
     public function academicYear(): BelongsTo

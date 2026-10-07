@@ -26,6 +26,7 @@ class LessonEditorService
     public function create(Setting $setting, array $data): Lesson
     {
         return DB::transaction(function () use ($setting, $data) {
+            Setting::whereKey($setting->id)->lockForUpdate()->firstOrFail();
             $cardsPerCycle = $data['cards_per_cycle'] ?? null;
             $periodsPerWeek = $cardsPerCycle === null
                 ? $data['periods_per_week']
@@ -53,6 +54,7 @@ class LessonEditorService
     public function update(Lesson $lesson, array $data): void
     {
         DB::transaction(function () use ($lesson, $data) {
+            Setting::whereKey($lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
             $lesson->loadMissing(['cards', 'setting', 'weeksDef', 'termsDef']);
             $units = $this->snapshot($lesson);
             $cardsPerCycle = $data['cards_per_cycle'] ?? null;

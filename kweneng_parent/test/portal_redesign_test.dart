@@ -13,6 +13,7 @@ import 'package:kweneng_parent/screens/dashboard_screen.dart';
 import 'package:kweneng_parent/screens/login_screen.dart';
 import 'package:kweneng_parent/screens/marks_screen.dart';
 import 'package:kweneng_parent/widgets/portal_widgets.dart';
+import 'package:kweneng_parent/widgets/school_attendance_badge.dart';
 
 class LoggedInAuth extends AuthNotifier {
   @override
@@ -35,19 +36,23 @@ Map<String, dynamic> student(int id, String name, {bool blocked = false}) => {
   'behaviour': {'label': 'Good', 'total': 0},
   'library': {'borrowed': 1, 'overdue': 0, 'books': []},
 };
-DashboardData fixture({bool blocked = false, bool multiple = true}) =>
-    DashboardData.fromJson({
-      'user': {'id': 1, 'name': 'Mme Motlotle', 'email': 'parent@example.test'},
-      'stats': <String, dynamic>{},
-      'day_label': 'Day 3',
-      'children': [
-        student(1, 'Naledi Motlotle', blocked: blocked),
-        if (multiple) student(2, 'Kabelo Motlotle'),
-      ],
-      'announcements': [],
-      'important_announcements': [],
-      'upcoming_events': [],
-    });
+DashboardData fixture({
+  bool blocked = false,
+  bool multiple = true,
+  bool thirdChild = false,
+}) => DashboardData.fromJson({
+  'user': {'id': 1, 'name': 'Mme Motlotle', 'email': 'parent@example.test'},
+  'stats': <String, dynamic>{},
+  'day_label': 'Day 3',
+  'children': [
+    student(1, 'Naledi Motlotle', blocked: blocked),
+    if (multiple) student(2, 'Kabelo Motlotle'),
+    if (thirdChild) student(3, 'Amogelang Motlotle'),
+  ],
+  'announcements': [],
+  'important_announcements': [],
+  'upcoming_events': [],
+});
 Future<void> render(
   WidgetTester tester,
   Widget screen, {
@@ -55,6 +60,7 @@ Future<void> render(
   double scale = 1,
   bool blocked = false,
   bool multiple = true,
+  bool thirdChild = false,
 }) async {
   tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1;
@@ -65,8 +71,35 @@ Future<void> render(
       key: UniqueKey(),
       overrides: [
         authProvider.overrideWith(TestAuth.new),
+        todayAttendanceProvider.overrideWith(
+          (ref) async => {
+            'checked_at': DateTime.now().toUtc().toIso8601String(),
+            'children': [
+              for (final id in [1, 2, 3])
+                {
+                  'student_id': id,
+                  'date': DateTime.now()
+                      .toUtc()
+                      .add(const Duration(hours: 2))
+                      .toIso8601String()
+                      .split('T')
+                      .first,
+                  'status': id == 2 ? 'absent' : 'present',
+                  'label': id == 2 ? 'Absent' : 'Present today',
+                  'school_end': id == 1 ? '15:15' : '13:10',
+                },
+            ],
+          },
+        ),
+        timetableProvider.overrideWith(
+          (ref, id) async => const TimetableData(days: []),
+        ),
         dashboardProvider.overrideWith(
-          (ref) async => fixture(blocked: blocked, multiple: multiple),
+          (ref) async => fixture(
+            blocked: blocked,
+            multiple: multiple,
+            thirdChild: thirdChild,
+          ),
         ),
         marksProvider.overrideWith(
           (ref) async => {
@@ -153,6 +186,29 @@ void main() {
         ProviderScope(
           overrides: [
             authProvider.overrideWith(LoggedInAuth.new),
+            todayAttendanceProvider.overrideWith(
+              (ref) async => {
+                'checked_at': DateTime.now().toUtc().toIso8601String(),
+                'children': [
+                  for (final id in [1, 2, 3])
+                    {
+                      'student_id': id,
+                      'date': DateTime.now()
+                          .toUtc()
+                          .add(const Duration(hours: 2))
+                          .toIso8601String()
+                          .split('T')
+                          .first,
+                      'status': id == 2 ? 'absent' : 'present',
+                      'label': id == 2 ? 'Absent' : 'Present today',
+                      'school_end': id == 1 ? '15:15' : '13:10',
+                    },
+                ],
+              },
+            ),
+            timetableProvider.overrideWith(
+              (ref, id) async => const TimetableData(days: []),
+            ),
             dashboardProvider.overrideWith((ref) async => fixture()),
             announcementsProvider.overrideWith(
               (ref) async => const AnnouncementsData(
@@ -236,17 +292,15 @@ void main() {
     (tester) async {
       await render(tester, const DashboardScreen());
       expect(tester.takeException(), isNull);
-      expect(find.text('Needs your attention'), findsNothing);
+      expect(find.text('Urgent messages'), findsNothing);
+      expect(find.textContaining('All caught up'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('Scheduled now')).dy,
+        lessThan(tester.getTopLeft(find.text('Quick access')).dy),
+      );
       await screenshot(tester, 'home');
       expect(find.byType(DropdownButtonFormField<int>), findsNothing);
-      final firstTab = find.byKey(const ValueKey('child-tab-1'));
-      final secondTab = find.byKey(const ValueKey('child-tab-2'));
-      expect(tester.getTopLeft(firstTab).dy, tester.getTopLeft(secondTab).dy);
-      expect(
-        tester.getTopLeft(firstTab).dx,
-        lessThan(tester.getTopLeft(secondTab).dx),
-      );
-      await tester.tap(secondTab);
+      await tester.tap(find.byTooltip('Next child'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.text('Kabelo Motlotle'),
@@ -254,9 +308,43 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Kabelo Motlotle'), findsOneWidget);
+      await tester.tap(find.byTooltip('Previous child'));
+      await tester.pumpAndSettle();
+      expect(find.text('Naledi Motlotle'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'next preview cycles all three children and wraps in both directions',
+    (tester) async {
+      await render(tester, const DashboardScreen(), thirdChild: true);
+      expect(find.text('Child 1 of 3'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('next-child-preview')));
+      await tester.pumpAndSettle();
+      expect(find.text('Kabelo Motlotle'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('next-child-preview')));
+      await tester.pumpAndSettle();
+      expect(find.text('Amogelang Motlotle'), findsOneWidget);
+      expect(find.text('Child 3 of 3'), findsOneWidget);
+      await tester.tap(find.byTooltip('Next child'));
+      await tester.pumpAndSettle();
+      expect(find.text('Naledi Motlotle'), findsOneWidget);
+      await tester.tap(find.byTooltip('Previous child'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amogelang Motlotle'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('single child has no preview or switching controls', (
+    tester,
+  ) async {
+    await render(tester, const DashboardScreen(), multiple: false);
+    expect(find.byKey(const ValueKey('next-child-preview')), findsNothing);
+    expect(find.byTooltip('Next child'), findsNothing);
+    expect(find.byTooltip('Previous child'), findsNothing);
+    expect(find.text('Urgent messages'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('blocked child never shows academic average', (tester) async {
     await render(
       tester,
@@ -265,12 +353,17 @@ void main() {
       multiple: false,
     );
     await tester.scrollUntilVisible(
-      find.text('Needs your attention'),
+      find.text('Urgent messages'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Restricted'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Restricted'), findsOneWidget);
-    expect(find.text('Needs your attention'), findsOneWidget);
+
     expect(find.text('78.0%'), findsNothing);
   });
   testWidgets('home and academics fit small phones with large text', (

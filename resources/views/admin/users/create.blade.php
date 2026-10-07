@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-4 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg flex items-center justify-between">
+            class="kw-page-header mt-16 p-4 bg-gradient-to-r from-slate-700 to-slate-900 rounded-lg shadow-lg flex items-center justify-between">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Create User
             </h2>
@@ -45,7 +45,7 @@
                                 <option value="">Select role</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role }}" {{ old('role') === $role ? 'selected' : '' }}>
-                                        {{ ucwords(str_replace('_', ' ', $role)) }}
+                                        {{ $role === 'hr' ? 'HR Personnel' : ucwords(str_replace('_', ' ', $role)) }}
                                     </option>
                                 @endforeach
                             </select>

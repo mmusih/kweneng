@@ -78,13 +78,15 @@ test('double-card layout preserves its full span and reserves space for its outs
         slotIndex: { '1:7': 6 },
         slotList: Array.from({ length: 8 }, (_, i) => ({ edgeClass: i === 7 ? 'tt-day-divider' : 'tt-period-divider' })),
         colourOf: () => '#facc15', inkOn: () => '#111827',
+        grid: { classes: [] },
+        optionShare: new Function('card', 'classId', source.match(/optionShare\(card, classId\) \{([\s\S]*?)\n                    \},/)[1]),
         cardStack: () => ({ index: 0, count: 1 }),
     };
     const result = style.call(state, { day: 1, period: 7, span: 2, class_ids: [1] }, 1);
     assert.equal(result.gridColumn, '7 / span 2');
     assert.equal(result.marginRight, '4px');
     assert.equal(result.backgroundColor, '#facc15');
-    assert.equal(result.height, 'calc(100% / 1)');
+    assert.equal(result.height, 'calc(100% * 1 / 1 - 3px)');
     state.slotList[7].edgeClass = 'tt-midday-divider';
     assert.equal(style.call(state, { day: 1, period: 7, span: 2, class_ids: [1, 2] }, 1).marginRight, '3px');
 });
@@ -108,6 +110,8 @@ test('whole-class cards fill every scheduled cell, including joint lessons', () 
         slotIndex: { '1:1': 0 },
         slotList: Array.from({ length: 8 }, () => ({ edgeClass: 'tt-period-divider' })),
         colourOf: () => '#facc15', inkOn: () => '#111827',
+        grid: { classes: [] },
+        optionShare: new Function('card', 'classId', source.match(/optionShare\(card, classId\) \{([\s\S]*?)\n                    \},/)[1]),
         cardStack: new Function('card', 'classId', stackBody),
     };
     for (const span of [1, 2, 3]) {
@@ -117,25 +121,25 @@ test('whole-class cards fill every scheduled cell, including joint lessons', () 
             state.cardsFor = () => [card];
             for (const classId of class_ids) {
                 const result = style.call(state, card, classId);
-                assert.equal(result.height, 'calc(100% / 1)');
-                assert.equal(result.transform, 'translateY(0%)');
+                assert.equal(result.height, 'calc(100% * 1 / 1 - 3px)');
+                assert.equal(result.top, 'calc(100% * 0 / 1 + 1px)');
                 assert.equal(result.gridColumn, `1 / span ${span}`);
             }
             card.groups = [];
-            assert.equal(style.call(state, card, 1).height, 'calc(100% / 1)');
+            assert.equal(style.call(state, card, 1).height, 'calc(100% * 1 / 1 - 3px)');
         }
     }
     const mixed = { key: 'mixed', day: 1, period: 1, span: 2, class_ids: [1, 2],
         groups: [{ class_id: 1, entire_class: true }, { class_id: 2, entire_class: false }] };
     state.cardsFor = () => [mixed];
-    assert.equal(style.call(state, mixed, 1).height, 'calc(100% / 1)');
-    assert.equal(style.call(state, mixed, 2).height, 'calc(100% / 2)');
+    assert.equal(style.call(state, mixed, 1).height, 'calc(100% * 1 / 1 - 3px)');
+    assert.equal(style.call(state, mixed, 2).height, 'calc(100% * 1 / 2 - 3px)');
     const parallel = { ...mixed, key: 'parallel', class_ids: [2], groups: [{ class_id: 2, entire_class: false }] };
     state.cardsFor = () => [mixed, parallel];
-    assert.equal(style.call(state, mixed, 2).height, 'calc(100% / 2)');
+    assert.equal(style.call(state, mixed, 2).height, 'calc(100% * 1 / 2 - 3px)');
     const second = style.call(state, parallel, 2);
-    assert.equal(second.height, 'calc(100% / 2)');
-    assert.equal(second.transform, 'translateY(100%)');
+    assert.equal(second.height, 'calc(100% * 1 / 2 - 3px)');
+    assert.equal(second.top, 'calc(100% * 1 / 2 + 1px)');
 });
 
 test('red identifies the actual clash period, not a free first half or a structural refusal', () => {
@@ -169,4 +173,58 @@ test('single cards, loading, failure and locked cards do not imply false availab
     assert.equal(state.indicatorState(slot(2)), 'unavailable');
     state.selected.locked = true;
     assert.equal(state.indicatorState(slot(1)), 'unavailable');
+});
+
+function gridMethod(name, args) {
+    return new Function(...args, source.match(new RegExp(`${name}\\([^\\n]*\\) \\{([\\s\\S]*?)\\n                    \\},`))[1]);
+}
+test('three-way options reserve stable thirds before peers are placed, in grid and tray', () => {
+    const state = {
+        grid: { classes: [{ id: 1, divisions: [{ id: 10, groups: [{ id: 1 }, { id: 2 }, { id: 3 }] }] }] },
+        classFilter: '', optionShare: gridMethod('optionShare', ['card', 'classId']),
+        trayShare: gridMethod('trayShare', ['item']),
+        cardStack: () => ({ index: 0, count: 1 }),
+        slotIndex: { '1:1': 0 }, slotList: [{ edgeClass: 'tt-period-divider' }],
+        colourOf: () => '#ffffff', inkOn: () => '#000000',
+    };
+    const card = { day: 1, period: 1, span: 1, class_ids: [1], groups: [{ id: 3, class_id: 1, division_id: 10 }] };
+    assert.deepEqual(state.trayShare(card), { count: 3, index: 2, size: 1 });
+    const style = gridMethod('cardStyle', ['card', 'classId']).call(state, card, 1);
+    assert.equal(style.height, 'calc(100% * 1 / 3 - 3px)');
+    assert.equal(style.top, 'calc(100% * 2 / 3 + 1px)');
+    assert.equal(style.transform, undefined);
+});
+test('joining or changing class defaults to its matching split, with whole class still selectable', () => {
+    const first = { class_id: 1, group_id: '11' };
+    const row = { class_id: 2, group_id: '' };
+    const state = { editor: { form: { attendance: [first, row] } }, groupsForClass(id) {
+        return [{ id: id === 1 ? 11 : 21, shared_key: 'french', name: 'French', division: 'Languages' }];
+    } };
+    gridMethod('defaultAttendanceGroup', ['row']).call(state, row);
+    assert.equal(row.group_id, '21');
+    row.group_id = '';
+    assert.equal(row.group_id, '');
+    first.group_id = '';
+    gridMethod('defaultAttendanceGroup', ['row']).call(state, row);
+    assert.equal(row.group_id, '');
+});
+test('capacity preview counts each parallel group once and replaces the edited lesson', () => {
+    const state = {
+        grid: { setting: { capacity: 48 }, editor: { lesson_presets: [
+            { lesson_id: 1, class_ids: [1], groups: [], cards_per_cycle: 40, periods_per_card: 1 },
+            { lesson_id: 2, class_ids: [1], groups: [{ id: 11, class_id: 1 }], cards_per_cycle: 4, periods_per_card: 2 },
+        ] } },
+        editor: { mode: 'create', form: { cards_per_cycle: 8, periods_per_card: 1, attendance: [{ class_id: 1, group_id: '12' }] } },
+        groupsForClass: () => [{ id: 11, division_id: 1 }, { id: 12, division_id: 1 }],
+        uniqueAttendanceClassIds: () => [1],
+        projectedCapacity: gridMethod('projectedCapacity', ['classId']),
+        exceedsCapacity: gridMethod('exceedsCapacity', []),
+    };
+    assert.equal(state.projectedCapacity(1), 48);
+    assert.equal(state.exceedsCapacity(), false);
+    state.editor.form.cards_per_cycle = 9;
+    assert.equal(state.exceedsCapacity(), true);
+    state.editor.mode = 'edit'; state.editor.subject = { lesson_id: 2 };
+    state.editor.form.cards_per_cycle = 7; state.editor.form.attendance[0].group_id = '11';
+    assert.equal(state.projectedCapacity(1), 47);
 });

@@ -14,6 +14,7 @@ use App\Models\Mark;
 use App\Models\Term;
 use App\Services\StudentPerformanceService;
 use App\Services\Timetable\TimetableDayService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class ParentDashboardController extends Controller
@@ -249,7 +250,7 @@ class ParentDashboardController extends Controller
         });
 
         return response()->json([
-            'day_label' => $this->days->label(),
+            'day_label' => $this->dayLabel(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -278,6 +279,18 @@ class ParentDashboardController extends Controller
             'upcoming_events' => $upcomingEvents->map(fn ($e) => $this->formatEvent($e)),
             'children' => $childrenData,
         ]);
+    }
+
+    private function dayLabel(): string
+    {
+        try {
+            return $this->days->label();
+        } catch (QueryException $exception) {
+            // The optional timetable heading must not prevent access to Home.
+            report($exception);
+
+            return now()->format('l');
+        }
     }
 
     private function unreadHomeworkCount(int $parentId, $studentIds): int

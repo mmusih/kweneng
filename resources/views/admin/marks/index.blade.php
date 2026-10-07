@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 rounded-xl bg-slate-900 px-5 py-5 text-white shadow-sm sm:px-6">
+        <div class="kw-page-header mt-16 rounded-xl bg-slate-900 px-5 py-5 text-white shadow-sm sm:px-6">
             <p class="text-xs font-semibold uppercase tracking-widest text-amber-300">Academic oversight</p>
             <h2 class="mt-1 text-2xl font-semibold">Marks entry progress</h2>
             <p class="mt-1 text-sm text-slate-300">Monitor and edit every teacher's marks. The active term loads automatically, and other terms remain selectable.</p>

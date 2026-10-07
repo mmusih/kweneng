@@ -162,6 +162,27 @@ class GridController extends Controller
     /**
      * Send a card back to the tray. Both rows of a double go.
      */
+    public function changeCardAttendance(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['required', 'integer', 'exists:tt_settings,id'],
+            'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
+            'card_id' => ['nullable', 'integer', 'exists:tt_cards,id'],
+            'version' => ['required', 'integer'],
+            'attendance' => ['required', 'array', 'min:1', 'max:12'],
+            'attendance.*.class_id' => ['required', 'integer', 'exists:classes,id'],
+            'attendance.*.group_id' => ['nullable', 'integer', 'distinct', 'exists:tt_groups,id'],
+        ]);
+        $setting = $this->setting($request);
+        [$lesson, $unit] = $this->subject($data, $setting);
+        if ((int) $lesson->id !== (int) $data['lesson_id']) {
+            throw ValidationException::withMessages(['card_id' => 'That card belongs to another lesson.']);
+        }
+        [$classes, $groups] = $this->attendance($data['attendance'], $setting);
+        app(\App\Services\Timetable\CardAttendanceService::class)->update($lesson, $unit, $classes, $groups, (int) $data['version']);
+        return response()->json(['message' => 'Attendance changed for this card only.'] + $this->refreshed($setting));
+    }
+
     public function changeRoom(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -234,9 +255,9 @@ class GridController extends Controller
             'teacher_ids.*' => ['integer', 'distinct', 'exists:teachers,id'],
             'room_ids' => ['present', 'array'],
             'room_ids.*' => ['integer', 'distinct', 'exists:tt_rooms,id'],
-            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:40'],
+            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:280'],
             'periods_per_card' => ['required', 'integer', 'min:1', 'max:4'],
-            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:40'],
+            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:280'],
             'attendance' => ['required', 'array', 'min:1', 'max:12'],
             'attendance.*.class_id' => ['required', 'integer', 'exists:classes,id'],
             'attendance.*.group_id' => ['nullable', 'integer', 'distinct', 'exists:tt_groups,id'],
@@ -276,9 +297,9 @@ class GridController extends Controller
             'room_ids.*' => ['integer', 'distinct', 'exists:tt_rooms,id'],
             'placement_room_id' => ['nullable', 'integer', 'exists:tt_rooms,id'],
             'placement_room_mode' => ['sometimes', 'string', 'in:automatic,none,room'],
-            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:40'],
+            'periods_per_week' => ['required', 'numeric', 'min:1', 'max:280'],
             'periods_per_card' => ['required', 'integer', 'min:1', 'max:4'],
-            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:40'],
+            'cards_per_cycle' => ['nullable', 'integer', 'min:1', 'max:280'],
             'attendance' => ['sometimes', 'array', 'min:1', 'max:12'],
             'attendance.*.class_id' => ['required', 'integer', 'exists:classes,id'],
             'attendance.*.group_id' => ['nullable', 'integer', 'distinct', 'exists:tt_groups,id'],
@@ -453,7 +474,7 @@ class GridController extends Controller
         $data = $request->validate([
             'setting_id' => ['required', 'integer', 'exists:tt_settings,id'],
             'lesson_id' => ['required', 'integer', 'exists:tt_lessons,id'],
-            'required' => ['required', 'integer', 'min:0', 'max:40'],
+            'required' => ['required', 'integer', 'min:0', 'max:280'],
             'version' => ['required', 'integer'],
             'expected_required' => ['required', 'integer'],
             'expected_placed' => ['required', 'integer'],
@@ -475,20 +496,6 @@ class GridController extends Controller
             }
             $lessons = Lesson::with(['cards', 'teachers', 'classes', 'groups', 'rooms'])->whereIn('id', $stack['lesson_ids'])->lockForUpdate()->get();
             $delta = $data['required'] - $stack['required'];
-            if ($delta > 0) {
-                $source = $lessons->first();
-                foreach ($source->classes as $class) {
-                    foreach ($source->teachers as $teacher) {
-                        $periods = Lesson::where('tt_setting_id', $current->id)->where('subject_id', $source->subject_id)
-                            ->whereHas('classes', fn ($query) => $query->where('classes.id', $class->id))
-                            ->whereHas('teachers', fn ($query) => $query->where('teachers.id', $teacher->id))
-                            ->get()->sum(fn ($lesson) => $lesson->cardsRequired() * $lesson->periods_per_card);
-                        if ($periods + $delta * $source->periods_per_card > 40) {
-                            throw ValidationException::withMessages(['required' => 'An assignment can use at most 40 periods per cycle, including its other lesson cards.']);
-                        }
-                    }
-                }
-            }
             if ($delta < 0) {
                 $remaining = -$delta;
                 foreach ($lessons as $lesson) {
@@ -662,7 +669,7 @@ class GridController extends Controller
     ): array {
         $first = null;
 
-        foreach ($rooms as $roomId) {
+        foreach (array_unique([...$rooms, null], SORT_REGULAR) as $roomId) {
             $conflicts = $checker->check($lesson, $day, $period, $roomId, $ignore);
 
             if ($conflicts === []) {

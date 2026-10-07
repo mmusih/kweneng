@@ -2,6 +2,16 @@
     <div class="flex items-start justify-between gap-2"><strong class="text-sm" x-text="title(unit)"></strong><span class="rounded bg-slate-100 px-2 py-1 text-xs font-bold dark:bg-brand-700" x-text="unit.span === 2 ? 'Double' : 'Single'"></span></div>
     <p class="mt-1 text-xs" x-text="teacher(unit)"></p><p class="mt-1 text-xs text-slate-500 dark:text-brand-300" x-text="attendance(unit)"></p>
     <div class="mt-2 flex flex-wrap gap-1 text-xs"><span x-show="unit.split_key" class="rounded bg-teal-100 px-2 py-1 text-teal-900">Split · moves together</span><span x-show="unit.sources.length > 1" class="rounded bg-indigo-100 px-2 py-1 text-indigo-900">Joint</span><span x-show="unit.placed" class="rounded bg-amber-100 px-2 py-1 text-amber-900">On timetable</span></div>
+    <fieldset class="mt-3 space-y-2"><legend class="text-xs font-semibold">Attendance — this card only</legend>
+        <template x-for="source in unit.sources" :key="source.key">
+            <label class="block text-xs"><span x-text="lookupAssignment(source.key)?.class_name"></span>
+                <select class="prep-input mt-1 w-full" :value="source.group_id || ''" :disabled="unit.placed || busy" @change="changeCardGroup(unit, source, $event.target.value)">
+                    <option value="">Entire class</option>
+                    <template x-for="group in groupsFor(source.key)" :key="group.id"><option :value="group.id" :selected="Number(source.group_id) === Number(group.id)" x-text="group.name"></option></template>
+                </select>
+            </label>
+        </template>
+    </fieldset>
     <label class="mt-2 block text-xs">Room<select class="prep-input mt-1 w-full" :value="unit.room_id || ''" :disabled="unit.placed || busy" @change="setRoom(unit, $event.target.value)"><option value="">Automatic base room</option><template x-for="room in rooms" :key="room.id"><option :value="room.id" x-text="room.name"></option></template></select></label>
     <div class="mt-2 flex flex-wrap gap-3 text-xs"><button class="font-semibold underline" :disabled="unit.placed || busy" @click="openJoint({ kind: 'unit', key: unit.key })">Select joint classes</button><button x-show="unit.sources.length > 1" :disabled="unit.placed || busy" @click="unjoin(unit)" class="underline">Separate classes</button></div>
     <p x-show="unit.placed" class="mt-2 text-[10px] text-slate-500 dark:text-brand-300">Return this card to the tray before changing its joint classes.</p>

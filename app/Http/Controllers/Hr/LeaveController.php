@@ -22,12 +22,12 @@ class LeaveController extends Controller
 {
     public function index(Request $request)
     {
-        $request->validate(['year' => 'nullable|integer|between:2020,2100']);
+        $request->validate(['year' => 'nullable|integer|between:2020,2100', 'status' => ['nullable', Rule::in(['submitted', 'approved', 'rejected', 'cancelled'])]]);
         $year = (int) $request->input('year', now()->year);
         $manage = $request->routeIs('hr.*');
         $staff = StaffWorkflows::staff($request->user());
         $query = StaffLeaveRequest::with('staff', 'type')->when(! $manage, fn ($q) => $q->whereHas('staff', fn ($s) => $s->where('user_id', $request->user()->id)));
-        $requests = $query->latest()->paginate(30)->withQueryString();
+        $requests = $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))->latest()->paginate(30)->withQueryString();
         $allowances = StaffLeaveAllowance::with('staff', 'type')->where('year', $year)->when(! $manage, fn ($q) => $q->where('staff_profile_id', $staff?->id ?? 0))->get();
 
         return view('hr.leave.index', compact('manage', 'staff', 'requests', 'allowances', 'year') + ['types' => StaffLeaveType::where('active', true)->get(), 'employees' => $manage ? StaffProfile::where('status', 'active')->orderBy('name')->get() : collect()]);

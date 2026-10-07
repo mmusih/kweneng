@@ -10,9 +10,9 @@
                     class="inline-flex items-center px-4 py-2 bg-white text-slate-800 rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-slate-100">
                     Edit
                 </a>
-                <a href="{{ route($announcementRoutePrefix . '.announcements.index') }}"
+                <a data-admin-back href="{{ route($announcementRoutePrefix . '.announcements.index') }}"
                     class="inline-flex items-center px-4 py-2 bg-white/15 border border-white/25 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-white/25">
-                    Back to Notices
+                    Back
                 </a>
             </div>
         </div>

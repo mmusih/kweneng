@@ -3,7 +3,7 @@
         <h2 class="mt-16 font-bold text-2xl text-gray-800">School Documents</h2>
     </x-slot>
 
-    <div class="py-12">
+    <div class="kw-page-header py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if (session('success'))

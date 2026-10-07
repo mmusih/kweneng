@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/flutter_models.dart';
 import '../providers/flutter_providers.dart';
+import '../widgets/portal_widgets.dart';
 
 class TimetableScreen extends ConsumerStatefulWidget {
   const TimetableScreen({super.key});
@@ -35,7 +36,10 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
             );
           }
 
-          final childId = selectedStudentId ?? data.children.first.id;
+          final childId =
+              selectedStudentId ??
+              ref.watch(selectedChildProvider) ??
+              data.children.first.id;
           final child = data.children.firstWhere(
             (item) => item.id == childId,
             orElse: () => data.children.first,
@@ -66,6 +70,9 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
                       .toList(),
                   onChanged: (value) => setState(() {
                     selectedStudentId = value;
+                    if (value != null) {
+                      ref.read(selectedChildProvider.notifier).select(value);
+                    }
                     selectedDay = null;
                     selectedSchedule = 0;
                   }),

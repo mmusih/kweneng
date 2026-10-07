@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Manage Classes
             </h2>
@@ -22,7 +22,7 @@
 
                     <nav aria-label="Subject assignments" class="mb-6 flex flex-wrap gap-3">
                         <a href="{{ route('admin.subjects.manage-classes') }}" class="rounded-md border border-indigo-300 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-brand-700">Assign Subjects to Classes</a>
-                        <a href="{{ route('admin.subjects.manage-teachers') }}" class="rounded-md border border-indigo-300 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-brand-700">Assign Teachers to Subjects</a>
+                        <a href="{{ route('admin.subjects.manage-teachers') }}" class="rounded-md border border-indigo-300 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:bg-brand-700">Teaching Assignments</a>
                     </nav>
 
                     @if (session('success'))

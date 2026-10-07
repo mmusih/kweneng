@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [ParentDashboardController::class, 'index']);
+        Route::get('/attendance/today', [\App\Http\Controllers\Api\ParentAttendanceController::class, 'today']);
         Route::get('/awards', [ParentAwardsController::class, 'index']);
         Route::get('/children/{student}/awards', [ParentAwardsController::class, 'index']);
         Route::get('/children/{student}/awards/{studentAward}/certificate', [ParentAwardsController::class, 'certificate']);

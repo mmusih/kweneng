@@ -23,7 +23,7 @@ class DashboardBackNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('data-back-navigation', escape: false)
             ->assertSee('Go back to the previous page')
-            ->assertSee('window.history.back()', escape: false)
+            ->assertDontSee('window.history.back()', escape: false)
             ->assertSee('href="'.route('admin.dashboard').'"', escape: false);
     }
 
@@ -52,7 +52,7 @@ class DashboardBackNavigationTest extends TestCase
             ->get(route('teacher.dashboard'))
             ->assertOk()
             ->assertSee('data-back-navigation', escape: false)
-            ->assertSee('window.history.back()', escape: false)
+            ->assertDontSee('window.history.back()', escape: false)
             ->assertSee('href="'.route('headmaster.dashboard').'"', escape: false)
             ->assertDontSee('href="'.route('teacher.dashboard').'"', escape: false);
     }

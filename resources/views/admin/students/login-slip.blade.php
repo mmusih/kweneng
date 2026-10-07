@@ -181,7 +181,7 @@
             onclick="return confirm('This will invalidate the current codes and generate new ones. Continue?')">
             &#8635; Regenerate Codes
         </a>
-        <a href="{{ url()->previous() }}" class="btn btn-ghost">&larr; Back</a>
+        <a data-admin-back href="{{ url()->previous() }}" class="btn btn-ghost">&larr; Back</a>
     </div>
 
     <div class="slip-wrapper">

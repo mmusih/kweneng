@@ -211,3 +211,40 @@ test('existing individual lessons do not silently remove a matching class from t
     state.joint.target = '3:9:8'; state.join();
     assert.equal(state.occurrences('3:9:8').length, 0);
 });
+
+test('five parallel doubles use two grid periods, with 46 whole-class periods filling a 48-period cycle', async () => {
+    const state = await setup(); state.classId = 1; state.capacity = 48;
+    state.assignments = ['French', 'Setswana', 'Chemistry', 'Biology', 'Physics'].map((subject, i) => ({ key: 'option-' + i, class_id: 1, subject }));
+    state.manual_lessons = [{ cards: 46, span: 1, class_ids: [1], groups: [] }];
+    state.units = state.assignments.map(a => ({ key: a.key, span: 2, split_key: 'options', sources: [{ key: a.key, group_id: null }] }));
+    assert.equal(state.capacityUsed(), 48);
+    assert.match(state.totals(), /51 cards · 48 \/ 48 grid periods/);
+    state.classes[0].groups = state.assignments.map((a, i) => ({ id: i + 1, division_id: 10 }));
+    state.units.forEach((u, i) => { u.sources[0].group_id = i + 1; u.split_key = null; });
+    assert.equal(state.capacityUsed(), 48, 'saved attendance groups also share the two periods');
+    state.units.push({ key: 'extra', span: 1, sources: [{ key: state.assignments[0].key, group_id: 1 }] });
+    assert.equal(state.capacityUsed(), 49, 'another period for the same students consumes capacity');
+});
+
+test('individual attendance and undo leave siblings unchanged; bulk attendance remains explicit', async () => {
+    const state = await setup(); state.classId = 1;
+    const a = state.newUnit('1:1:1', 1), b = state.newUnit('1:1:1', 1);
+    state.units = [a, b];
+    state.changeCardGroup(a, a.sources[0], '9');
+    assert.equal(a.sources[0].group_id, 9);
+    assert.equal(b.sources[0].group_id, null);
+    assert.equal(state.groupValue('1:1:1'), 'mixed');
+    state.undo();
+    assert.equal(state.units[0].sources[0].group_id, null);
+    state.changeGroup('1:1:1', '10');
+    assert.ok(state.units.every(unit => unit.sources[0].group_id === 10));
+});
+
+test('assignment patterns allow extra periods beyond grid capacity', async () => {
+    const state = await setup(); state.classId = 1; state.capacity = 48;
+    state.patterns['1:1:1'] = { singles: 0, doubles: 30 };
+    assert.equal(state.applyPattern('1:1:1'), true);
+    assert.equal(state.occurrences('1:1:1').length, 30);
+    assert.equal(state.capacityUsed(), 60);
+    assert.match(state.totals(), /extra cards can stay in the tray/);
+});

@@ -31,8 +31,10 @@ class AcademicYearController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'year_name' => 'required|string|unique:academic_years|max:255',
+            'year_name' => ['required', 'string', 'regex:/^[1-9][0-9]{3}$/', 'unique:academic_years,year_name'],
             'active' => 'boolean',
+        ], [
+            'year_name.regex' => 'Enter a single calendar year, such as 2026 (January to December).',
         ]);
 
         $validated['active'] = (bool) ($validated['active'] ?? false);
@@ -70,9 +72,11 @@ class AcademicYearController extends Controller
         }
         
         $validated = $request->validate([
-            'year_name' => 'required|string|unique:academic_years,year_name,' . $academicYear->id,
+            'year_name' => ['required', 'string', 'regex:/^[1-9][0-9]{3}$/', 'unique:academic_years,year_name,' . $academicYear->id],
             'active' => 'boolean',
             'status' => 'string|in:open,closed,locked' // Add status validation
+        ], [
+            'year_name.regex' => 'Enter a single calendar year, such as 2026 (January to December).',
         ]);
 
         $validated['active'] = (bool) ($validated['active'] ?? false);

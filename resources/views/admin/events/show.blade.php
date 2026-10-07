@@ -25,9 +25,9 @@
                             Edit Event
                         </a>
                     @endif
-                    <a href="{{ route($eventRoutePrefix . '.events.index') }}"
+                    <a data-admin-back href="{{ route($eventRoutePrefix . '.events.index') }}"
                         class="inline-flex items-center px-4 py-2 bg-white/15 border border-white/30 rounded-lg font-semibold text-sm text-white hover:bg-white/25">
-                        Back to Events
+                        Back
                     </a>
                 </div>
             </div>

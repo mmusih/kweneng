@@ -51,7 +51,7 @@ class ReportCardPdfLayoutTest extends TestCase
             'report_extra_note' => 'Holiday classes will follow the communicated timetable.',
         ]);
 
-        $academicYear = new AcademicYear(['year_name' => '2026/2027']);
+        $academicYear = new AcademicYear(['year_name' => '2026']);
         $longComment = 'The learner has shown clear improvement since midterm. '
             .'This progress is encouraging; continued effort is needed.';
         $subjects = collect(range(1, 12))->map(fn (int $index) => [

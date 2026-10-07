@@ -76,9 +76,9 @@ class StudyRetentionTest extends TestCase
         ]);
 
         $this->get(route('admin.study-retention.index', ['term_id' => $term->id]))
-            ->assertOk()->assertSee('Study Learner')->assertSee('Biology')->assertSee('57.5%');
+            ->assertOk()->assertSee('Study Learner')->assertSee('Biology')->assertSee('60%');
         $this->get(route('admin.study-retention.print', ['term_id' => $term->id]))
-            ->assertOk()->assertSee('Study Learner')->assertSee('Attend: Biology (50%)');
+            ->assertOk()->assertSee('Study Learner')->assertSee('Attend: Biology (55%)');
     }
 
     public function test_class_rule_overrides_a_form_rule(): void

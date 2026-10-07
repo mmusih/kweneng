@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="mt-16 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 p-6 shadow-lg">
+        <div class="kw-page-header mt-16 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 p-6 shadow-lg">
             <div class="flex items-center justify-between">
                 <h2 class="text-2xl font-semibold text-white">After-school Study List</h2>
-                <a href="{{ route('admin.terms.index') }}" class="text-sm font-medium text-white hover:text-emerald-100">Back to Terms</a>
+                <a data-admin-back href="{{ route('admin.terms.index') }}" class="text-sm font-medium text-white hover:text-emerald-100">Back</a>
             </div>
         </div>
     </x-slot>
@@ -19,7 +19,7 @@
 
             <div class="rounded-xl bg-white p-6 shadow-sm">
                 <form method="GET" class="flex flex-wrap items-end gap-3">
-                    <label class="block min-w-64"><span class="text-sm font-semibold text-slate-700">Term</span>
+                    <label class="block min-w-64"><span class="text-sm font-semibold text-slate-700">Study attendance term</span>
                         <select name="term_id" class="mt-1 w-full rounded-md border-slate-300" onchange="this.form.submit()">
                             @foreach($terms as $option)
                                 <option value="{{ $option->id }}" @selected($term?->id === $option->id)>{{ $option->academicYear?->year_name }} · {{ $option->name }}</option>
@@ -33,6 +33,48 @@
             </div>
 
             @if($term)
+                <div class="rounded-xl bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-bold">Results used for study decisions</h3>
+                    <p class="mt-1 text-sm text-slate-500">Use mid-term or end-of-term results from this or an earlier term. Missing scores are not treated as zero. The same rules determine departure time in the parent app.</p>
+                    <form method="POST" action="{{ route('admin.study-retention.selection') }}" class="mt-4 flex flex-wrap items-end gap-4">
+                        @csrf <input type="hidden" name="term_id" value="{{ $term->id }}">
+                        <label><span class="block text-sm font-semibold">Results term</span>
+                            <select name="source_term_id" class="mt-1 rounded-md border-slate-300">
+                                @foreach($terms->filter(fn($option) => $option->start_date <= $term->start_date) as $option)
+                                    <option value="{{ $option->id }}" @selected((int)old('source_term_id', $selection?->source_term_id ?? $term->id) === $option->id)>{{ $option->academicYear?->year_name }} · {{ $option->name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label><span class="block text-sm font-semibold">Assessment</span>
+                            <select name="assessment" class="mt-1 rounded-md border-slate-300">
+                                <option value="midterm" @selected(old('assessment', $selection?->assessment ?? 'endterm') === 'midterm')>Mid-term</option>
+                                <option value="endterm" @selected(old('assessment', $selection?->assessment ?? 'endterm') === 'endterm')>End of term</option>
+                            </select>
+                        </label>
+                        <button class="rounded-md bg-emerald-600 px-4 py-2 font-semibold text-white">Save results selection</button>
+                    </form>
+                    <p class="mt-3 text-sm text-slate-600">School hours: 07:30–13:10. Students remaining for study: 07:30–15:15.</p>
+                </div>
+                <div class="rounded-xl bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-bold">Voluntary study</h3>
+                    <p class="mt-1 text-sm text-slate-500">Record students who opt to stay, even when their marks do not require it. Enrolment applies only to the selected study attendance term.</p>
+                    <form method="POST" action="{{ route('admin.study-retention.enrol') }}" class="mt-4 flex flex-wrap items-end gap-4">
+                        @csrf <input type="hidden" name="term_id" value="{{ $term->id }}">
+                        <label class="min-w-64"><span class="block text-sm font-semibold">Student</span>
+                            <select name="student_id" required class="mt-1 w-full rounded-md border-slate-300">
+                                <option value="">Choose a student</option>
+                                @foreach($students as $student)<option value="{{ $student->id }}">{{ $student->user?->name }} · {{ $student->currentClass?->name }} · {{ $student->admission_no }}</option>@endforeach
+                            </select>
+                        </label>
+                        <button class="rounded-md bg-emerald-600 px-4 py-2 font-semibold text-white">Add to voluntary study</button>
+                    </form>
+                    @foreach($enrolments as $enrolment)
+                        <div class="mt-3 flex items-center justify-between border-t pt-3 text-sm">
+                            <span>{{ $enrolment->student?->user?->name }} · Voluntary</span>
+                            <form method="POST" action="{{ route('admin.study-retention.unenrol', $enrolment) }}">@csrf @method('DELETE')<button class="text-red-600">Remove voluntary enrolment</button></form>
+                        </div>
+                    @endforeach
+                </div>
                 <div class="grid gap-6 lg:grid-cols-3">
                     <div class="rounded-xl bg-white p-6 shadow-sm lg:col-span-1">
                         <h3 class="text-lg font-bold text-slate-900">Set study conditions</h3>
@@ -84,7 +126,7 @@
                         <div class="overflow-hidden rounded-xl bg-white shadow-sm">
                             <div class="flex items-center justify-between border-b p-5"><h3 class="text-lg font-bold">Students remaining for study</h3><span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800">{{ $rows->count() }}</span></div>
                             <div class="overflow-x-auto"><table class="min-w-full divide-y divide-slate-200 text-sm"><thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">Student</th><th class="px-4 py-3 text-left">Class</th><th class="px-4 py-3 text-left">Average</th><th class="px-4 py-3 text-left">Study reason / subjects</th></tr></thead><tbody class="divide-y">
-                                @forelse($rows as $row)<tr><td class="px-4 py-3 font-semibold">{{ $row['student']?->user?->name ?? 'Student' }}<div class="text-xs font-normal text-slate-500">{{ $row['student']?->admission_no }}</div></td><td class="px-4 py-3">{{ $row['class']?->name }}</td><td class="px-4 py-3">{{ $row['average'] }}%</td><td class="px-4 py-3">@if($row['overall'])<span class="mb-1 inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">Overall below {{ floatval($row['overall_threshold']) }}%</span>@endif @foreach($row['subjects'] as $subject)<span class="mb-1 mr-1 inline-block rounded bg-red-100 px-2 py-1 text-xs text-red-800">{{ $subject['name'] }} {{ $subject['score'] }}%</span>@endforeach</td></tr>
+                                @forelse($rows as $row)<tr><td class="px-4 py-3 font-semibold">{{ $row['student']?->user?->name ?? 'Student' }}<div class="text-xs font-normal text-slate-500">{{ $row['student']?->admission_no }}</div></td><td class="px-4 py-3">{{ $row['class']?->name }}</td><td class="px-4 py-3">{{ $row['average'] === null ? 'Not recorded' : $row['average'].'%' }}</td><td class="px-4 py-3">@if($row['voluntary'])<span class="mb-1 inline-block rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">Voluntary study</span>@endif @if($row['overall'])<span class="mb-1 inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">Overall below {{ floatval($row['overall_threshold']) }}%</span>@endif @foreach($row['subjects'] as $subject)<span class="mb-1 mr-1 inline-block rounded bg-red-100 px-2 py-1 text-xs text-red-800">{{ $subject['name'] }} {{ $subject['score'] }}%</span>@endforeach</td></tr>
                                 @empty<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No students currently meet the configured study conditions.</td></tr>@endforelse
                             </tbody></table></div>
                         </div>

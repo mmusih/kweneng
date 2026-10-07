@@ -42,7 +42,7 @@
                                 @foreach ($roles as $role)
                                     <option value="{{ $role }}"
                                         {{ request('role') === $role ? 'selected' : '' }}>
-                                        {{ ucwords(str_replace('_', ' ', $role)) }}
+                                        {{ $role === 'hr' ? 'HR Personnel' : ucwords(str_replace('_', ' ', $role)) }}
                                     </option>
                                 @endforeach
                             </select>
@@ -119,7 +119,7 @@
                                         @endphp
 
                                         <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeClass }}">
-                                            {{ ucwords(str_replace('_', ' ', $user->role)) }}
+                                            {{ $user->role === 'hr' ? 'HR Personnel' : ucwords(str_replace('_', ' ', $user->role)) }}
                                         </span>
                                     </td>
 

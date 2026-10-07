@@ -28,11 +28,17 @@ test('count confirmation and undo carry the expected counts and current version'
     assert.equal(s.countUndo, null);
 });
 test('invalid counts and failed saves preserve the editor and do not create undo', async () => {
-    for (const value of [1, 2.5, 41, NaN]) {
+    for (const value of [1, 2.5, 281, NaN]) {
         const s = state(); s.countEditor.value = value;
         await s.saveRequiredCount(); assert.equal(s.requests.length, 0);
     }
     const s = state(); s.post = async () => null;
     await s.saveRequiredCount();
     assert.ok(s.countEditor); assert.equal(s.countUndo, undefined);
+});
+
+test('required count can be increased beyond the grid capacity', async () => {
+    const s = state(); s.grid.setting.capacity = 48; s.countEditor.value = 60;
+    await s.saveRequiredCount();
+    assert.equal(s.requests[0].data.required, 60);
 });

@@ -7,6 +7,7 @@ use App\Http\Controllers\Parent\ReceiptController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', \App\Http\Middleware\ManageHr::class])->prefix('hr')->name('hr.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Hr\DashboardController::class, 'index'])->name('dashboard');
     Route::get('document-types', [StaffController::class, 'types'])->name('types');
     Route::post('document-types', [StaffController::class, 'saveType'])->name('types.store');
     Route::put('document-types/{type}', [StaffController::class, 'updateType'])->name('types.update');
@@ -18,6 +19,7 @@ Route::middleware(['auth', \App\Http\Middleware\ManageHr::class])->prefix('hr')-
     Route::post('documents/{document}/verify', [StaffController::class, 'verify'])->name('documents.verify');
 });
 Route::middleware(['auth', 'role:admin,accounts_officer', \App\Http\Middleware\ActiveErpUser::class])->prefix('finance')->name('finance.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Finance\DashboardController::class, 'index'])->name('dashboard');
     Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('payments/{payment}/confirm', [PaymentController::class, 'confirm'])->name('payments.confirm');
     Route::post('payments/{payment}/reverse', [PaymentController::class, 'reverse'])->name('payments.reverse');

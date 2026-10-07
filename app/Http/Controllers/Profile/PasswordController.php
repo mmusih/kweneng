@@ -31,6 +31,7 @@ class PasswordController extends Controller
         ]);
 
         $redirectTo = match ($user->role) {
+            UserRoles::HR => route('hr.dashboard', false),
             UserRoles::ADMIN => route('admin.dashboard', false),
             UserRoles::HEADMASTER => route('headmaster.dashboard', false),
             UserRoles::TEACHER => route('teacher.dashboard', false),

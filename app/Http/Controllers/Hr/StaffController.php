@@ -87,7 +87,7 @@ class StaffController extends Controller
     {
         $staff->load('requirements.type', 'requirements.documents');
         $types = StaffDocumentType::orderBy('name')->get();
-        $owners = User::where('status', 'active')->where(fn ($q) => $q->where('role', 'admin')->orWhere('hr_access', true))->orderBy('name')->get();
+        $owners = User::where('status', 'active')->where(fn ($q) => $q->whereIn('role', ['admin', 'hr'])->orWhere('hr_access', true))->orderBy('name')->get();
 
         return view('hr.show', compact('staff', 'types', 'owners'));
     }
@@ -107,7 +107,7 @@ class StaffController extends Controller
             'required' => 'required|boolean', 'exception_reason' => 'nullable|required_if:required,0|string|max:2000',
             'renewal_status' => ['required', Rule::in(['not_started', 'preparing', 'submitted', 'approved', 'rejected'])],
             'application_date' => 'nullable|date', 'application_reference' => 'nullable|string|max:255',
-            'notes' => 'nullable|string|max:5000', 'responsible_user_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->where('status', 'active')->where(fn ($q) => $q->where('role', 'admin')->orWhere('hr_access', true)))],
+            'notes' => 'nullable|string|max:5000', 'responsible_user_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->where('status', 'active')->where(fn ($q) => $q->whereIn('role', ['admin', 'hr'])->orWhere('hr_access', true)))],
         ]);
         $requirement->update($data);
         ErpAudit::record('hr.renewal_updated', $requirement, $data);

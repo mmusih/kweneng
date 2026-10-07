@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Edit Class
             </h2>
@@ -93,13 +93,13 @@
                         </div>
 
                         <div class="flex items-center justify-end mt-6">
-                            <a href="{{ route('admin.dashboard') }}" class="mr-3 text-gray-600 hover:text-gray-800">
-                                Back to Dashboard
+                            <a data-admin-back href="{{ route('admin.dashboard') }}" class="mr-3 text-gray-600 hover:text-gray-800">
+                                Back
                             </a>
 
-                            <a href="{{ route('admin.classes.index') }}"
+                            <a data-admin-back href="{{ route('admin.classes.index') }}"
                                 class="mr-4 text-gray-600 hover:text-gray-800">
-                                Back to Classes
+                                Back
                             </a>
 
                             <x-primary-button>

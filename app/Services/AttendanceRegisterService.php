@@ -80,21 +80,19 @@ class AttendanceRegisterService
                     Attendance::STATUS_EXCUSED,
                 ], true);
 
-                $attendance = Attendance::updateOrCreate(
+                $attendance = Attendance::whereDate('attendance_date', $dateString)->updateOrCreate(
                     [
                         'student_id' => $student->id,
-                        'attendance_date' => $dateString,
                     ],
                     [
+                        'attendance_date' => $dateString,
                         'class_id' => $class->id,
                         'teacher_id' => $teacher->id,
                         'academic_year_id' => $class->academic_year_id,
                         'term_id' => $term->id,
                         'parent_absence_notice_id' => $confirmedFromNotice ? $notice->id : null,
                         'status' => $row['status'],
-                        'source' => $confirmedFromNotice
-                            ? Attendance::SOURCE_PARENT_NOTICE
-                            : Attendance::SOURCE_TEACHER,
+                        'recorded_from_parent_notice' => (bool) $confirmedFromNotice,
                         'remarks' => $row['remarks'] ?? null,
                     ]
                 );

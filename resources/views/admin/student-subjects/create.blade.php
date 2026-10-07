@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-2xl text-white leading-tight">
                 Assign Students to Subjects
             </h2>
@@ -38,9 +38,9 @@
                             </p>
                         </div>
 
-                        <a href="{{ route('admin.student-subjects.index') }}"
+                        <a data-admin-back href="{{ route('admin.student-subjects.index') }}"
                             class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                            ← Back to Assignment List
+                            ← Back
                         </a>
                     </div>
 
@@ -399,9 +399,9 @@
                                 </div>
 
                                 <div class="flex items-center justify-between">
-                                    <a href="{{ route('admin.student-subjects.index') }}"
+                                    <a data-admin-back href="{{ route('admin.student-subjects.index') }}"
                                         class="text-gray-600 hover:text-gray-800">
-                                        ← Back to Assignment List
+                                        ← Back
                                     </a>
 
                                     <button type="submit" id="submit-btn" disabled

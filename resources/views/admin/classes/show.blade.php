@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div
-            class="mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
+            class="kw-page-header mt-16 p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg flex items-center justify-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Class Details: {{ $class->name }}
             </h2>
@@ -173,7 +173,7 @@
                                 </a>
                                 <a href="{{ route('admin.subjects.manage-teachers') }}?class_id={{ $class->id }}"
                                     class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                    Assign Teachers
+                                    Teaching Assignments
                                 </a>
                             </div>
                         </div>
