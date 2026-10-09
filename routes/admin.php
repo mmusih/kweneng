@@ -161,6 +161,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::put('timetable/grid/divisions/{division}', [TimetableDivisionGridController::class, 'update'])->name('timetable.grid.divisions.update');
         Route::delete('timetable/grid/divisions/{division}', [TimetableDivisionGridController::class, 'destroy'])->name('timetable.grid.divisions.destroy');
         Route::post('timetable/grid/rooms', [TimetableRoomGridController::class, 'store'])->name('timetable.grid.rooms.store');
+        Route::post('timetable/grid/same-as-main', [TimetableRoomGridController::class, 'sameAsMain'])->name('timetable.grid.same-as-main');
         Route::put('timetable/grid/rooms/{room}', [TimetableRoomGridController::class, 'update'])->name('timetable.grid.rooms.update');
         Route::delete('timetable/grid/rooms/{room}', [TimetableRoomGridController::class, 'destroy'])->name('timetable.grid.rooms.destroy');
         Route::put('timetable/grid/base-rooms', [TimetableRoomGridController::class, 'updateBaseRooms'])->name('timetable.grid.base-rooms.update');

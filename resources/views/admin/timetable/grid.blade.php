@@ -30,6 +30,8 @@
 
     $trayTotal = collect($grid['tray'])->sum('unplaced');
     $placedTotal = count($grid['cards']);
+    $mainSettings = $settings->filter(fn ($option) => $option->schedule_type === 'day'
+        && (int) $option->academic_year_id === (int) $setting->academic_year_id)->values();
 @endphp
 
 <x-app-layout>
@@ -291,12 +293,36 @@
             updateDivision: '{{ route('admin.timetable.grid.divisions.update', ['division' => '__DIVISION__']) }}',
             destroyDivision: '{{ route('admin.timetable.grid.divisions.destroy', ['division' => '__DIVISION__']) }}',
             storeRooms: '{{ route('admin.timetable.grid.rooms.store') }}',
+            sameAsMain: '{{ route('admin.timetable.grid.same-as-main') }}',
             updateRoom: '{{ route('admin.timetable.grid.rooms.update', ['room' => '__ROOM__']) }}',
             destroyRoom: '{{ route('admin.timetable.grid.rooms.destroy', ['room' => '__ROOM__']) }}',
             updateBaseRooms: '{{ route('admin.timetable.grid.base-rooms.update') }}',
         })" x-cloak x-bind:style="{ '--tt-row': rowHeight }" x-on:click.window="closeMenu()"
             x-on:keydown.escape.window="closeOverlays()" x-on:scroll.window="syncHeading()" x-on:resize.window="syncHeading()"
             x-bind:class="trayOpen ? 'pb-80' : 'pb-24'" class="space-y-4 transition-[padding]">
+
+            @if ($setting->schedule_type === 'afternoon')
+                <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-brand-700 dark:bg-brand-800">
+                    <h3 class="text-sm font-semibold text-slate-800 dark:text-brand-100">Reuse main timetable setup</h3>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-brand-400">Class splits are already the same as main for this academic year. Copy rooms and baserooms below to finish the setup.</p>
+                    @if ($mainSettings->isNotEmpty())
+                        <div class="mt-3 flex flex-wrap items-end gap-3">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-brand-200">Main timetable
+                                <select x-ref="mainSetting" class="mt-1 block min-h-10 rounded-md border-slate-300 text-sm dark:bg-brand-900">
+                                    @foreach ($mainSettings as $mainSetting)
+                                        <option value="{{ $mainSetting->id }}">{{ $mainSetting->name }}{{ $mainSetting->is_active ? ' (active)' : '' }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <button type="button" x-on:click="sameAsMain()" x-bind:disabled="busy"
+                                class="min-h-10 rounded-md bg-[#124E66] px-4 text-sm font-semibold text-white hover:bg-[#0f4054] disabled:opacity-50">Same as main</button>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-brand-400">Copies room details and replaces afternoon baseroom assignments. Extra afternoon rooms are kept. You can edit the copied rooms afterwards; later main room changes are not copied automatically.</p>
+                    @else
+                        <p class="mt-3 text-xs text-slate-500 dark:text-brand-400">Create a main timetable for this academic year to copy its rooms.</p>
+                    @endif
+                </section>
+            @endif
 
             {{-- Classes, divisions and split groups ---------------------------- --}}
             <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-brand-700 dark:bg-brand-800">
@@ -312,6 +338,9 @@
                 </button>
 
                 <div x-show="divisionsOpen" x-transition class="border-t border-slate-200 p-4 dark:border-brand-700">
+                    @if ($setting->schedule_type === 'afternoon')
+                        <p class="mb-3 text-xs text-slate-500 dark:text-brand-400">Same as main: divisions and split groups are shared across this academic year. Changes here also apply to the main timetable.</p>
+                    @endif
                     <div class="flex flex-wrap items-end justify-between gap-3">
                         <label class="w-full sm:w-72">
                             <span class="text-xs font-semibold text-slate-700 dark:text-brand-200">Class</span>
@@ -2165,6 +2194,18 @@
                             klass.id,
                             klass.base_room_id === null ? '' : String(klass.base_room_id),
                         ]));
+                    },
+
+                    async sameAsMain() {
+                        const data = await this.post(this.endpoints.sameAsMain, {
+                            setting_id: this.grid.setting.id,
+                            source_setting_id: Number(this.$refs.mainSetting.value),
+                        });
+                        if (data) {
+                            this.applyGrid(data.grid);
+                            this.roomsOpen = true;
+                            this.say('success', data.message);
+                        }
                     },
 
                     async addRooms() {

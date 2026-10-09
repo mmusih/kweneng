@@ -27,6 +27,52 @@ class RoomController extends Controller
         private readonly ConflictChecker $conflicts,
     ) {}
 
+    public function sameAsMain(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'setting_id' => ['required', 'integer', 'exists:tt_settings,id'],
+            'source_setting_id' => ['required', 'integer', 'exists:tt_settings,id'],
+        ]);
+        $setting = $this->setting($request);
+        $source = Setting::findOrFail($data['source_setting_id']);
+
+        if ($setting->schedule_type !== Setting::TYPE_AFTERNOON
+            || $source->schedule_type !== Setting::TYPE_DAY
+            || (int) $source->academic_year_id !== (int) $setting->academic_year_id) {
+            throw ValidationException::withMessages([
+                'source_setting_id' => 'Choose a main timetable from the same academic year as this afternoon timetable.',
+            ]);
+        }
+
+        DB::transaction(function () use ($setting, $source) {
+            Setting::whereKey($setting->id)->lockForUpdate()->firstOrFail();
+            $existing = $setting->rooms()->get()->keyBy(fn (Room $room) => mb_strtolower(trim($room->name)));
+            $roomIds = [];
+
+            foreach ($source->rooms()->get() as $room) {
+                $key = mb_strtolower(trim($room->name));
+                $copy = $existing->get($key) ?? new Room(['tt_setting_id' => $setting->id]);
+                $copy->fill($room->only(['name', 'short_name', 'capacity']))->save();
+                $existing->put($key, $copy);
+                $roomIds[$room->id] = $copy->id;
+            }
+
+            $oldAssignments = DB::table('tt_class_base_rooms')->where('tt_setting_id', $setting->id)
+                ->pluck('tt_room_id', 'class_id')->map(fn ($id) => (int) $id)->all();
+            $assignments = DB::table('tt_class_base_rooms')->where('tt_setting_id', $source->id)
+                ->whereIn('class_id', ClassModel::where('academic_year_id', $setting->academic_year_id)->select('id'))
+                ->pluck('tt_room_id', 'class_id')
+                ->map(fn ($id) => $roomIds[$id] ?? null)->filter()->all();
+
+            $this->replaceBaseRooms($setting, $assignments, $oldAssignments);
+        });
+
+        return response()->json([
+            'message' => 'Rooms and baserooms copied from '.$source->name.'. Class splits are already shared with the main timetable.',
+            'grid' => $this->payload->build($setting->fresh()),
+        ]);
+    }
+
     /** Add one room from separate fields, while retaining the bulk API for imports. */
     public function store(Request $request): JsonResponse
     {
@@ -176,6 +222,16 @@ class RoomController extends Controller
             $assignments[$classId] = $roomId;
         }
 
+        $this->replaceBaseRooms($setting, $assignments, $oldAssignments);
+
+        return response()->json([
+            'message' => count($assignments).' '.str('baseroom')->plural(count($assignments)).' saved.',
+            'grid' => $this->payload->build($setting->fresh()),
+        ]);
+    }
+
+    private function replaceBaseRooms(Setting $setting, array $assignments, array $oldAssignments): void
+    {
         DB::transaction(function () use ($setting, $assignments, $oldAssignments) {
             DB::table('tt_class_base_rooms')->where('tt_setting_id', $setting->id)->delete();
 
@@ -191,11 +247,6 @@ class RoomController extends Controller
 
             $this->applyBaseRoomsToExistingCards($setting, $oldAssignments, $assignments);
         });
-
-        return response()->json([
-            'message' => count($assignments).' '.str('baseroom')->plural(count($assignments)).' saved.',
-            'grid' => $this->payload->build($setting->fresh()),
-        ]);
     }
 
     private function setting(Request $request): Setting
