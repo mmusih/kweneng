@@ -15,7 +15,7 @@ class ClassCapacity
     public function usage(Setting $setting): array
     {
         $loads = [];
-        foreach ($setting->lessons()->with(['classes', 'groups'])->get() as $lesson) {
+        foreach (ClassParticipation::apply($setting->lessons()->with(['classes', 'groups'])->get(), $setting) as $lesson) {
             $periods = $lesson->cardsRequired() * $lesson->periods_per_card;
             foreach ($lesson->classes as $class) {
                 $loads[$class->id] ??= ['whole' => 0, 'divisions' => []];

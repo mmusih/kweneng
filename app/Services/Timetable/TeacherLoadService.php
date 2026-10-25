@@ -37,10 +37,10 @@ class TeacherLoadService
         $lessons = $settings->isEmpty()
             ? collect()
             : \App\Models\Tt\Lesson::query()
-                ->with(['subject:id,name,code', 'teachers:id', 'cards', 'classes:id,name,level', 'groups.class'])
+                ->with(['setting', 'subject:id,name,code', 'teachers:id', 'cards', 'classes:id,name,level', 'groups.class'])
                 ->whereIn('tt_setting_id', $settings->pluck('id'))
                 ->get();
-        $lessons = FormExclusions::apply($lessons, $excludedForms)->groupBy('tt_setting_id');
+        $lessons = FormExclusions::apply(ClassParticipation::apply($lessons), $excludedForms)->groupBy('tt_setting_id');
 
         return [
             'academic_year' => $year?->year_name,

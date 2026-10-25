@@ -19,7 +19,7 @@ class PrintScheduleService
     public function entities(Setting $setting, string $type, array $excludedForms = []): Collection
     {
         return match ($type) {
-            'class' => ClassModel::where('academic_year_id', $setting->academic_year_id)->whereNotIn('level', $excludedForms)->orderBy('name')->get(),
+            'class' => ClassModel::where('academic_year_id', $setting->academic_year_id)->whereNotIn('id', $setting->excluded_class_ids ?? [])->whereNotIn('level', $excludedForms)->orderBy('name')->get(),
             'teacher' => Teacher::with('user')->whereIn('id', DB::table('tt_lesson_teacher')->join('tt_lessons', 'tt_lessons.id', '=', 'tt_lesson_teacher.tt_lesson_id')->where('tt_lessons.tt_setting_id', $setting->id)->pluck('tt_lesson_teacher.teacher_id'))->get()->sortBy('user.name')->values(),
             'room' => $setting->rooms()->orderBy('name')->get(),
             default => collect(),
@@ -36,8 +36,8 @@ class PrintScheduleService
     public function build(Setting $setting, string $type, int $id, array $excludedForms = []): array
     {
         $entity = $this->entity($setting, $type, $id);
-        $key = $setting->id.':'.implode(',', $excludedForms);
-        $this->lessonCache[$key] ??= FormExclusions::apply($setting->lessons()->with(['subject', 'teachers.user', 'classes', 'groups.class', 'cards.room', 'setting'])->get(), $excludedForms);
+        $key = $setting->id.':'.implode(',', $excludedForms).':'.implode(',', $setting->excluded_class_ids ?? []);
+        $this->lessonCache[$key] ??= FormExclusions::apply(ClassParticipation::apply($setting->lessons()->with(['subject', 'teachers.user', 'classes', 'groups.class', 'cards.room', 'setting'])->get(), $setting), $excludedForms);
         $lessons = $this->lessonCache[$key]
             ->filter(fn ($lesson) => match ($type) {
                 'class' => $lesson->classes->contains('id', $id) || $lesson->groups->contains('class_id', $id),

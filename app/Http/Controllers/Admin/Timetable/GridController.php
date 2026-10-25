@@ -574,6 +574,7 @@ class GridController extends Controller
                 ]);
             }
 
+            $this->assertParticipating($unit->lesson, $setting);
             return [$unit->lesson, $unit];
         }
 
@@ -591,6 +592,7 @@ class GridController extends Controller
             ]);
         }
 
+        $this->assertParticipating($lesson, $setting);
         return [$lesson, null];
     }
 
@@ -598,6 +600,7 @@ class GridController extends Controller
     private function editableLesson(array $data, Setting $setting): Lesson
     {
         $lesson = Lesson::query()->findOrFail($data['lesson_id']);
+        $this->assertParticipating($lesson, $setting, true);
 
         if ((int) $lesson->tt_setting_id !== (int) $setting->id) {
             throw ValidationException::withMessages([
@@ -621,6 +624,15 @@ class GridController extends Controller
         }
 
         return $lesson;
+    }
+
+    private function assertParticipating(Lesson $lesson, Setting $setting, bool $editing = false): void
+    {
+        $excluded = $setting->excluded_class_ids ?? [];
+        $hasRemovedClass = $lesson->classes->pluck('id')->merge($lesson->groups->pluck('class_id'))->intersect($excluded)->isNotEmpty();
+        if (($editing && $hasRemovedClass) || ! \App\Services\Timetable\ClassParticipation::lesson($lesson, $setting)) {
+            throw ValidationException::withMessages(['lesson' => 'Re-enable the removed classes before editing their saved lesson details.']);
+        }
     }
 
     /**

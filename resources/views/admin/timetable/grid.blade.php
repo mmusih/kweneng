@@ -52,6 +52,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <a href="{{ route('admin.timetable.classes', $setting) }}" class="inline-flex min-h-11 items-center rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 hover:bg-white/15">Classes &amp; new year</a>
                     <a href="{{ route('admin.timetable.settings.verification', $setting) }}"
                         class="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/15">
                         Verification &amp; print
@@ -98,6 +99,12 @@
     </x-slot>
 
     <div class="px-4 pb-12 sm:px-6 lg:px-8">
+        @if(count($setting->excluded_class_ids ?? []))
+            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
+                {{ count($setting->excluded_class_ids) }} {{ Str::plural('class', count($setting->excluded_class_ids)) }} temporarily removed. Saved lessons are kept and teacher loads reflect the remaining classes.
+                <a href="{{ route('admin.timetable.classes', $setting) }}" class="ml-2 font-semibold underline">Manage or restore classes</a>
+            </div>
+        @endif
         @if (session('success'))
             <div role="status"
                 class="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100">

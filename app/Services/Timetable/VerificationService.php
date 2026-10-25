@@ -16,10 +16,10 @@ class VerificationService
     /** @return array<string, mixed> */
     public function verify(Setting $setting): array
     {
-        $lessons = $setting->lessons()->with([
+        $lessons = ClassParticipation::apply($setting->lessons()->with([
             'subject', 'teachers.user', 'classes', 'groups', 'rooms', 'cards.room',
             'setting', 'weeksDef', 'termsDef',
-        ])->get();
+        ])->get(), $setting);
 
         $unplaced = $this->unplaced($lessons);
         $conflicts = $this->conflicts($setting, $lessons);

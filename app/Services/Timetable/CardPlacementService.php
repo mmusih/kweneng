@@ -26,15 +26,19 @@ class CardPlacementService
     /** One prepared occurrence per lesson makes a split an atomic set of placements. */
     public function linkedLessons(Lesson $lesson): Collection
     {
-        return $lesson->split_key
+        return ClassParticipation::apply($lesson->split_key
             ? Lesson::where('tt_setting_id', $lesson->tt_setting_id)->where('split_key', $lesson->split_key)->orderBy('id')->get()
-            : collect([$lesson]);
+            : collect([$lesson]));
     }
 
     public function place(Lesson $lesson, int $dayNumber, int $startPeriod, ?int $roomId = null): Placement
     {
         return DB::transaction(function () use ($lesson, $dayNumber, $startPeriod, $roomId) {
             \App\Models\Tt\Setting::whereKey($lesson->tt_setting_id)->lockForUpdate()->firstOrFail();
+            $lesson->unsetRelation('setting');
+            if (! ClassParticipation::lesson($lesson)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['class' => 'Re-enable this class before placing its lessons.']);
+            }
             $result = null;
             foreach ($this->linkedLessons($lesson) as $member) {
                 $placed = $this->placeOne($member, $dayNumber, $startPeriod, $member->id === $lesson->id ? $roomId : null);
@@ -210,7 +214,7 @@ class CardPlacementService
                     ->whereHas('lesson', fn ($query) => $query->where('tt_setting_id', $placement->lesson->tt_setting_id))
                     ->whereIn('period_number', $placement->periods())
                     ->whereNotIn('id', $placement->cardIds())->get();
-                foreach ($occupants as $card) {
+                foreach (ClassParticipation::cards($occupants) as $card) {
                     if ($masks->intersects(PlacementMasks::fromStrings($card->days, $card->weeks, $card->terms, $width))) {
                         throw new PlacementRefused([new Conflict(Conflict::ROOM,
                             'That room is already occupied in period '.$card->period_number.'.', $card->id, $card->period_number)]);

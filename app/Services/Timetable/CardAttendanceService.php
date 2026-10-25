@@ -25,6 +25,11 @@ class CardAttendanceService
                 throw ValidationException::withMessages(['attendance' => 'This card is no longer in the tray. Refresh the timetable.']);
             }
             $lesson->loadMissing(['classes', 'groups', 'teachers', 'rooms']);
+            $excluded = $setting->excluded_class_ids ?? [];
+            if ($lesson->classes->pluck('id')->merge($lesson->groups->pluck('class_id'))->intersect($excluded)->isNotEmpty()
+                || array_intersect($classIds, $excluded)) {
+                throw ValidationException::withMessages(['attendance' => 'Re-enable the removed classes before changing their saved lesson attendance.']);
+            }
             $groups = \App\Models\Tt\Group::whereIn('id', $groupIds)->get();
             if ($lesson->preparation_key) {
                 if (array_diff($classIds, $lesson->classes->modelKeys()) || array_diff($lesson->classes->modelKeys(), $classIds)

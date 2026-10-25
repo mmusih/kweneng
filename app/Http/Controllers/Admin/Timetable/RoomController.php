@@ -270,9 +270,9 @@ class RoomController extends Controller
      */
     private function applyBaseRoomsToExistingCards(Setting $setting, array $oldAssignments, array $assignments): void
     {
-        $lessons = $setting->lessons()->with([
+        $lessons = \App\Services\Timetable\ClassParticipation::apply($setting->lessons()->with([
             'classes', 'rooms', 'cards', 'subject', 'teachers.user', 'groups', 'setting', 'weeksDef', 'termsDef',
-        ])->get();
+        ])->get(), $setting);
 
         foreach ($lessons as $lesson) {
             if ($lesson->rooms->isNotEmpty() || $lesson->classes->count() !== 1) {

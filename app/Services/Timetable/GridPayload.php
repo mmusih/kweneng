@@ -106,7 +106,7 @@ class GridPayload
      */
     private function lessons(Setting $setting): Collection
     {
-        return $setting->lessons()
+        return ClassParticipation::apply($setting->lessons()
             ->with([
                 'subject',
                 'teachers.user',
@@ -118,7 +118,7 @@ class GridPayload
                 'termsDef',
                 'setting',
             ])
-            ->get();
+            ->get(), $setting);
     }
 
     /** @return Collection<int, ClassModel> */
@@ -130,6 +130,7 @@ class GridPayload
         return ClassModel::query()
             ->with(['timetableDivisions.groups'])
             ->where('academic_year_id', $setting->academic_year_id)
+            ->whereNotIn('id', $setting->excluded_class_ids ?? [])
             ->orderBy('level')
             ->orderBy('name')
             ->get();

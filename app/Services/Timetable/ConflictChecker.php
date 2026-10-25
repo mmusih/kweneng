@@ -72,6 +72,11 @@ class ConflictChecker
     ): array {
         $lesson->loadMissing(['setting', 'weeksDef', 'termsDef', 'teachers.user', 'classes', 'groups', 'subject']);
 
+        $lesson = ClassParticipation::lesson($lesson);
+        if (! $lesson) {
+            return [new Conflict(Conflict::STRUCTURE, 'Re-enable this class before placing its lessons.')];
+        }
+
         $span = $this->span($lesson);
         $periods = range($startPeriod, $startPeriod + $span - 1);
 
@@ -222,12 +227,12 @@ class ConflictChecker
             )->values();
         }
 
-        return Card::query()
+        return ClassParticipation::cards(Card::query()
             ->whereIn('period_number', $periods)
             ->whereHas('lesson', fn ($q) => $q->where('tt_setting_id', $lesson->tt_setting_id))
             ->when($ignoreCardIds !== [], fn ($q) => $q->whereNotIn('id', $ignoreCardIds))
-            ->with(['lesson.teachers.user', 'lesson.classes', 'lesson.groups', 'lesson.subject', 'room'])
-            ->get();
+            ->with(['lesson.setting', 'lesson.teachers.user', 'lesson.classes', 'lesson.groups', 'lesson.subject', 'room'])
+            ->get());
     }
 
     /**
@@ -238,10 +243,10 @@ class ConflictChecker
      */
     public static function poolFor(int $settingId): Collection
     {
-        return Card::query()
+        return ClassParticipation::cards(Card::query()
             ->whereHas('lesson', fn ($q) => $q->where('tt_setting_id', $settingId))
-            ->with(['lesson.teachers.user', 'lesson.classes', 'lesson.groups', 'lesson.subject', 'room'])
-            ->get();
+            ->with(['lesson.setting', 'lesson.teachers.user', 'lesson.classes', 'lesson.groups', 'lesson.subject', 'room'])
+            ->get());
     }
 
     /**

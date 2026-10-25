@@ -35,10 +35,12 @@ class Setting extends Model
         'asc_options',
         'is_active',
         'is_published',
+        'excluded_class_ids',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'excluded_class_ids' => 'array',
         'is_published' => 'boolean',
         'cycle_anchor_date' => 'date',
     ];

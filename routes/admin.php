@@ -139,6 +139,9 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('timetable/settings/{setting}/prepare', [\App\Http\Controllers\Admin\Timetable\PreparationController::class, 'store'])->name('timetable.prepare.store');
         Route::post('timetable/settings/{setting}/publish', [TimetableSettingController::class, 'publish'])->name('timetable.settings.publish');
         Route::post('timetable/settings', [TimetableSettingController::class, 'store'])->name('timetable.settings.store');
+        Route::get('timetable/settings/{setting}/classes', [\App\Http\Controllers\Admin\Timetable\ClassLifecycleController::class, 'index'])->name('timetable.classes');
+        Route::post('timetable/settings/{setting}/classes', [\App\Http\Controllers\Admin\Timetable\ClassLifecycleController::class, 'update'])->name('timetable.classes.update');
+        Route::post('timetable/settings/{setting}/rollover', [\App\Http\Controllers\Admin\Timetable\ClassLifecycleController::class, 'rollover'])->name('timetable.rollover');
         Route::get('timetable/teacher-loads', [TimetableTeacherLoadController::class, 'index'])->name('timetable.teacher-loads');
         Route::get('timetable/teacher-loads/download', [TimetableTeacherLoadController::class, 'download'])->name('timetable.teacher-loads.download');
         Route::get('timetable/teaching-summary', [TimetableTeacherLoadController::class, 'teachingSummary'])->name('timetable.teaching-summary');

@@ -91,14 +91,14 @@ class CardsScheduleService
     /** @return Collection<int, Lesson> */
     private function lessons(Setting $setting): Collection
     {
-        return $setting->lessons()->with([
+        return ClassParticipation::apply($setting->lessons()->with([
             'setting',
             'subject',
             'teachers.user',
             'classes',
             'groups.lessons.teachers',
             'cards.room',
-        ])->get();
+        ])->get(), $setting);
     }
 
     /**
