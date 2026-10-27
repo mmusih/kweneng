@@ -22,6 +22,7 @@ class DashboardBackNavigationTest extends TestCase
             ->get(route('admin.users.index'))
             ->assertOk()
             ->assertSee('data-back-navigation', escape: false)
+            ->assertSee('data-screen-navigation="'.$admin->id.':admin"', escape: false)
             ->assertSee('Go back to the previous page')
             ->assertDontSee('window.history.back()', escape: false)
             ->assertSee('href="'.route('admin.dashboard').'"', escape: false);
@@ -37,6 +38,7 @@ class DashboardBackNavigationTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
+            ->assertSee('hidden data-origin-back-only', escape: false)
             ->assertDontSee('data-back-navigation', escape: false);
     }
 

@@ -7,6 +7,20 @@ use Illuminate\Support\Facades\Route;
 
 class ScreenNavigation
 {
+    public static function hasBackLink(string $html): bool
+    {
+        preg_match_all('/<a\b[^>]*>(.*?)<\/a>/is', $html, $links);
+
+        foreach ($links[1] as $label) {
+            $text = trim(html_entity_decode(strip_tags($label), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if (preg_match('/^(?:[←‹«]\s*)?Back(?:\s|$)/iu', $text)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function backUrl(Request $request): ?string
     {
         if ($url = StudentProfileNavigation::backUrl($request)) {

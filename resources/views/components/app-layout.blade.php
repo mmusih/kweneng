@@ -18,7 +18,7 @@
 
         <style>[x-cloak] { display: none !important; }</style>
     </head>
-    <body @if(request()->routeIs('admin.*')) data-admin-screen @endif class="font-sans antialiased bg-gray-100 text-gray-900 transition-colors dark:bg-brand-900 dark:text-brand-200">
+    <body @auth data-screen-navigation="{{ auth()->id() }}:{{ auth()->user()->role }}" @endauth @if(request()->routeIs('admin.*')) data-admin-screen @endif class="font-sans antialiased bg-gray-100 text-gray-900 transition-colors dark:bg-brand-900 dark:text-brand-200">
         <div class="min-h-screen bg-gray-100 transition-colors dark:bg-brand-900 flex flex-col">
             <!-- Page Navigation -->
             @include('layouts.navigation')
@@ -59,14 +59,14 @@
                         ? route($dashboardBackRoute)
                         : null;
                     $showDashboardBackLink = $dashboardBackUrl
-                        && ! request()->routeIs($dashboardBackRoute);
+                        && ! \App\Support\ScreenNavigation::hasBackLink((string) ($header ?? '').(string) $slot);
                     $profileBackUrl = $showDashboardBackLink && class_exists(\App\Support\StudentProfileNavigation::class)
                         ? \App\Support\StudentProfileNavigation::backUrl(request())
                         : null;
                 @endphp
 
                 @if ($showDashboardBackLink)
-                    <nav aria-label="Backward navigation" data-back-navigation
+                    <nav aria-label="Backward navigation" @if(request()->routeIs($dashboardBackRoute)) hidden data-origin-back-only @else data-back-navigation @endif
                         class="{{ isset($header) ? 'pt-4' : 'pt-20' }} px-4 sm:px-6 lg:px-8">
                         <div class="mx-auto max-w-7xl">
                             <a href="{{ \App\Support\ScreenNavigation::backUrl(request()) ?? $profileBackUrl ?? $dashboardBackUrl }}"

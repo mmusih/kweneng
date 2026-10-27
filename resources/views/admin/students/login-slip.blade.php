@@ -15,6 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parent Code — {{ $slip['student_name'] }}</title>
+    @vite('resources/js/screen-navigation.js')
     <style>
         * {
             box-sizing: border-box;
@@ -173,7 +174,7 @@
     </style>
 </head>
 
-<body>
+<body data-screen-navigation="{{ auth()->id() }}:{{ auth()->user()->role }}">
 
     <div class="no-print">
         <button class="btn btn-primary" onclick="window.print()">&#128438; Print Slip</button>
@@ -181,7 +182,7 @@
             onclick="return confirm('This will invalidate the current codes and generate new ones. Continue?')">
             &#8635; Regenerate Codes
         </a>
-        <a data-admin-back href="{{ url()->previous() }}" class="btn btn-ghost">&larr; Back</a>
+        <a data-admin-back href="{{ route('admin.students.index', request()->only(['search', 'class_id', 'page'])) }}" class="btn btn-ghost">&larr; Back to students</a>
     </div>
 
     <div class="slip-wrapper">

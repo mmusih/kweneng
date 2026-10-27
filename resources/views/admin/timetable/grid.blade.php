@@ -44,7 +44,7 @@
                     </div>
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-widest text-[#D3D9D4]">Timetabling</p>
-                        <h2 class="mt-1 text-2xl font-semibold leading-tight text-white">Timetable</h2>
+                        <h2 data-screen-label="{{ $setting?->schedule_type === 'afternoon' ? 'afternoon timetable' : 'timetable' }}" class="mt-1 text-2xl font-semibold leading-tight text-white">Timetable</h2>
                         <p class="mt-1 text-sm text-white/95">
                             Drag lessons from the tray onto the grid. Clashing slots turn red and are refused.
                         </p>
