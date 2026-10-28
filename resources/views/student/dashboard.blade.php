@@ -754,8 +754,8 @@
                                             <div class="sd-sub-name">{{ $mark->subject->name ?? 'Unknown' }}</div>
                                             <div class="sd-sub-code">{{ $mark->subject->code ?? '' }}</div>
                                         </td>
-                                        <td><span class="score {{ $midClass }}">{{ $mid ?? 'N/A' }}</span></td>
-                                        <td><span class="score {{ $endClass }}">{{ $end ?? 'N/A' }}</span></td>
+                                        <td><span class="score {{ $midClass }}">{{ $mark->midterm_did_not_write ? '**' : ($mid ?? 'N/A') }}</span></td>
+                                        <td><span class="score {{ $endClass }}">{{ $mark->endterm_did_not_write ? '**' : ($end ?? 'N/A') }}</span></td>
                                         <td class="sd-teacher">{{ $mark->teacher?->user?->name ?? 'N/A' }}</td>
                                     </tr>
                                 @endforeach

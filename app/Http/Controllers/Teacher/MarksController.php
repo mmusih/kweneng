@@ -122,6 +122,8 @@ class MarksController extends Controller
             'marks.*' => 'array',
             'marks.*.midterm' => 'nullable|numeric|min:0|max:100',
             'marks.*.endterm' => 'nullable|numeric|min:0|max:100',
+            'marks.*.midterm_did_not_write' => 'sometimes|boolean',
+            'marks.*.endterm_did_not_write' => 'sometimes|boolean',
             'marks.*.remarks' => 'nullable|string|max:500'
         ]);
 
@@ -197,6 +199,8 @@ class MarksController extends Controller
                 'term_id' => $validated['term_id'],
                 'midterm_score' => $incomingMidterm,
                 'endterm_score' => $incomingEndterm,
+                'midterm_did_not_write' => $term->isMidtermLocked() ? (bool) $existingMark?->midterm_did_not_write : (bool) ($scores['midterm_did_not_write'] ?? false),
+                'endterm_did_not_write' => $term->isEndtermLocked() ? (bool) $existingMark?->endterm_did_not_write : (bool) ($scores['endterm_did_not_write'] ?? false),
                 'remarks' => $scores['remarks'] ?? null,
             ];
         }
@@ -358,12 +362,12 @@ class MarksController extends Controller
                 continue;
             }
 
-            if (!is_numeric($scoreRaw)) {
-                $errors[] = "Row {$rowNumber}: score must be numeric.";
+            if ($scoreRaw !== '**' && !is_numeric($scoreRaw)) {
+                $errors[] = "Row {$rowNumber}: score must be numeric or ** for Did not write.";
                 continue;
             }
 
-            $score = (float) $scoreRaw;
+            $score = $scoreRaw === '**' ? null : (float) $scoreRaw;
 
             if ($score < 0 || $score > 100) {
                 $errors[] = "Row {$rowNumber}: score must be between 0 and 100.";
@@ -403,6 +407,8 @@ class MarksController extends Controller
                 'teacher_id' => $teacher->id,
                 'academic_year_id' => $validated['academic_year_id'],
                 'term_id' => $validated['term_id'],
+                'midterm_did_not_write' => $validated['exam_type'] === 'midterm' ? $scoreRaw === '**' : (bool) $existingMark?->midterm_did_not_write,
+                'endterm_did_not_write' => $validated['exam_type'] === 'endterm' ? $scoreRaw === '**' : (bool) $existingMark?->endterm_did_not_write,
                 'midterm_score' => $midtermScore,
                 'endterm_score' => $endtermScore,
                 'remarks' => $remarks !== '' ? $remarks : ($existingMark?->remarks),

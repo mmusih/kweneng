@@ -379,7 +379,9 @@ class MarkStudent {
   final int id;
   final String admissionNo;
   final String name;
+  bool midtermDidNotWrite;
   double? midtermScore;
+  bool endtermDidNotWrite;
   double? endtermScore;
   String remarks;
 
@@ -387,7 +389,9 @@ class MarkStudent {
     required this.id,
     required this.admissionNo,
     required this.name,
+    this.midtermDidNotWrite = false,
     this.midtermScore,
+    this.endtermDidNotWrite = false,
     this.endtermScore,
     this.remarks = '',
   });
@@ -396,7 +400,9 @@ class MarkStudent {
     id: _int(j['id']),
     admissionNo: j['admission_no']?.toString() ?? '',
     name: j['name']?.toString() ?? 'Student',
+    midtermDidNotWrite: j['midterm_did_not_write'] == true,
     midtermScore: _double(j['midterm_score']),
+    endtermDidNotWrite: j['endterm_did_not_write'] == true,
     endtermScore: _double(j['endterm_score']),
     remarks: j['remarks']?.toString() ?? '',
   );

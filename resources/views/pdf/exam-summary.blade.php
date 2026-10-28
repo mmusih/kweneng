@@ -249,7 +249,8 @@
     </table>
 
     <div class="legend">
-        @foreach ($summary['grade_scale'] as $grade => $range)
+        <span>** = Did not write. Blank = Mark not entered (or subject not taken).</span><br>
+                            @foreach ($summary['grade_scale'] as $grade => $range)
             <span><strong>{{ $grade }}</strong>: {{ $range }}</span>
         @endforeach
     </div>

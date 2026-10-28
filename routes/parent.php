@@ -26,6 +26,8 @@ Route::middleware(['auth', 'role:parent'])->prefix('parent')->name('parent.')->g
     Route::get('/awards', [AwardController::class, 'index'])->name('awards.index');
     Route::get('/awards/{studentAward}/certificate', [AwardController::class, 'certificate'])->name('awards.certificate');
     Route::get('/prefects/{prefect}/certificate', [PrefectController::class, 'certificate'])->name('prefects.certificate');
+    Route::get('/timetable/current', [TimetableController::class, 'parentCurrent'])->name('timetable.current');
+    Route::get('/timetable/download', [TimetableController::class, 'parentDownload'])->name('timetable.download');
     Route::get('/timetable', [TimetableController::class, 'parent'])->name('timetable');
 
     /*

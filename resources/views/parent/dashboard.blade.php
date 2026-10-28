@@ -305,6 +305,12 @@
                                     @endif
                                 </div>
 
+                                <div class="mb-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900"
+                                     data-current-activity data-url="{{ route('parent.timetable.current', ['student_id' => $child->id]) }}">
+                                    <strong class="block">Scheduled now</strong>
+                                    <p data-activity-description>{{ $currentActivities[$child->id]['description'] ?? 'Timetable unavailable' }}</p>
+                                    <a href="{{ route('parent.timetable', ['student_id' => $child->id]) }}" class="mt-2 inline-block underline">View timetable and download PDF</a>
+                                </div>
                                 @if (!$isBlocked && $overview)
                                     <div class="space-y-1.5 mb-3">
                                         <div class="flex justify-between text-sm">
@@ -347,7 +353,7 @@
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-400">Behaviour</span>
                                             <span class="font-medium text-gray-800">
-                                                {{ $overview['behaviour_label'] ?? 'Good' }}
+                                                {{ $overview['behaviour_label'] ?? 'No summary recorded' }}
                                                 @if (isset($overview['behaviour_total']) && $overview['behaviour_total'] > 0)
                                                     ({{ $overview['behaviour_total'] }})
                                                 @endif
@@ -369,7 +375,7 @@
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-400">Behaviour</span>
                                             <span
-                                                class="font-medium text-gray-800">{{ $overview['behaviour_label'] ?? 'Good' }}</span>
+                                                class="font-medium text-gray-800">{{ $overview['behaviour_label'] ?? 'No summary recorded' }}</span>
                                         </div>
                                     </div>
                                 @endif
@@ -476,6 +482,18 @@
             <div>
                 <p class="text-xs uppercase tracking-wide text-gray-400 mb-3">Quick access</p>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <a href="{{ route('parent.receipts.index') }}"
+                        class="bg-white rounded-xl border border-gray-100 p-4 hover:border-emerald-300 transition">
+                        <div class="h-9 w-9 rounded-lg flex items-center justify-center mb-2 bg-emerald-50">
+                            <svg class="h-5 w-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 7h6m-6 4h6m-6 4h4M6 3h12v18l-3-2-3 2-3-2-3 2V3z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-gray-800">Payments &amp; receipts</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Payment history and receipts</p>
+                    </a>
+
 
                     <a href="{{ route('parent.timetable') }}"
                         class="bg-white rounded-xl border border-gray-100 p-4 hover:border-sky-300 transition">
@@ -720,4 +738,23 @@
                 .catch(() => {});
         }
     </script>
+<script>
+(() => {
+    async function refreshActivities() {
+        if (document.hidden) return;
+        await Promise.all(Array.from(document.querySelectorAll('[data-current-activity]')).map(async card => {
+            try {
+                const response = await fetch(card.dataset.url, {headers: {Accept: 'application/json'}, cache: 'no-store'});
+                if (!response.ok) throw new Error('Unavailable');
+                const activity = await response.json();
+                card.querySelector('[data-activity-description]').textContent = activity.description;
+            } catch (_) {
+                card.querySelector('[data-activity-description]').textContent = 'Timetable unavailable. Open timetable to retry.';
+            }
+        }));
+    }
+    setInterval(refreshActivities, 60000);
+    document.addEventListener('visibilitychange', refreshActivities);
+})();
+</script>
 </x-app-layout>

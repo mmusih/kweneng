@@ -236,4 +236,5 @@
             @endif
         </div>
     </div>
+<p class="p-4 text-sm">** = Did not write. Completed entries include marks and confirmed Did not write entries; blanks remain outstanding.</p>
 </x-app-layout>

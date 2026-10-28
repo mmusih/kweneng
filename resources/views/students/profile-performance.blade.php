@@ -29,7 +29,7 @@
                 @forelse($marks as $mark)
                     <tr class="border-t border-slate-200 dark:border-brand-600">
                         <th scope="row" class="p-2">{{ $mark->subject?->name }}</th>
-                        @foreach(['midterm_score', 'endterm_score'] as $field)<td class="p-2 {{ $mark->$field !== null && $mark->$field < 50 ? 'font-bold text-red-700 dark:text-red-300' : '' }}">{{ $mark->$field !== null ? number_format($mark->$field, 1).'%' : 'Not entered' }}</td>@endforeach
+                        @foreach(['midterm_score', 'endterm_score'] as $field)<td class="p-2 {{ $mark->$field !== null && $mark->$field < 50 ? 'font-bold text-red-700 dark:text-red-300' : '' }}">{{ $mark->{str_replace('_score', '_did_not_write', $field)} ? '**' : ($mark->$field !== null ? number_format($mark->$field, 1).'%' : 'Not entered') }}</td>@endforeach
                         <td class="p-2">@if($mark->midterm_score !== null && $mark->endterm_score !== null){{ $mark->endterm_score - $mark->midterm_score > 0 ? '+' : '' }}{{ number_format($mark->endterm_score - $mark->midterm_score, 1) }} points @else — @endif</td>
                         <td class="p-2">{{ $mark->remarks ?: 'No remarks' }}</td>
                     </tr>

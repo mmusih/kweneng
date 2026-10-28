@@ -235,6 +235,7 @@
 
                         <div class="mt-4 text-sm text-slate-600">
                             <strong>Grade Key:</strong>
+                            <span>** = Did not write. Blank = Mark not entered (or subject not taken).</span><br>
                             @foreach ($summary['grade_scale'] as $grade => $range)
                                 <span class="mr-4"><strong>{{ $grade }}</strong>: {{ $range }}</span>
                             @endforeach

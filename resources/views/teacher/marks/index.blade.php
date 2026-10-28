@@ -24,7 +24,7 @@
                 <div class="p-6 text-gray-900">
                     <div class="mb-6">
                         <h3 class="text-2xl font-semibold">Marks Entry</h3>
-                        <p class="text-gray-600">Enter midterm and endterm marks for learners assigned to you.</p>
+                        <p class="text-gray-600">Enter marks or select Did not write for each exam. A blank mark means Not entered.</p>
                     </div>
 
                     @if (session('success'))
@@ -618,7 +618,7 @@
                 }
 
                 if (midterm !== null && endterm === null) {
-                    return `The learner showed ${performancePhrase(midterm)} in the midterm assessment but did not write the end-of-term assessment.`;
+                    return `The learner showed ${performancePhrase(midterm)} in the midterm assessment.`;
                 }
 
                 if (midterm === null && endterm !== null) {
@@ -686,7 +686,7 @@
                     return true;
                 }
 
-                return /^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|end-of-term assessment)\.$/.test(comment);
+                return /^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|midterm assessment|end-of-term assessment)\.$/.test(comment);
             }
 
             function parseNullableNumber(value) {
@@ -784,11 +784,20 @@
                                    class="mark-input no-spinner cursor-blink block w-full max-w-[120px] px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 bg-white focus:outline-none cursor-text ${midtermDisabled ? 'locked-input' : ''}"
                                    min="0" max="100" step="1" inputmode="numeric"
                                    value="${midtermValue}"
-                                   placeholder="Midterm"
+                                   placeholder="${existingMark.midterm_did_not_write ? '**' : 'Not entered'}"
+                                   ${existingMark.midterm_did_not_write ? 'readonly' : ''}
                                    data-student-id="${student.id}"
                                    data-field="midterm"
                                    ${midtermDisabled ? 'disabled' : ''}
                                    ${index === 0 && !midtermDisabled ? 'autofocus' : ''}>
+                            <label class="block mt-2 text-xs text-gray-600">
+                                <input type="hidden" name="marks[${student.id}][midterm_did_not_write]" value="0">
+                                <input type="checkbox" name="marks[${student.id}][midterm_did_not_write]" value="1"
+                                    ${existingMark.midterm_did_not_write ? 'checked' : ''}
+                                    ${midtermDisabled ? 'disabled' : ''}
+                                    onchange="const score = this.closest('td').querySelector('input[type=number]'); if(this.checked) score.value = ''; score.readOnly = this.checked; score.placeholder = this.checked ? '**' : 'Not entered'; score.dispatchEvent(new Event('input', {bubbles:true}));">
+                                Did not write
+                            </label>
                         </td>
 
                         <td class="px-6 py-4 align-middle input-cell transition-colors duration-150">
@@ -797,10 +806,19 @@
                                    class="mark-input no-spinner cursor-blink block w-full max-w-[120px] px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 bg-white focus:outline-none cursor-text ${endtermDisabled ? 'locked-input' : ''}"
                                    min="0" max="100" step="1" inputmode="numeric"
                                    value="${endtermValue}"
-                                   placeholder="Endterm"
+                                   placeholder="${existingMark.endterm_did_not_write ? '**' : 'Not entered'}"
+                                   ${existingMark.endterm_did_not_write ? 'readonly' : ''}
                                    data-student-id="${student.id}"
                                    data-field="endterm"
                                    ${endtermDisabled ? 'disabled' : ''}>
+                            <label class="block mt-2 text-xs text-gray-600">
+                                <input type="hidden" name="marks[${student.id}][endterm_did_not_write]" value="0">
+                                <input type="checkbox" name="marks[${student.id}][endterm_did_not_write]" value="1"
+                                    ${existingMark.endterm_did_not_write ? 'checked' : ''}
+                                    ${endtermDisabled ? 'disabled' : ''}
+                                    onchange="const score = this.closest('td').querySelector('input[type=number]'); if(this.checked) score.value = ''; score.readOnly = this.checked; score.placeholder = this.checked ? '**' : 'Not entered'; score.dispatchEvent(new Event('input', {bubbles:true}));">
+                                Did not write
+                            </label>
                         </td>
 
                         <td class="px-6 py-4 align-middle input-cell transition-colors duration-150">

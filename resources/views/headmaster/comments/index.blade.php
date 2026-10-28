@@ -322,10 +322,10 @@
                                                                     <td class="px-4 py-3 text-sm text-gray-900">
                                                                         {{ $row['subject_name'] }}</td>
                                                                     <td class="px-4 py-3 text-sm text-gray-900">
-                                                                        {{ $row['midterm_score'] !== null ? number_format($row['midterm_score'], 2) : '—' }}
+                                                                        {{ ($row['midterm_did_not_write'] ?? false) ? '**' : ($row['midterm_score'] !== null ? number_format($row['midterm_score'], 2) : '—') }}
                                                                     </td>
                                                                     <td class="px-4 py-3 text-sm text-gray-900">
-                                                                        {{ $row['endterm_score'] !== null ? number_format($row['endterm_score'], 2) : '—' }}
+                                                                        {{ ($row['endterm_did_not_write'] ?? false) ? '**' : ($row['endterm_score'] !== null ? number_format($row['endterm_score'], 2) : '—') }}
                                                                     </td>
                                                                     <td class="px-4 py-3 text-sm text-gray-900">
                                                                         {{ $row['average'] !== null ? number_format($row['average'], 2) . '%' : '—' }}

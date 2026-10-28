@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/children/{student}/awards', [ParentAwardsController::class, 'index']);
         Route::get('/children/{student}/awards/{studentAward}/certificate', [ParentAwardsController::class, 'certificate']);
         Route::get('/children/{student}/prefects/{prefect}/certificate', [ParentAwardsController::class, 'prefectCertificate']);
+        Route::get('/timetable/download', [\App\Http\Controllers\TimetableController::class, 'parentDownload']);
         Route::get('/timetable', [TimetableController::class, 'parent']);
 
         // Parent absence notices

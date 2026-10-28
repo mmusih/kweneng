@@ -62,11 +62,11 @@
                             <div class="space-y-3">
                                 <div>
                                     <span class="text-sm font-medium text-gray-500">Midterm Score:</span>
-                                    <span class="ml-2">{{ $mark->midterm_score ?? 'N/A' }}</span>
+                                    <span class="ml-2">{{ $mark?->midterm_did_not_write ? '**' : ($mark->midterm_score ?? 'N/A') }}</span>
                                 </div>
                                 <div>
                                     <span class="text-sm font-medium text-gray-500">Endterm Score:</span>
-                                    <span class="ml-2">{{ $mark->endterm_score ?? 'N/A' }}</span>
+                                    <span class="ml-2">{{ $mark?->endterm_did_not_write ? '**' : ($mark->endterm_score ?? 'N/A') }}</span>
                                 </div>
                                 <div>
                                     <span class="text-sm font-medium text-gray-500">Grade:</span>

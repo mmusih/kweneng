@@ -193,7 +193,7 @@ class DashboardController extends Controller
                         'punctuality_late' => 0,
                         'punctuality_very_late' => 0,
                         'behaviour_total' => 0,
-                        'behaviour_label' => 'Good',
+                        'behaviour_label' => 'No summary recorded',
                     ];
 
                     continue;
@@ -294,6 +294,8 @@ class DashboardController extends Controller
             ],
             'marksOverview' => $dashboardData['marksOverview'] ?? [],
             'childrenLibrarySummary' => $dashboardData['childrenLibrarySummary'] ?? [],
+            'currentActivities' => collect($dashboardData['children'] ?? [])->mapWithKeys(fn ($child) =>
+                [$child->id => app(\App\Services\TimetableService::class)->currentActivity($child)]),
         ]);
     }
 
@@ -341,17 +343,6 @@ class DashboardController extends Controller
 
     protected function behaviourLabel($behaviourRecords): string
     {
-        if ($behaviourRecords->count() === 0) {
-            return 'Good';
-        }
-
-        $major = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
-        $moderate = $behaviourRecords->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count();
-
-        if ($major > 0 || $moderate >= 3) {
-            return 'Needs attention';
-        }
-
-        return 'Fair';
+        return app(\App\Services\BehaviourSummaryService::class)->label($behaviourRecords);
     }
 }

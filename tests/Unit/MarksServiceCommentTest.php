@@ -19,7 +19,7 @@ class MarksServiceCommentTest extends TestCase
     public function test_it_generates_a_comment_from_marks(): void
     {
         $this->assertSame(
-            'The learner showed good performance in the midterm assessment but did not write the end-of-term assessment.',
+            'The learner showed good performance in the midterm assessment.',
             $this->marksService->generateTeacherComment(75, null)
         );
 

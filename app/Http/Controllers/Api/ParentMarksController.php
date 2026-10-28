@@ -84,6 +84,8 @@ class ParentMarksController extends Controller
 
                     'subjects' => $marks->map(fn ($m) => [
                         'subject' => $m->subject->name ?? 'Unknown',
+                        'midterm_did_not_write' => (bool) $m?->midterm_did_not_write,
+                        'endterm_did_not_write' => (bool) $m?->endterm_did_not_write,
                         'midterm_score' => $m->midterm_score,
                         'endterm_score' => $m->endterm_score,
                         'midterm_grade' => $m->midterm_score !== null
@@ -169,6 +171,8 @@ class ParentMarksController extends Controller
 
             'subjects' => $marks->map(fn ($m) => [
                 'subject' => $m->subject->name ?? 'Unknown',
+                'midterm_did_not_write' => (bool) $m?->midterm_did_not_write,
+                'endterm_did_not_write' => (bool) $m?->endterm_did_not_write,
                 'midterm_score' => $m->midterm_score,
                 'endterm_score' => $m->endterm_score,
                 'midterm_grade' => $m->midterm_score !== null

@@ -294,6 +294,19 @@ class ApiService {
     return file;
   }
 
+  Future<File> downloadTimetable(int studentId, String scheduleType) async {
+    final response = await _dio.get<List<int>>(
+      '/parent/timetable/download',
+      queryParameters: {'student_id': studentId, 'schedule_type': scheduleType},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    if (response.data == null) throw Exception('Empty response from server.');
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/timetable_${studentId}_$scheduleType.pdf');
+    await file.writeAsBytes(response.data!);
+    return file;
+  }
+
   Future<File> downloadAcademicRecord(int studentId) async {
     final response = await _dio.get<List<int>>(
       '/parent/children/$studentId/academic-record/download',

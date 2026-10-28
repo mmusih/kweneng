@@ -47,7 +47,9 @@ class _MarksScreenState extends ConsumerState<MarksScreen> {
                     id: s.id,
                     admissionNo: s.admissionNo,
                     name: s.name,
+                    midtermDidNotWrite: s.midtermDidNotWrite,
                     midtermScore: s.midtermScore,
+                    endtermDidNotWrite: s.endtermDidNotWrite,
                     endtermScore: s.endtermScore,
                     remarks: s.remarks,
                   ),
@@ -180,10 +182,14 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
   void initState() {
     super.initState();
     _midterm = TextEditingController(
-      text: widget.student.midtermScore?.toStringAsFixed(1) ?? '',
+      text: widget.student.midtermDidNotWrite
+          ? '**'
+          : (widget.student.midtermScore?.toStringAsFixed(1) ?? ''),
     );
     _endterm = TextEditingController(
-      text: widget.student.endtermScore?.toStringAsFixed(1) ?? '',
+      text: widget.student.endtermDidNotWrite
+          ? '**'
+          : (widget.student.endtermScore?.toStringAsFixed(1) ?? ''),
     );
     final generated = _generateTeacherComment(
       widget.student.midtermScore,
@@ -237,7 +243,9 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
                 Expanded(
                   child: TextField(
                     controller: _midterm,
-                    enabled: !widget.midtermLocked,
+                    enabled:
+                        !widget.midtermLocked &&
+                        !widget.student.midtermDidNotWrite,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -263,7 +271,9 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
                 Expanded(
                   child: TextField(
                     controller: _endterm,
-                    enabled: !widget.endtermLocked,
+                    enabled:
+                        !widget.endtermLocked &&
+                        !widget.student.endtermDidNotWrite,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -286,6 +296,34 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
                   ),
                 ),
               ],
+            ),
+            CheckboxListTile(
+              title: const Text('midterm: Did not write (**)'),
+              value: widget.student.midtermDidNotWrite,
+              onChanged: widget.midtermLocked
+                  ? null
+                  : (value) {
+                      setState(() {
+                        widget.student.midtermDidNotWrite = value ?? false;
+                        widget.student.midtermScore = null;
+                        _midterm.text = value == true ? '**' : '';
+                        _refreshAutomaticComment();
+                      });
+                    },
+            ),
+            CheckboxListTile(
+              title: const Text('endterm: Did not write (**)'),
+              value: widget.student.endtermDidNotWrite,
+              onChanged: widget.endtermLocked
+                  ? null
+                  : (value) {
+                      setState(() {
+                        widget.student.endtermDidNotWrite = value ?? false;
+                        widget.student.endtermScore = null;
+                        _endterm.text = value == true ? '**' : '';
+                        _refreshAutomaticComment();
+                      });
+                    },
             ),
             if (overallGrade != null) ...[
               const SizedBox(height: 8),
@@ -359,7 +397,7 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
 
     if (midterm != null && endterm == null) {
       return 'The learner showed ${_performancePhrase(midterm)} in the '
-          'midterm assessment but did not write the end-of-term assessment.';
+          'midterm assessment.';
     }
 
     if (midterm == null && endterm != null) {
@@ -434,7 +472,7 @@ class _MarkStudentTileState extends State<_MarkStudentTile> {
     if (comparisonComments.contains(normalized)) return true;
 
     return RegExp(
-      r'^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|end-of-term assessment)\.$',
+      r'^The learner showed (?:excellent performance|very good performance|good performance|fair performance|satisfactory performance|below expectation performance|weak performance) in the (?:midterm assessment but did not write the end-of-term assessment|midterm assessment|end-of-term assessment)\.$',
     ).hasMatch(normalized);
   }
 }

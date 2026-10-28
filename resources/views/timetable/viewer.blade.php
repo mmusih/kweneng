@@ -51,6 +51,9 @@
             @endif
             @foreach($displaySchedules as $scheduleIndex => $viewSchedule)
             <section data-schedule-panel="{{ $scheduleIndex }}" class="schedule-panel">
+            @if(auth()->user()->role === 'parent' && $selectedStudent)
+                <a class="mb-4 inline-block rounded-lg bg-[#124E66] px-4 py-2 text-sm font-semibold text-white" href="{{ route('parent.timetable.download', ['student_id' => $selectedStudent->id, 'schedule_type' => $viewSchedule['template']['schedule_type']]) }}">Download {{ $viewSchedule['template']['schedule_label'] }} PDF (all days)</a>
+            @endif
             <div class="mb-3"><h3 class="text-xl font-bold">{{ $viewSchedule['template']['schedule_label'] ?? 'Timetable' }}</h3><p class="text-sm text-gray-500">{{ $viewSchedule['template']['name'] }} · {{ $viewSchedule['template']['cycle_length'] }} day cycle</p></div>
             <div class="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Timetable days">
                 @foreach ($viewSchedule['days'] as $day)

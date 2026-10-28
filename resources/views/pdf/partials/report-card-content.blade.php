@@ -295,7 +295,9 @@
                     <td>{{ $row['subject_name'] }}</td>
 
                     <td class="score-col">
-                        @if ($row['midterm_score'] !== null)
+                        @if ($row['midterm_did_not_write'] ?? false)
+                            **
+                        @elseif ($row['midterm_score'] !== null)
                             {{ number_format($row['midterm_score'], 0) }}{{ $row['midterm_grade'] }}
                         @else
                             <span class="muted">-</span>
@@ -303,7 +305,9 @@
                     </td>
 
                     <td class="score-col">
-                        @if ($row['endterm_score'] !== null)
+                        @if ($row['endterm_did_not_write'] ?? false)
+                            **
+                        @elseif ($row['endterm_score'] !== null)
                             {{ number_format($row['endterm_score'], 0) }}{{ $row['endterm_grade'] }}
                         @else
                             <span class="muted">-</span>
@@ -407,6 +411,7 @@
     </div>
 
     <div class="grade-scale">
+        <div>** = Did not write. A dash means the mark has not been entered.</div>
         <strong>Grade Scale:</strong>
         <span><strong>A*</strong> &gt;89 to 100</span>
         <span><strong>A</strong> &gt;79 to 89</span>

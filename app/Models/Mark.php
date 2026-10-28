@@ -18,14 +18,39 @@ class Mark extends Model
         'term_id',
         'midterm_score',
         'endterm_score',
+        'midterm_did_not_write',
+        'endterm_did_not_write',
         'grade',
         'remarks',
     ];
 
     protected $casts = [
+        'midterm_did_not_write' => 'boolean',
+        'endterm_did_not_write' => 'boolean',
         'midterm_score' => 'decimal:2',
         'endterm_score' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Mark $mark) {
+            foreach (['midterm', 'endterm'] as $exam) {
+                if ($mark->{$exam.'_score'} !== null) {
+                    $mark->{$exam.'_did_not_write'} = false;
+                }
+            }
+        });
+    }
+
+    public function assessmentRecorded(string $assessment): bool
+    {
+        return $this->{$assessment.'_score'} !== null || (bool) $this->{$assessment.'_did_not_write'};
+    }
+
+    public function assessmentDisplay(string $assessment): string
+    {
+        return $this->{$assessment.'_did_not_write'} ? '**' : ($this->{$assessment.'_score'} ?? '');
+    }
 
     // Relationships
     public function student()

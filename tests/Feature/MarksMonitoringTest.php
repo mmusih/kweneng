@@ -197,6 +197,53 @@ class MarksMonitoringTest extends TestCase
         ]);
     }
 
+    public function test_absence_is_completed_but_blank_is_outstanding_and_zero_is_a_mark(): void
+    {
+        [$headmaster, $year, $term, $class, $subject, $teachers, $students] = $this->monitoringScenario();
+        $service = app(\App\Services\MarksService::class);
+        $absent = $service->upsertMarks($students[0]->id, $subject->id, $class->id, $teachers[0]->id,
+            $year->id, $term->id, null, null, null, false, true);
+        $service->upsertMarks($students[1]->id, $subject->id, $class->id, $teachers[0]->id,
+            $year->id, $term->id, null, 0);
+        $monitor = app(\App\Services\MarksMonitoringService::class);
+        $summary = $monitor->build($year->id, $term->id, 'endterm')['summary'];
+        $this->assertSame(2, $summary['completed']);
+        $this->assertSame(1, $summary['missing']);
+        $this->assertSame(0, $monitor->build($year->id, $term->id, 'midterm')['summary']['completed']);
+        $this->assertSame('**', $absent->fresh()->assessmentDisplay('endterm'));
+        $this->assertNull($absent->fresh()->endterm_score);
+        $this->assertNull($absent->fresh()->grade);
+        $this->assertSame('endterm', $monitor->defaultAssessment($year->id, $term->id));
+        $service->upsertMarks($students[0]->id, $subject->id, $class->id, $teachers[0]->id,
+            $year->id, $term->id, null, 75, null, false, false);
+        $this->assertFalse($absent->fresh()->endterm_did_not_write);
+        $this->assertEquals(75, $absent->fresh()->endterm_score);
+        $service->upsertMarks($students[0]->id, $subject->id, $class->id, $teachers[0]->id,
+            $year->id, $term->id, null, null, null, false, false);
+        $this->assertSame(2, $monitor->build($year->id, $term->id, 'endterm')['summary']['missing']);
+    }
+
+    public function test_mobile_absence_round_trips_and_locked_assessment_cannot_be_cleared(): void
+    {
+        [$headmaster, $year, $term, $class, $subject, $teachers, $students] = $this->monitoringScenario();
+        \Laravel\Sanctum\Sanctum::actingAs($teachers[0]->user);
+        $context = ['class_id' => $class->id, 'subject_id' => $subject->id,
+            'academic_year_id' => $year->id, 'term_id' => $term->id];
+        $row = ['student_id' => $students[0]->id, 'midterm_score' => null,
+            'endterm_score' => null, 'midterm_did_not_write' => true, 'endterm_did_not_write' => false];
+        $this->postJson('/api/teacher/marks/sheet', $context + ['marks' => [$row]])->assertOk();
+        $this->getJson('/api/teacher/marks/sheet?'.http_build_query($context))
+            ->assertOk()->assertJsonPath('students.0.midterm_did_not_write', true)
+            ->assertJsonPath('students.0.midterm_score', null);
+        $term->update(['midterm_locked' => true]);
+        $row['midterm_did_not_write'] = false;
+        $row['midterm_score'] = 80;
+        $row['endterm_score'] = 60;
+        $this->postJson('/api/teacher/marks/sheet', $context + ['marks' => [$row]])->assertOk();
+        $this->assertDatabaseHas('marks', ['student_id' => $students[0]->id, 'term_id' => $term->id,
+            'midterm_did_not_write' => true, 'midterm_score' => null, 'endterm_score' => 60]);
+    }
+
     private function monitoringScenario(): array
     {
         $headmaster = User::factory()->create(['role' => 'headmaster', 'status' => 'active']);

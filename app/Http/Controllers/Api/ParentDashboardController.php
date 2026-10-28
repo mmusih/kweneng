@@ -207,7 +207,7 @@ class ParentDashboardController extends Controller
                 ],
                 'attendance_rate' => $attendanceRate,
                 'behaviour' => [
-                    'label' => $this->behaviourLabel($behaviourRecords),
+                    'label' => ($currentAcademicYear && $currentTerm) ? $this->behaviourLabel($behaviourRecords) : 'No summary recorded',
                     'total' => $behaviourRecords->count(),
                 ],
                 'homework' => [
@@ -366,15 +366,6 @@ class ParentDashboardController extends Controller
 
     private function behaviourLabel($records): string
     {
-        if ($records->count() === 0) {
-            return 'Good';
-        }
-        $major = $records->where('severity', BehaviourRecord::SEVERITY_MAJOR)->count();
-        $moderate = $records->where('severity', BehaviourRecord::SEVERITY_MODERATE)->count();
-        if ($major > 0 || $moderate >= 3) {
-            return 'Needs attention';
-        }
-
-        return 'Fair';
+        return app(\App\Services\BehaviourSummaryService::class)->label($records);
     }
 }

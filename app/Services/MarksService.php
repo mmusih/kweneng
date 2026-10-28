@@ -204,7 +204,7 @@ class MarksService
 
         if ($midtermScore !== null && $endtermScore === null) {
             return sprintf(
-                'The learner showed %s in the midterm assessment but did not write the end-of-term assessment.',
+                'The learner showed %s in the midterm assessment.',
                 $this->performancePhrase($midtermScore)
             );
         }
@@ -293,7 +293,7 @@ class MarksService
         ]);
 
         return preg_match(
-            '/^The learner showed (?:'.$phrases.') in the (?:midterm assessment but did not write the end-of-term assessment|end-of-term assessment)\.$/u',
+            '/^The learner showed (?:'.$phrases.') in the (?:midterm assessment but did not write the end-of-term assessment|midterm assessment|end-of-term assessment)\.$/u',
             $comment
         ) === 1;
     }
@@ -341,7 +341,9 @@ class MarksService
         int $termId,
         ?float $midtermScore,
         ?float $endtermScore,
-        ?string $remarks = null
+        ?string $remarks = null,
+        ?bool $midtermDidNotWrite = null,
+        ?bool $endtermDidNotWrite = null
     ): Mark {
         if (! $this->studentIsAssignedToTeacherForMarks($studentId, $classId, $subjectId, $academicYearId, $teacherId)) {
             throw new InvalidArgumentException('This learner is not assigned to this teacher for the selected class, subject, and academic year.');
@@ -361,6 +363,11 @@ class MarksService
             ->where('academic_year_id', $academicYearId)
             ->where('term_id', $termId)
             ->first();
+
+        $midtermDidNotWrite ??= $midtermScore === null && (bool) $existingMark?->midterm_did_not_write;
+        $endtermDidNotWrite ??= $endtermScore === null && (bool) $existingMark?->endterm_did_not_write;
+        if ($midtermDidNotWrite) $midtermScore = null;
+        if ($endtermDidNotWrite) $endtermScore = null;
 
         $grade = $this->calculateGradeForScores($midtermScore, $endtermScore);
         $resolvedRemarks = $this->resolveTeacherComment(
@@ -384,6 +391,8 @@ class MarksService
                 'teacher_id' => $teacherId,
                 'midterm_score' => $midtermScore,
                 'endterm_score' => $endtermScore,
+                'midterm_did_not_write' => $midtermDidNotWrite,
+                'endterm_did_not_write' => $endtermDidNotWrite,
                 'grade' => $grade,
                 'remarks' => $resolvedRemarks,
             ]
@@ -425,7 +434,9 @@ class MarksService
                         (int) $markData['term_id'],
                         array_key_exists('midterm_score', $markData) && $markData['midterm_score'] !== null && $markData['midterm_score'] !== '' ? (float) $markData['midterm_score'] : null,
                         array_key_exists('endterm_score', $markData) && $markData['endterm_score'] !== null && $markData['endterm_score'] !== '' ? (float) $markData['endterm_score'] : null,
-                        $markData['remarks'] ?? null
+                        $markData['remarks'] ?? null,
+                        $markData['midterm_did_not_write'] ?? null,
+                        $markData['endterm_did_not_write'] ?? null
                     );
 
                     $results[] = [

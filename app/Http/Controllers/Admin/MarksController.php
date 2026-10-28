@@ -160,6 +160,8 @@ class MarksController extends Controller
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'teacher_id' => ['required', 'integer', 'exists:teachers,id'],
             'marks' => ['required', 'array'],
+            'marks.*.midterm_did_not_write' => ['sometimes', 'boolean'],
+            'marks.*.endterm_did_not_write' => ['sometimes', 'boolean'],
             'marks.*.midterm' => ['nullable', 'numeric', 'between:0,100'],
             'marks.*.endterm' => ['nullable', 'numeric', 'between:0,100'],
             'marks.*.remarks' => ['nullable', 'string', 'max:500'],
@@ -201,6 +203,8 @@ class MarksController extends Controller
                 'teacher_id' => (int) $data['teacher_id'],
                 'academic_year_id' => (int) $data['academic_year_id'],
                 'term_id' => (int) $data['term_id'],
+                'midterm_did_not_write' => $scores['midterm_did_not_write'] ?? null,
+                'endterm_did_not_write' => $scores['endterm_did_not_write'] ?? null,
                 'midterm_score' => $scores['midterm'] ?? null,
                 'endterm_score' => $scores['endterm'] ?? null,
                 'remarks' => $scores['remarks'] ?? null,
@@ -242,10 +246,16 @@ class MarksController extends Controller
         }
 
         $validated = $request->validate([
+            'midterm_did_not_write' => 'sometimes|boolean',
+            'endterm_did_not_write' => 'sometimes|boolean',
             'midterm_score' => 'nullable|numeric|min:0|max:100',
             'endterm_score' => 'nullable|numeric|min:0|max:100',
             'remarks' => 'nullable|string|max:500',
         ]);
+
+        foreach (['midterm', 'endterm'] as $exam) {
+            if ($validated[$exam.'_did_not_write'] ?? false) $validated[$exam.'_score'] = null;
+        }
 
         $midterm = array_key_exists('midterm_score', $validated)
             ? $validated['midterm_score']
@@ -382,8 +392,9 @@ class MarksController extends Controller
                         continue;
                     }
 
+                    $didNotWrite = trim((string) $cell['score']) === '**';
                     $score = $this->normalizeScore($cell['score']);
-                    if ($score === null) {
+                    if ($score === null && ! $didNotWrite) {
                         continue;
                     }
 
@@ -411,7 +422,8 @@ class MarksController extends Controller
                         'subject_name' => $subject->name,
                         'teacher_id' => $teacherId,
                         'score' => $score,
-                        'grade' => $this->marksService->calculateGrade($score),
+                        'did_not_write' => $didNotWrite,
+                        'grade' => $score !== null ? $this->marksService->calculateGrade($score) : null,
                     ];
                 }
             }
@@ -496,8 +508,10 @@ class MarksController extends Controller
 
                         if ($validated['assessment_type'] === 'midterm') {
                             $mark->midterm_score = $subjectRow['score'];
+                            $mark->midterm_did_not_write = $subjectRow['did_not_write'] ?? false;
                         } else {
                             $mark->endterm_score = $subjectRow['score'];
+                            $mark->endterm_did_not_write = $subjectRow['did_not_write'] ?? false;
                         }
 
                         $mark->grade = $this->calculateGradeForMark($mark->midterm_score, $mark->endterm_score);

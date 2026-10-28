@@ -112,4 +112,5 @@
             @endif
         </div>
     </div>
+<p class="p-4 text-sm">** = Did not write. Missing marks remain unconfirmed; Did not write counts as a completed entry.</p>
 </x-app-layout>

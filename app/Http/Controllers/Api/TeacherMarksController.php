@@ -59,6 +59,8 @@ class TeacherMarksController extends Controller
                     'id' => $student->id,
                     'admission_no' => $student->admission_no,
                     'name' => $student->user->name,
+                    'midterm_did_not_write' => (bool) $mark?->midterm_did_not_write,
+                    'endterm_did_not_write' => (bool) $mark?->endterm_did_not_write,
                     'midterm_score' => $mark?->midterm_score !== null ? (float) $mark->midterm_score : null,
                     'endterm_score' => $mark?->endterm_score !== null ? (float) $mark->endterm_score : null,
                     'grade' => $mark
@@ -78,6 +80,8 @@ class TeacherMarksController extends Controller
         $validated = array_merge($this->validateContext($request), $request->validate([
             'marks' => ['required', 'array', 'min:1'],
             'marks.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
+            'marks.*.midterm_did_not_write' => ['sometimes', 'boolean'],
+            'marks.*.endterm_did_not_write' => ['sometimes', 'boolean'],
             'marks.*.midterm_score' => ['nullable', 'numeric', 'between:0,100'],
             'marks.*.endterm_score' => ['nullable', 'numeric', 'between:0,100'],
             'marks.*.remarks' => ['nullable', 'string', 'max:500'],
@@ -131,7 +135,9 @@ class TeacherMarksController extends Controller
                     $term->id,
                     $midterm !== null ? (float) $midterm : null,
                     $endterm !== null ? (float) $endterm : null,
-                    $row['remarks'] ?? null
+                    $row['remarks'] ?? null,
+                    $term->isMidtermLocked() ? (bool) $existing?->midterm_did_not_write : ($row['midterm_did_not_write'] ?? null),
+                    $term->isEndtermLocked() ? (bool) $existing?->endterm_did_not_write : ($row['endterm_did_not_write'] ?? null)
                 );
                 $count++;
             }

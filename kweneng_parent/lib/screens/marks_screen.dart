@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:open_filex/open_filex.dart';
 
 import '../providers/flutter_providers.dart';
 import '../services/api_service.dart';
 import '../utils/grade_utils.dart';
 import '../widgets/portal_widgets.dart';
+import '../widgets/open_pdf.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -70,14 +70,18 @@ bool _toBool(dynamic value) {
 
 class MarksSubject {
   final String subject;
+  final bool midtermDidNotWrite;
   final double? midtermScore;
+  final bool endtermDidNotWrite;
   final double? endtermScore;
   final String? midtermGrade;
   final String? endtermGrade;
 
   const MarksSubject({
     required this.subject,
+    this.midtermDidNotWrite = false,
     this.midtermScore,
+    this.endtermDidNotWrite = false,
     this.endtermScore,
     this.midtermGrade,
     this.endtermGrade,
@@ -85,7 +89,9 @@ class MarksSubject {
 
   factory MarksSubject.fromJson(Map<String, dynamic> j) => MarksSubject(
     subject: j['subject'] as String? ?? 'Unknown',
+    midtermDidNotWrite: j['midterm_did_not_write'] == true,
     midtermScore: _toDouble(j['midterm_score']),
+    endtermDidNotWrite: j['endterm_did_not_write'] == true,
     endtermScore: _toDouble(j['endterm_score']),
     midtermGrade: gradeForScore(_toDouble(j['midterm_score'])),
     endtermGrade: gradeForScore(_toDouble(j['endterm_score'])),
@@ -557,10 +563,10 @@ class _SubjectTable extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   Text(
-                    'Midterm: ${score(subject.midtermScore, subject.midtermGrade)}',
+                    'Midterm: ${subject.midtermDidNotWrite ? '** (Did not write)' : score(subject.midtermScore, subject.midtermGrade)}',
                   ),
                   Text(
-                    'End-term: ${score(subject.endtermScore, subject.endtermGrade)}',
+                    'End-term: ${subject.endtermDidNotWrite ? '** (Did not write)' : score(subject.endtermScore, subject.endtermGrade)}',
                   ),
                 ],
               ),

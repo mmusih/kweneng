@@ -55,7 +55,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        {{ $row['value'] !== null ? number_format($row['value'], 2) : '—' }}
+                                        {{ $row['did_not_write'] ? '**' : ($row['value'] !== null ? number_format($row['value'], 2) : '—') }}
                                     </td>
                                 </tr>
                             @empty
@@ -71,4 +71,5 @@
             </div>
         </div>
     </div>
+<p class="p-4 text-sm">** = Did not write. Completed entries include marks and confirmed Did not write entries; blanks remain outstanding.</p>
 </x-app-layout>

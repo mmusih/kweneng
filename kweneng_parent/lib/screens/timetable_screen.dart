@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/flutter_models.dart';
 import '../providers/flutter_providers.dart';
 import '../widgets/portal_widgets.dart';
+import '../widgets/open_pdf.dart';
 
 class TimetableScreen extends ConsumerStatefulWidget {
   const TimetableScreen({super.key});
@@ -16,6 +17,7 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
   int? selectedStudentId;
   int? selectedDay;
   int selectedSchedule = 0;
+  bool downloading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +98,29 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
     );
   }
 
+  Future<void> _download(int studentId, String scheduleType) async {
+    setState(() => downloading = true);
+    try {
+      final file = await ref
+          .read(apiServiceProvider)
+          .downloadTimetable(studentId, scheduleType);
+      if (!mounted) return;
+      await openPdf(context, file.path);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not download the timetable. Please try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => downloading = false);
+    }
+  }
+
   Widget _buildTimetable(TimetableData data, int studentId) {
     if (!data.isPublished) {
       return const _EmptyView(
@@ -130,6 +155,18 @@ class _TimetableScreenState extends ConsumerState<TimetableScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         children: [
+          if (schedule.scheduleType != null)
+            OutlinedButton.icon(
+              onPressed: downloading
+                  ? null
+                  : () => _download(studentId, schedule.scheduleType!),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: Text(
+                downloading
+                    ? 'Downloading...'
+                    : 'Download ${schedule.scheduleLabel ?? "timetable"} PDF (all days)',
+              ),
+            ),
           if ((data.dayLabel ?? '').isNotEmpty)
             Chip(
               avatar: const Icon(Icons.today_outlined, size: 18),

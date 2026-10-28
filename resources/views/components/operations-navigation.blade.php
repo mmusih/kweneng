@@ -15,7 +15,6 @@
     if ($staffAccess) $modules[] = ['staff.dashboard', 'My workspace', $staffContext, 'badge-check'];
     if (!$finance && \App\Support\StaffWorkflows::approvesSpending($user)) $modules[] = ['finance.expenses.index', 'Expense approvals', request()->routeIs('finance.expenses.*'), 'document-report'];
     if (!$finance && $purchasing) $modules[] = ['finance.purchasing.index', 'Purchasing', request()->routeIs('finance.purchasing.*'), 'archive'];
-    if ($user->role === 'parent') $modules[] = ['parent.receipts.index', 'Payments & receipts', request()->routeIs('parent.receipts.*'), 'document-report'];
     $tabs = [];
     if ($hrContext) {
         $tabs = [

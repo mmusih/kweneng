@@ -43,6 +43,8 @@ class StudentAcademicRecordService
                         'subjects' => $termMarks->map(fn (Mark $mark) => [
                             'subject' => $mark->subject?->name ?? 'Unknown subject',
                             'code' => $mark->subject?->code,
+                            'midterm_did_not_write' => (bool) $mark?->midterm_did_not_write,
+                            'endterm_did_not_write' => (bool) $mark?->endterm_did_not_write,
                             'midterm_score' => $mark->midterm_score === null ? null : (float) $mark->midterm_score,
                             'endterm_score' => $mark->endterm_score === null ? null : (float) $mark->endterm_score,
                             'average' => $mark->average === null ? null : round((float) $mark->average, 1),

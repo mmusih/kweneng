@@ -76,6 +76,8 @@ class CommentController extends Controller
 
                             return [
                                 'subject_name' => $mark->subject->name ?? 'Unknown Subject',
+                                'midterm_did_not_write' => (bool) $mark->midterm_did_not_write,
+                                'endterm_did_not_write' => (bool) $mark->endterm_did_not_write,
                                 'midterm_score' => $midterm,
                                 'endterm_score' => $endterm,
                                 'average' => $average,

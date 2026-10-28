@@ -232,9 +232,8 @@ class ChildModel {
     ),
     awards: (j['awards'] as List? ?? [])
         .map(
-          (item) => StudentAward.fromJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
+          (item) =>
+              StudentAward.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList(),
     prefectAppointments: (j['prefect_appointments'] as List? ?? [])
@@ -273,9 +272,7 @@ class StudentAward {
   });
 
   factory StudentAward.fromJson(Map<String, dynamic> j) {
-    final badge = Map<String, dynamic>.from(
-      (j['badge'] as Map?) ?? const {},
-    );
+    final badge = Map<String, dynamic>.from((j['badge'] as Map?) ?? const {});
     return StudentAward(
       id: _intOrZero(j['id']),
       title: j['title']?.toString() ?? 'Achievement',
@@ -609,8 +606,10 @@ class BehaviourSummary {
 
   const BehaviourSummary({required this.label, required this.total});
 
-  factory BehaviourSummary.fromJson(Map<String, dynamic> j) =>
-      BehaviourSummary(label: j['label'] ?? 'Good', total: j['total'] ?? 0);
+  factory BehaviourSummary.fromJson(Map<String, dynamic> j) => BehaviourSummary(
+    label: j['label'] ?? 'No summary recorded',
+    total: j['total'] ?? 0,
+  );
 }
 
 class LibrarySummary {
@@ -1235,6 +1234,7 @@ class TimetableData {
   final String? academicYear;
   final int? selectedDayNumber;
   final List<TimetableDayData> days;
+  final String? scheduleType;
   final String? scheduleLabel;
   final String? dayLabel;
   final List<TimetableData> schedules;
@@ -1245,6 +1245,7 @@ class TimetableData {
     this.academicYear,
     this.selectedDayNumber,
     required this.days,
+    this.scheduleType,
     this.scheduleLabel,
     this.dayLabel,
     this.schedules = const [],
@@ -1277,6 +1278,7 @@ class TimetableData {
             ),
           )
           .toList(),
+      scheduleType: template?['schedule_type']?.toString(),
       scheduleLabel: template?['schedule_label']?.toString(),
       dayLabel: j['day_label']?.toString(),
       schedules: schedules,
@@ -1301,6 +1303,7 @@ class TimetableData {
             ),
           )
           .toList(),
+      scheduleType: template?['schedule_type']?.toString(),
       scheduleLabel: template?['schedule_label']?.toString(),
       dayLabel: j['day_label']?.toString(),
     );

@@ -76,7 +76,7 @@ class MarksMonitoringService
                 foreach ($studentSubjects as $studentSubject) {
                     $mark = $marks->get($studentSubject->student_id);
 
-                    if ($mark && $mark->{$scoreColumn} !== null) {
+                    if ($mark && $mark->assessmentRecorded($assessment)) {
                         $completed++;
                     } else {
                         $missingStudentNames[] = $studentSubject->student?->user?->name ?? 'Unknown Student';
@@ -165,7 +165,7 @@ class MarksMonitoringService
         return Mark::query()
             ->where('academic_year_id', $academicYearId)
             ->where('term_id', $termId)
-            ->whereNotNull('endterm_score')
+            ->where(fn ($query) => $query->whereNotNull('endterm_score')->orWhere('endterm_did_not_write', true))
             ->exists()
                 ? 'endterm'
                 : 'midterm';

@@ -314,6 +314,8 @@ class MarksSaveNotifier extends Notifier<MutationState> {
                 .map(
                   (s) => {
                     'student_id': s.id,
+                    'midterm_did_not_write': s.midtermDidNotWrite,
+                    'endterm_did_not_write': s.endtermDidNotWrite,
                     'midterm_score': s.midtermScore,
                     'endterm_score': s.endtermScore,
                     'remarks': s.remarks,

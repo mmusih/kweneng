@@ -48,7 +48,7 @@
                                 <x-text-input id="midterm_score" class="block mt-1 w-full" type="number" 
                                              name="midterm_score" :value="old('midterm_score', $mark->midterm_score)" 
                                              min="0" max="100" step="0.01" />
-                                <x-input-error :messages="$errors->get('midterm_score')" class="mt-2" />
+                                <x-input-error :messages="$errors->get('midterm_score')" class="mt-2" /><label class="block text-sm mt-2"><input type="hidden" name="midterm_did_not_write" value="0"><input type="checkbox" name="midterm_did_not_write" value="1" @checked($mark?->midterm_did_not_write)> Did not write (**)</label>
                             </div>
                             
                             <div>
@@ -56,7 +56,7 @@
                                 <x-text-input id="endterm_score" class="block mt-1 w-full" type="number" 
                                              name="endterm_score" :value="old('endterm_score', $mark->endterm_score)" 
                                              min="0" max="100" step="0.01" />
-                                <x-input-error :messages="$errors->get('endterm_score')" class="mt-2" />
+                                <x-input-error :messages="$errors->get('endterm_score')" class="mt-2" /><label class="block text-sm mt-2"><input type="hidden" name="endterm_did_not_write" value="0"><input type="checkbox" name="endterm_did_not_write" value="1" @checked($mark?->endterm_did_not_write)> Did not write (**)</label>
                             </div>
                             
                             <div>

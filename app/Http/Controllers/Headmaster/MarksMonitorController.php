@@ -137,7 +137,8 @@ class MarksMonitorController extends Controller
                 'student_name' => $studentSubject->student?->user?->name ?? 'N/A',
                 'admission_no' => $studentSubject->student?->admission_no ?? 'N/A',
                 'value' => $value,
-                'missing' => $value === null,
+                'did_not_write' => (bool) $mark?->{$assessment.'_did_not_write'},
+                'missing' => ! $mark?->assessmentRecorded($assessment),
             ];
         })->sortByDesc('missing')->values();
 

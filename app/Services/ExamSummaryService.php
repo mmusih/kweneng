@@ -113,9 +113,10 @@ class ExamSummaryService
                 $subjectScores[$subject['id']] = [
                     'score' => $score,
                     'grade' => $grade,
-                    'display' => $score !== null
+                    'did_not_write' => (bool) $mark?->{$examType.'_did_not_write'},
+                    'display' => $mark?->{$examType.'_did_not_write'} ? '**' : ($score !== null
                         ? $this->formatScoreWithGrade($score, $grade)
-                        : '',
+                        : ''),
                 ];
 
                 if ($score !== null) {

@@ -38,6 +38,29 @@ class TimetableService
             : $this->emptyPayload($date);
     }
 
+    public function currentActivity(Student $student): array
+    {
+        $now = now(config('app.timezone'));
+        $schedule = $this->forStudent($student, $now, true);
+        $blocks = collect($schedule['schedules'] ?? [])->flatMap(function ($item) use ($now) {
+            if (($item['date'] ?? null) !== $now->toDateString() || $item['selected_day_number'] === null) {
+                return [];
+            }
+            $day = collect($item['days'])->firstWhere('day_number', $item['selected_day_number']);
+            return collect($day['blocks'] ?? [])->filter(fn ($block) =>
+                $block['start_time'] <= $now->format('H:i') && $block['end_time'] > $now->format('H:i'))
+                ->map(fn ($block) => $block + ['schedule_label' => $item['template']['schedule_label']]);
+        })->values();
+        return [
+            'date' => $now->toDateString(),
+            'checked_at' => $now->toIso8601String(),
+            'blocks' => $blocks,
+            'description' => $blocks->isNotEmpty()
+                ? $blocks->map(fn ($block) => $block['title'].' · '.$block['start_time'].'–'.$block['end_time'].(($block['room'] ?? null) ? ' · '.$block['room'] : ''))->implode(' / ')
+                : ($schedule['template'] ? 'No activity scheduled at this time' : 'Timetable not published yet'),
+        ];
+    }
+
     private function emptyPayload(Carbon|string|null $date): array
     {
         return [

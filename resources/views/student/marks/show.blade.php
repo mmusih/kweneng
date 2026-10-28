@@ -107,10 +107,10 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->midterm_score ?? 'N/A' }}
+                                            {{ $mark?->midterm_did_not_write ? '**' : ($mark->midterm_score ?? 'N/A') }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $mark->endterm_score ?? 'N/A' }}
+                                            {{ $mark?->endterm_did_not_write ? '**' : ($mark->endterm_score ?? 'N/A') }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ $average !== null ? number_format($average, 2) : 'N/A' }}
@@ -191,4 +191,5 @@
             </div>
         </div>
     </div>
+<p class="p-4 text-sm">** = Did not write. Missing marks remain unconfirmed; Did not write counts as a completed entry.</p>
 </x-app-layout>

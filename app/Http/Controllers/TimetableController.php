@@ -61,4 +61,23 @@ class TimetableController extends Controller
             'selectedStudent' => $selectedStudent,
         ]);
     }
+    public function parentCurrent(Request $request)
+    {
+        $data = $request->validate(['student_id' => ['required', 'integer']]);
+        $student = $request->user()->parent?->students()->find($data['student_id']);
+        abort_unless($student, 403);
+        return response()->json($this->timetables->currentActivity($student))->header('Cache-Control', 'no-store');
+    }
+
+    public function parentDownload(Request $request, \App\Services\StudentTimetablePdfService $pdfs)
+    {
+        $data = $request->validate([
+            'student_id' => ['required', 'integer'],
+            'schedule_type' => ['required', 'in:day,afternoon'],
+        ]);
+        $student = $request->user()->parent?->students()->with(['user', 'currentClass'])->find($data['student_id']);
+        abort_unless($student, 403);
+        return $pdfs->download($student, $data['schedule_type']);
+    }
+
 }
